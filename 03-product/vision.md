@@ -1,90 +1,79 @@
 # Product Vision
 
-> The vision is the team's north star. All sprints, design decisions,
-> and trade-offs are evaluated against this vision.
-> It must be ambitious yet achievable, inspiring but specific.
+> The vision of Save Your Water is to turn water usage into something visible, understandable, and actionable for citizens, operators, and administrators.
+> This vision guides every sprint, prioritization decision, and technical trade-off.
 
 ---
 
 ## Vision statement
 
-> Use the Geoffrey Moore template:
-
-**For** [target customer]
-**who** [has the need / faces the problem]
-**the** [product name]
-**is a** [product category]
-**that** [main benefit / reason to choose]
-**unlike** [competing alternative]
-**our product** [key differentiator].
+**For** households, operators, and administrators
+**who** need to understand consumption, detect anomalies, and respond to water service issues,
+**the** Save Your Water platform
+**is a** digital water management solution
+**that** helps track consumption, prevent waste, and improve service visibility,
+**unlike** scattered spreadsheets, manual reporting, and reactive maintenance,
+**our product** centralizes data, alerts, and reporting in one clear operational experience.
 
 ---
 
 ## Team mission
 
-> In 1-2 sentences: why does this team exist? What change in the world does it seek to achieve?
+The team exists to create a practical digital tool that helps people use water more consciously, detect problems early, and improve the quality of service through better visibility, faster response, and more informed decisions.
 
 ---
 
 ## Strategic pillars
 
-Pillars are the focus areas that take us from mission to vision.
-They should be few (3-5) and consistent over time.
-
 | Pillar | Description | Success metrics |
 |--------|-------------|----------------|
-| [Pillar 1: e.g. Speed] | [What it means for our product] | [KPIs] |
-| [Pillar 2: e.g. Reliability] | [Description] | [KPIs] |
-| [Pillar 3: e.g. Scale] | [Description] | [KPIs] |
+| Awareness | Users understand how much water they consume and how it changes over time | active usage, adoption of dashboard, monthly consumption tracking |
+| Early detection | The system identifies unusual patterns and alerts users or operators early | alerts generated, response time, anomaly detection rate |
+| Operational efficiency | Operators and administrators can coordinate service tasks and decisions with better visibility | issue resolution time, workflow adoption, reduced manual coordination |
+| Sustainability | The platform helps reduce waste and support responsible water use | reduction in abnormal consumption, better user engagement in conservation |
 
 ---
 
 ## High-level roadmap
 
-> The roadmap shows how the product evolves over time.
-> Horizon 1 (0-3 months): high certainty, detail in HUs
-> Horizon 2 (3-6 months): medium certainty, epics
-> Horizon 3 (6-12 months): low certainty, focus areas
-
 ```
-Q1 2024 ──── Q2 2024 ──── Q3 2024 ──── Q4 2024
-     │              │              │              │
-  [MVP]      [Feature A]    [Feature B]   [Scale]
-  Validate    Expand         Deepen        Grow
-  hypothesis  the market     the value
+Q1 2026 ──── Q2 2026 ──── Q3 2026 ──── Q4 2026
+     │             │             │             │
+  MVP          Alerts &     Reports &     Expansion
+  auth +       anomalies     service ops  and scale
+  consumption
 ```
 
 | Horizon | Period | Objective | Epics / Features | Uncertainty |
-|---------|--------|----------|----------------|-------------|
-| H1 (Now) | [Q1] | [Objective] | [Epic 1, Epic 2] | Low |
-| H2 (Next) | [Q2] | [Objective] | [Epic 3, Area X] | Medium |
-| H3 (Later) | [Q3-Q4] | [Objective] | [Area Y, Area Z] | High |
+|---------|--------|----------|------------------|-------------|
+| H1 (Now) | Q1 2026 | Launch core monitoring flow | authentication, household readings, dashboard | Low |
+| H2 (Next) | Q2 2026 | Add service awareness and alerts | anomaly alerts, reports, issue submission | Medium |
+| H3 (Later) | Q3-Q4 2026 | Extend operations and administration | advanced administration, service workflows, deeper analytics | Medium |
 
 ---
 
 ## Product principles
 
-These principles guide design and prioritization decisions when there are trade-offs.
-
-1. **[Principle 1]:** [description. Example: "New user first — every new feature must be understandable in 2 minutes without onboarding"]
-
-2. **[Principle 2]:** [description. Example: "Opinionated about what matters, flexible on the secondary"]
-
-3. **[Principle 3]:** [description]
+1. **User clarity first:** the system must help users understand their behavior and act on real data.
+2. **Actionable alerts:** every alert must be relevant, understandable, and actionable.
+3. **Operational simplicity:** the experience should reduce manual coordination, not add more friction.
+4. **Security by default:** user and operational data must be protected at all times.
+5. **Incremental value:** deliver the most important use cases first, then expand after validation.
 
 ---
 
 ## Product Definition of Done
 
-> The product is "done" when it achieves these OKRs:
+> The product is considered successful when it creates measurable value for users and operators.
 
-**Objective:** [What we want to achieve]
+**Objective:** improve household awareness of water consumption and reduce operational delays in service detection and response.
 
 | Key Result | Baseline | Target | Date |
 |------------|---------|--------|------|
-| KR1: [specific metric] | [current value] | [target value] | [date] |
-| KR2: [metric] | [current] | [target] | [date] |
-| KR3: [business metric] | [current] | [target] | [date] |
+| Active households using the platform | Low / initial adoption | 60% monthly engagement | Q2 2026 |
+| Alert response time | Unstructured response | < 24h for critical alerts | Q2 2026 |
+| Reported issue resolution time | Manual and inconsistent | 30% reduction | Q3 2026 |
+| User trust in water usage data | Low visibility | Dashboard adoption and repeated usage | Q2 2026 |
 
 ---
 

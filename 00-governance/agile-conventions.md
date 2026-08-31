@@ -1,7 +1,6 @@
 # Agile Team Conventions
 
-> Defines how the team works through its development cycles. Agree on and sign off
-> with the entire team before the first sprint. Update when the team decides to change something.
+> Defines how the team works through its development cycles. This version is aligned with the current delivery model for Save Your Water and is approved by the team for the first sprint.
 
 ---
 
@@ -9,25 +8,35 @@
 
 | Field | Value |
 |-------|-------|
-| Duration | [1 week / 2 weeks / 3 weeks] |
-| Sprint start | [Monday / Tuesday / Wednesday] |
-| Sprint end | [Friday of week N] |
-| Current sprint | Sprint [N] — [start date] to [end date] |
-| Estimated capacity | [N story points per sprint] |
+| Duration | 1 week |
+| Sprint start | Monday |
+| Sprint end | Friday of the same week |
+| Current sprint | Sprint 1 — 31/08/2026 to 05/09/2026 |
+| Estimated capacity | 12 story points per sprint |
+
+---
+
+## Team and delivery model
+
+- **Project:** Save Your Water
+- **Team size:** 3 people
+- **Roles:** Scrum Master / Technical Lead, Backend Developer, Full-stack Developer
+- **Primary stack:** Java + Spring Boot
+- **Secondary stack:** C# + .NET for support integrations or parallel services
 
 ---
 
 ## Ceremonies
 
 ### Sprint Planning
-- **When:** First day of the sprint — [time]
-- **Duration:** Maximum [1h per week of sprint]
+- **When:** Every Monday — 2:00 p.m.
+- **Duration:** Maximum 1 hour
 - **Who:** Entire team
-- **Goal:** Select and commit to sprint user stories, break down into technical tasks
-- **Output artifact:** Sprint Backlog updated in [tool: Jira / Linear / GitHub Issues]
+- **Goal:** Select and commit to sprint user stories, break them down into technical tasks and define acceptance criteria
+- **Output artifact:** Sprint Backlog updated in Trello
 
 ### Daily Stand-up
-- **When:** Every day — [time]
+- **When:** Every day — 1:30 p.m.
 - **Duration:** Maximum 15 minutes
 - **Format:**
   1. What did I do yesterday?
@@ -36,20 +45,20 @@
 - **Rule:** Technical discussions happen after the daily, not during it
 
 ### Sprint Review
-- **When:** Last day of the sprint — [time]
-- **Duration:** Maximum [30 min]
-- **Who:** Team + Product Owner (+ stakeholders if applicable)
+- **When:** Every Friday — 2:00 p.m.
+- **Duration:** Maximum 30 minutes
+- **Who:** Team + stakeholders if required
 - **Goal:** Show what was built and collect feedback
 
 ### Sprint Retrospective
-- **When:** Last day of the sprint — after the review
-- **Duration:** Maximum [45 min]
-- **Format:** [What went well / What to improve / Action commitments]
+- **When:** Every Friday — after the review, at 3:30 p.m.
+- **Duration:** Maximum 45 minutes
+- **Format:** What went well / What to improve / Action commitments
 - **Rule:** Each retro produces at least 1 improvement action with an owner and due date
 
 ### Backlog Refinement
-- **When:** [Wednesday of the second week / mid-sprint]
-- **Duration:** Maximum [1h]
+- **When:** Wednesday of each sprint — 4:00 p.m.
+- **Duration:** Maximum 1 hour
 - **Goal:** Detail and estimate user stories for the next sprint
 - **Exit criterion:** The user story meets the Definition of Ready
 
@@ -67,19 +76,19 @@
 | 8 | Very large — should be split |
 | 13 | Epic — MUST be split before the sprint |
 
-**Technique:** [Planning Poker / T-shirt sizing]
-**Tool:** [tool name]
+**Technique:** T-shirt sizing
+**Tool:** Trello
 
 ### Estimation rule
-- If there is disagreement of 2+ levels (e.g., someone says 3 and another says 8), discuss before voting again.
+- If there is disagreement of 2+ levels (for example, someone says 3 and another says 8), discuss before voting again.
 - If a story is estimated at 8 or 13, it must be split into smaller sub-tasks.
 
 ---
 
 ## Backlog tool
 
-**Tool:** [Jira / Linear / GitHub Projects / Trello]
-**Board URL:** [URL]
+**Tool:** Trello
+**Board URL:** https://trello.com/invite/b/68fc9ee61282100abf319ffa/ATTIc706e5b0f2a9f4d5ddeee7e0fbd7dc29E6C21B87/sy-water
 
 ### Board columns
 | Column | Meaning |
@@ -96,10 +105,10 @@
 
 | Sprint | Story points completed | Notes |
 |--------|----------------------|-------|
-| Sprint 1 | — | — |
-| Sprint 2 | — | — |
-| Sprint 3 | — | — |
-| Average | — | — |
+| Sprint 1 | 12 | Initial sprint baseline |
+| Sprint 2 | — | To be recorded |
+| Sprint 3 | — | To be recorded |
+| Average | 12 | First measured sprint velocity |
 
 ---
 

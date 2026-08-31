@@ -1,23 +1,13 @@
 # Problem Framing — Problem Definition
 
-> **Why this document exists:** Before designing solutions, the team must be
-> aligned on the problem it solves. This document captures that alignment.
-> A well-defined problem is already halfway to a solution.
+> This document defines the real problem that Save Your Water intends to solve before proposing any technical solution.
+> The goal is to align the team, the stakeholders, and the product decisions around the actual pain and the concrete value to create.
 
 ---
 
 ## 1. The problem in one sentence
 
-> Complete this template:
-
-**[User segment]** who **[usage context]** struggle with **[pain/problem]**
-because **[root cause]**, resulting in **[quantifiable impact]**.
-
-**Example:**
-> **Mid-sized company inventory operators** who **manage catalogs of more than 500 products**
-> struggle with **stock control across multiple warehouses** because **current systems
-> do not support real-time synchronization**, resulting in **15% of orders with stock errors
-> and 3 hours of manual correction work per day**.
+**Household users, operators, and administrators** who **need to monitor and manage water consumption and service incidents** struggle with **limited visibility, delayed detection of anomalies, and inefficient maintenance processes** because **consumption data is fragmented, alerts are not timely, and reporting is not centralized**, resulting in **water waste, delayed attention to service problems, and poor operational decision-making**.
 
 ---
 
@@ -25,51 +15,49 @@ because **[root cause]**, resulting in **[quantifiable impact]**.
 
 | Segment | Description | Estimated size | Priority |
 |---------|-------------|---------------|---------|
-| [Segment A] | [Who they are, what they do] | [N users] | High |
-| [Segment B] | [Who they are] | [N users] | Medium |
+| Households / citizens | People who consume water and want to understand usage patterns and avoid waste | High | High |
+| Operators / field staff | Staff responsible for monitoring service health and responding to incidents | Medium | High |
+| Administrators | People responsible for managing users, rules, alerts, and service configuration | Medium | Medium |
 
 ### Jobs-to-be-done (JTBD)
 
-> What job is the user trying to do when they "hire" our product?
+**When** a household wants to understand its monthly water consumption or detect an unusual spike,
+**I want** clear data, alerts, and service visibility,
+**so that** I can reduce waste, act on time, and avoid unnecessary costs.
 
-**When** [situation / context],
-**I want** [motivation / what they are trying to achieve],
-**so that** [expected outcome / benefit].
+**When** an operator receives a report of a possible leak or service issue,
+**I want** a structured way to review, validate, and act on the problem,
+**so that** I can resolve it faster and reduce service impact.
 
 ---
 
 ## 3. Evidence of the problem
 
-> The problem must be real. Document the evidence you have.
-
 | Evidence type | Source | Date | Key finding |
 |--------------|--------|------|------------|
-| User interviews | [N] interviews with [profile] | [date] | [what they said] |
-| Support data | Support tickets | [period] | [% of tickets on this topic] |
-| Benchmarking | [Competitors / market] | [date] | [how others solve it] |
-| Direct observation | [Shadowing / field research] | [date] | [what was observed] |
+| User interviews | Households and service staff | 2026 | Users do not have a centralized view of water consumption and incident reporting |
+| Operational observation | Local service workflows | 2026 | Incidents are often handled after the problem becomes visible to the user |
+| Business need analysis | Team discussions and project brief | 2026 | Water waste and delayed response are recurring operational pain points |
+| Benchmarking | Similar utility and monitoring tools | 2026 | Service monitoring tools exist, but they are fragmented and not focused on household engagement |
 
 ---
 
 ## 4. Current user solution (and its problems)
 
-> How does the user solve the problem today?
-
 | Current solution | Limitations | Cost/Friction |
 |-----------------|------------|--------------|
-| [Excel / manual process] | [Does not scale, errors, slow] | [X hours/day] |
-| [Legacy system] | [No API, no integration] | [Y errors/week] |
+| Manual tracking of readings | Error-prone, inconsistent, limited historical visibility | Time spent checking and reconciling data |
+| Phone calls or informal reports | Slow, hard to track, lack of structure | Delayed response and poor visibility |
+| Dispersed service tools | Information is fragmented across channels | More effort to coordinate actions |
 
 ---
 
 ## 5. Solution hypothesis
 
-> This is the first draft of the solution direction. It is not a commitment.
-
-**We believe that** [describe the high-level solution]
-**for** [the user segment],
-**will achieve** [the expected benefit].
-**We will know we succeeded when** [specific metric].
+**We believe that** a digital platform that centralizes water consumption monitoring, anomaly alerts, and service reporting
+**for** households, operators, and administrators,
+**will achieve** reduced waste, faster service response, and better decision-making.
+**We will know we succeeded when** water usage is easier to understand, alerts are acted on in time, and operational incidents are managed with greater visibility and speed.
 
 ---
 
@@ -77,10 +65,12 @@ because **[root cause]**, resulting in **[quantifiable impact]**.
 
 | Metric | Current baseline | 6-month target | How to measure it |
 |--------|----------------|---------------|-------------------|
-| [Business metric 1] | [current value] | [target value] | [instrument] |
-| [Adoption metric] | [current value] | [target value] | [instrument] |
+| Household active engagement | Low / inconsistent | 60% of registered households monthly active | Platform analytics |
+| Alert response time | Not measured / slow | < 24 hours for critical alerts | Alert workflow metrics |
+| Reported issue resolution time | Unstructured process | Reduce by 30% | Service management data |
+| User retention | Low | 70% monthly retention among active users | App analytics |
 
-**North Star Metric:** [The single metric that best captures the value delivered]
+**North Star Metric:** percentage of active households that successfully use the platform to monitor consumption and respond to alerts in a given month.
 
 ---
 
@@ -88,18 +78,20 @@ because **[root cause]**, resulting in **[quantifiable impact]**.
 
 | Risk | Probability | Impact | Experiment to validate |
 |------|------------|--------|----------------------|
-| [Users will not adopt the change] | High | High | [Pilot with N users] |
-| [The problem is not as frequent as we think] | Medium | High | [Support log analysis] |
+| Users will not actively record consumption | Medium | High | Pilot with a limited number of households |
+| Alert thresholds are not accurate enough | Medium | High | Compare with historical consumption patterns |
+| Operators may not adopt the workflow | Medium | Medium | Pilot with real service personnel |
 
 ---
 
 ## 8. Out of scope (we do not solve)
 
-> Explicitly define which related problems you are NOT solving in this version.
-> This prevents scope creep.
+> This version focuses on the core flow: consumption monitoring, anomaly alerts, and issue reporting. It does not include full billing automation, advanced SCADA integration, or a large public utility ecosystem in the first phase.
 
-- [Related problem that is out of scope: why]
-- [Feature users ask for but we are not doing now: reason]
+- Full billing and invoice management
+- Deep industrial or municipal SCADA integration
+- Advanced predictive maintenance using complex sensor ecosystems
+- Large-scale ERP or finance integrations beyond the initial product scope
 
 ---
 

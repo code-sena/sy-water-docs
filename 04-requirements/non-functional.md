@@ -1,19 +1,7 @@
 # Non-Functional Requirements (NFR)
 
-> NFRs define the **qualities of the system** — not what it does but how well it does it.
-> The golden rule: every NFR must have a metric. "The system must be fast" is not an NFR.
-> "The P99 latency of the /orders endpoint must be < 200ms under 500 RPS load" is.
-
----
-
-## How to write a measurable NFR?
-
-| Bad | Good |
-|-----|------|
-| "The system must be fast" | "P95 latency must be < 300ms under 1000 concurrent RPS" |
-| "The system must be secure" | "All endpoints require a valid JWT; tokens expire in 1 hour" |
-| "The system must scale" | "The system must support up to 5000 concurrent users without degradation" |
-| "The system must be available" | "Availability SLO: 99.9% monthly (maximum 44 min downtime/month)" |
+> These requirements define how well Save Your Water must work.
+> Every NFR has an explicit metric and an agreed validation method.
 
 ---
 
@@ -21,37 +9,38 @@
 
 | Attribute | Metric | Test condition |
 |-----------|--------|---------------|
-| P95 latency — critical endpoints | < 300ms | Under [N] RPS load |
-| P99 latency — critical endpoints | < 500ms | Under [N] RPS load |
-| P95 latency — non-critical endpoints | < 1000ms | Normal load |
-| Minimum throughput | [N] RPS | Without degradation |
-| Service startup time | < 30 seconds | Cold start |
+| Authentication endpoint latency | p95 < 400 ms | Under normal production-like load |
+| Consumption dashboard latency | p95 < 500 ms | Under 100 concurrent users |
+| Historical report generation | p95 < 2 s | For a 30-day report range |
+| Critical alert processing | p99 < 1 s | During anomaly evaluation |
+| Service startup time | < 30 s | Cold start in staging |
 
-**Defined critical endpoints:**
-- `POST /[resource]` — [justification for why it is critical]
-- `GET /[resource]/:id` — [justification]
+**Defined critical flows:**
+- `POST /auth/login`
+- `GET /dashboard/consumption`
+- `POST /alerts/evaluate`
+- `GET /reports/monthly`
 
-**Load testing tools:**
-- k6, Apache JMeter, Locust, Gatling
-
-**Where is it validated?** CI/CD in the staging pipeline before production.
+**Validation method:**
+- k6 load tests in staging
+- benchmark runs every sprint before release
 
 ---
 
 ## NFR-002: Availability
 
-| Environment | SLO | Maintenance window | Max downtime/month |
-|------------|-----|-------------------|-------------------|
-| Production | 99.9% | Sundays 2am-4am | 44 minutes |
-| Staging | 95% | No restriction | 36 hours |
+| Environment | SLO | Maintenance window | Maximum downtime per month |
+|------------|-----|-------------------|----------------------------|
+| Production | 99.9% | Sundays 02:00-04:00 | 44 minutes |
+| Staging | 99.5% | No restriction | 3.5 hours |
 
-**Monthly error budget in production:** 44 minutes
-**Error Budget policy:** If > 50% of the error budget is consumed in the first half of the month,
-feature deploys are frozen until the next month and stability is prioritized.
+**Error budget:**
+- Production monthly budget: 44 minutes
+- If the team consumes more than half of the budget in the first half of the month, feature deployments are paused until stability is restored.
 
 **Health checks:**
-- `GET /health` — Liveness: responds 200 if the process is alive
-- `GET /health/ready` — Readiness: responds 200 only if it can process traffic (DB connected, dependencies OK)
+- `GET /health` — liveness check
+- `GET /health/ready` — readiness check with DB and dependency validation
 
 ---
 
@@ -59,39 +48,34 @@ feature deploys are frozen until the next month and stability is prioritized.
 
 | Scenario | Expected behavior |
 |---------|------------------|
-| Gradual load growth | Horizontal auto-scaling activated when CPU > 70% |
-| Sudden spike (Black Friday, etc.) | System scales in < 2 minutes |
-| Load reduction | Scale-down without interrupting active traffic |
-| Horizontal scaling limit | Up to [N] instances per service |
+| Normal growth | Support incremental household onboarding without degradation |
+| Peak user load | Up to 5,000 active households without major latency increase |
+| Alert bursts | Process concurrent anomaly checks without queue collapse |
+| Resource reduction | Scale down without interrupting active sessions |
 
-**Strategy:** Stateless horizontal scaling — each instance does not store state in memory.
-State goes in Redis (sessions, cache) or PostgreSQL (persistent data).
+**Strategy:** horizontal auto-scaling, stateless API services, and persisted data in the database layer.
 
 ---
 
 ## NFR-004: Security
 
-### Authentication and Authorization
-- All private endpoints require a valid JWT in the `Authorization: Bearer <token>` header
+### Authentication and authorization
+- All protected endpoints require a valid JWT in the `Authorization: Bearer <token>` header
 - JWT tokens expire in **1 hour**
-- Refresh tokens valid for **7 days**
-- RBAC (Role-Based Access Control): roles defined in `00-governance/security-policy.md`
+- Refresh tokens expire in **7 days**
+- RBAC is enforced by role and service capability
+- Roles are defined in `00-governance/security-policy.md`
 
-### Data transmission
-- HTTPS mandatory in production (TLS 1.2+)
-- HTTP only in local development
+### Data protection
+- HTTPS is mandatory in all non-local environments
+- Sensitive data is encrypted at rest when applicable
+- Passwords use bcrypt or Argon2id with strong parameters
+- Secrets are stored in environment variables or a secure secret manager, never in source code
 
-### Sensitive data
-- Passwords: hashing with bcrypt (cost factor ≥ 12) or Argon2id
-- PII (personal data): encrypted at rest
-- Secrets/keys: only in environment variables or vault, **never in code**
-
-### OWASP Top 10
-Code must be reviewed against the OWASP Top 10 on each release.
-Tools: SAST (SonarQube/Snyk), dependency scanning, DAST in staging.
-
-### Regulatory compliance
-- [GDPR / Habeas Data / PCI-DSS / etc.] — as applicable to the project
+### OWASP validation
+- Dependency scanning is run in CI
+- SAST review and security checks are required before release
+- Critical endpoints must be reviewed for input validation and authorization flaws
 
 ---
 
@@ -99,12 +83,12 @@ Tools: SAST (SonarQube/Snyk), dependency scanning, DAST in staging.
 
 | Pillar | Requirement | Tool |
 |--------|------------|------|
-| Logs | Structured JSON format + Correlation ID | Winston / Logback |
-| Metrics | RED (Rate, Errors, Duration) per endpoint | Prometheus + Grafana |
-| Traces | End-to-end distributed traces | OpenTelemetry + Jaeger |
-| Alerts | Alert in < 5 min when SLI violates SLO | Alertmanager / PagerDuty |
+| Logs | Structured logs with correlation ID | Logback / Winston |
+| Metrics | RED metrics per endpoint | Prometheus + Grafana |
+| Traces | End-to-end request trace propagation | OpenTelemetry |
+| Alerts | Alert within 5 minutes when critical SLOs are violated | Grafana / Alertmanager |
 
-**Correlation ID:** Each external request generates a UUID correlationId propagated in all logs and spans of that transaction.
+**Correlation ID:** every request must generate a UUID that travels through logs and traces for the same transaction.
 
 ---
 
@@ -112,50 +96,39 @@ Tools: SAST (SonarQube/Snyk), dependency scanning, DAST in staging.
 
 | Metric | Target |
 |--------|--------|
-| Test coverage | ≥ 80% of lines (≥ 90% in the domain) |
-| Cyclomatic complexity | ≤ 10 per function |
-| Technical debt | Resolution time < 1 sprint from registration |
-| Onboarding time | A new dev can deploy locally in < 1 hour following `10-devops/local-setup.md` |
-| Average build time | < 5 minutes in CI |
+| Unit test coverage | ≥ 80% line coverage |
+| Domain logic coverage | ≥ 90% |
+| Code review approval | At least 1 reviewer per PR |
+| Technical debt tickets | Resolved in the same or next sprint when practical |
+| Local setup time | New developer can run the project in under 1 hour |
 
 ---
 
-## NFR-007: Portability
+## NFR-007: Portability and deployment
 
-- All services are deployed as Docker images
-- Images work in any environment with Kubernetes 1.28+
-- No service depends on the host operating system
-- Environment variables are the only source of environment-specific configuration
-
----
-
-## NFR-008: Disaster Recovery (DR / Recovery)
-
-| Scenario | RTO (Recovery Time Objective) | RPO (Recovery Point Objective) |
-|---------|------------------------------|-------------------------------|
-| Single service failure | < 2 minutes (K8s restart) | 0 (stateless) |
-| Primary database failure | < 5 minutes (failover to replica) | < 1 second (synchronous replication) |
-| Availability zone loss | < 15 minutes | < 5 minutes |
-| Full region disaster | < 4 hours (DR in secondary region) | < 1 hour |
+- Services must be deployable as containerized artifacts
+- The application should run consistently across local, staging, and production environments using environment variables
+- No service must depend on host OS-specific behavior
+- Deployment must be reproducible using the project automation and environment configuration
 
 ---
 
 ## NFR priority matrix
 
-| NFR | Priority (P1/P2/P3) | Validated in CI? | Owner |
-|-----|---------------------|-----------------|-------|
-| Performance | P1 | Yes (k6 in staging) | [Tech Lead] |
-| Availability | P1 | Yes (health checks) | [DevOps] |
-| Security | P1 | Yes (SAST + OWASP) | [Security] |
-| Scalability | P2 | Manual (quarterly) | [DevOps] |
-| Observability | P1 | Yes (smoke test in CI) | [Tech Lead] |
-| Maintainability | P2 | Yes (coverage in CI) | [Team] |
+| NFR | Priority | Validation | Owner |
+|-----|----------|-----------|-------|
+| Performance | P1 | k6 in staging | Tech Lead |
+| Availability | P1 | Monitoring + health checks | DevOps |
+| Security | P1 | SAST + JWT review + OWASP checks | Tech Lead |
+| Scalability | P2 | Capacity validation in staging | DevOps |
+| Observability | P1 | Smoke test + metrics review | Tech Lead |
+| Maintainability | P2 | Coverage and quality gates | Team |
 
 ---
 
 ## Correlations
 
-- Detailed SLOs and SLAs → `13-operations/README.md`
-- Pipeline that validates NFRs → `10-devops/README.md`
-- Incidents related to NFR violations → `13-operations/incident-management.md`
-- Security checklist → `00-governance/security-policy.md`
+- Product vision and problem framing → `03-product/vision.md`
+- User stories that implement these constraints → `04-requirements/user-stories.md`
+- Security policy → `00-governance/security-policy.md`
+- Monitoring and operations → `13-operations/README.md`
