@@ -1,69 +1,85 @@
 # System Scope
 
-> **Why this document exists:** Scope prevents scope creep and aligns expectations.
-> It is equally important to define what the system does NOT do as what it does.
 > Review this document at the start of each planning cycle.
+> Change the scope only through the process described at the bottom.
 
 ---
 
 ## In Scope
 
-What the system **DOES build and maintain**:
+### MVP Features (Entrega 1)
 
-### MVP Features
+| # | Feature | Description | Epic |
+|---|---------|-------------|------|
+| 1 | User registration and login | Sign up with email/ID/password, email verification, login, Google OAuth, password recovery, logout | E1 |
+| 2 | Profile management | View and edit name, photo, phone number; change password | E1 |
+| 3 | Place registration | Create a place (home/business) with name, address, country, city, stratum, inhabitants | E2 |
+| 4 | Place management | List, switch between, edit, and delete places | E2 |
+| 5 | Device linking | Link an ESP32 device to a place via ID or QR code; authenticate device | E3 |
+| 6 | Telemetry ingestion | Receive and store flow readings from ESP32 via MQTT; validate and deduplicate | E3 |
+| 7 | Device status | Show connected/disconnected/never reported status and last report timestamp | E3 |
+| 8 | Device unlinking | Unlink a device from a place while preserving consumption history | E3 |
+| 9 | Real-time consumption | Display current and accumulated consumption with < 1 min latency | E4 |
+| 10 | Period selector | Switch between day, week, and month views | E4 |
+| 11 | Consumption chart | Interactive chart adjusted to selected period (hours/days) | E4 |
+| 12 | Auto-refresh panel | Panel updates automatically every minute; manual refresh available | E4 |
 
-| # | Feature | Description | Responsible service |
-|---|---------|-------------|---------------------|
-| 1 | [Feature A] | [Brief description] | [service-name] |
-| 2 | [Feature B] | [Brief description] | [service-name] |
-| 3 | [Feature C] | [Brief description] | [service-name] |
-
-### Included integrations
+### Included integrations (MVP)
 
 | External system | Integration type | Purpose |
 |----------------|-----------------|---------|
-| [System A] | REST API / Webhook / SDK | [purpose] |
-| [System B] | SFTP / Database | [purpose] |
+| Google OAuth | OAuth 2.0 | Social login (registration and sign-in) |
+| ESP32 devices | MQTT | Receive flow sensor readings and send valve commands |
+| Email provider (TBD) | SMTP / API | Verification emails, password recovery, critical alerts |
 
 ### Environments being built
 
 | Environment | Purpose |
 |-------------|---------|
-| Local | Development on the developer's machine |
-| Development (dev) | Continuous integration and development testing |
-| Staging | Pre-production, PO acceptance testing |
-| Production | Production environment |
+| Local | Development on developer machines (Docker) |
+| Development (dev) | Integration testing on VPS |
+| Production | Initial production deployment on VPS |
 
 ---
 
-## Out of Scope
+## Out of Scope (MVP)
 
-What the system **does NOT build** in this version and why:
+| # | What is out of scope | Reason | Planned for |
+|---|---------------------|--------|-------------|
+| 1 | Manual valve control (open/close) | Requires confirmed device communication round-trip and security code flow | Entrega 2 |
+| 2 | Consumption goals and progress tracking | Depends on having at least one month of historical data | Entrega 2 |
+| 3 | Alerts and notifications (push, email, WhatsApp) | Complex multi-channel system; MVP focuses on real-time visibility | Entrega 2 |
+| 4 | Leak detection alerts | Requires threshold tuning and alert infrastructure | Entrega 2 |
+| 5 | Utility bill registration and comparison | Depends on stable consumption data to compare against | Entrega 3 |
+| 6 | Tariffs and currency configuration | Depends on bill comparison feature | Entrega 3 |
+| 7 | Automatic valve shutoff rules | High-risk feature; requires confirmed manual valve control first | Entrega 3 |
+| 8 | Guest/shared user access | Core owner features must be stable before adding shared access | Entrega 3 |
+| 9 | Downloadable PDF/Excel reports | Nice-to-have; core value is real-time visibility | Entrega 4 |
+| 10 | Water saving tips | Generic content; low priority vs. measurement features | Entrega 4 |
+| 11 | Pre-loaded tariff catalogs (CO, EC, US) | Ongoing maintenance cost; manual tariff entry covers the need | Entrega 4 |
+| 12 | Per-fixture consumption breakdown | Hardware limitation: single sensor at main inlet cannot disaggregate | Won't — hardware constraint |
+| 13 | Staging environment | Team of 3; dev + prod is sufficient for now | Future |
 
-| # | What is out of scope | Reason | Future version? |
-|---|---------------------|--------|----------------|
-| 1 | [Feature X] | [Out of budget / Not MVP / Uses external system] | Yes — H2 2024 |
-| 2 | [Integration with Y] | [Provider has no public API yet] | Pending provider |
-| 3 | [Module Z] | [Another team builds it] | N/A |
+### What another system / team handles
 
-### What another system / team handles (and why not us)
-
-| Feature | Who builds it | Why not us |
-|---------|--------------|-----------|
-| [SSO Authentication] | Central IAM team | Reuse existing implementation |
-| [Financial reports] | BI system / Analytics team | Outside the core domain |
+| Feature | Who handles it | Why not us |
+|---------|---------------|-----------|
+| Water billing and payment processing | Utility company (acueducto) | We compare against their bills, we don't generate or collect payments |
+| Physical installation of the device | The end user or a plumber | We provide instructions, not installation service |
+| ESP32 firmware development | Hardware team / firmware scope | Documented separately from this backend/frontend documentation repo |
 
 ---
 
 ## Scope assumptions
 
-> These assumptions are taken to be true. If they change, the scope must be renegotiated.
-
 | # | Assumption | Consequence if false |
 |---|-----------|---------------------|
-| 1 | External system [X] has an available REST API | We would have to build the integration differently |
-| 2 | Users use [language / device / etc.] | The UX design would change |
-| 3 | Initial data volume is < [N] records | The database strategy might change |
+| 1 | The ESP32 has stable Wi-Fi connectivity at the installation point | Telemetry gaps; device appears as disconnected frequently |
+| 2 | One device per place is sufficient (single inlet) | Would need multi-device support per place |
+| 3 | Users have a smartphone with Android or iOS | React Native web extension covers desktop, but mobile is the primary UX |
+| 4 | MQTT broker can handle the expected device volume (initially < 1,000 devices) | Would need to evaluate a managed/cloud broker earlier |
+| 5 | SQL Server is available for all services | If licensing is a constraint, PostgreSQL is the fallback |
+| 6 | The YF-S201 sensor provides readings accurate enough for bill comparison | If accuracy is insufficient, bill comparison feature loses value |
 
 ---
 
@@ -71,39 +87,30 @@ What the system **does NOT build** in this version and why:
 
 | Type | Description |
 |------|-------------|
-| **Time** | [MVP must be ready in X weeks / by date Y] |
-| **Budget** | [N development hours / X USD of infrastructure] |
-| **Technology** | [Must use the corporate stack: Java + PostgreSQL] |
-| **Regulatory** | [Must comply with X regulation / certification] |
-| **Team** | [N developers available] |
+| **Team** | 3 developers (no dedicated QA, DevOps, or designer) |
+| **Budget** | University project; no cloud budget — Docker local + VPS |
+| **Technology** | React Native (mobile+web), Spring Boot (IAM), .NET (under evaluation), SQL Server, MQTT |
+| **Hardware** | Single measurement point per place (YF-S201 + ESP32) |
+| **Regulatory** | Password storage must be encrypted; personal data handling must follow good practices |
 
 ---
 
 ## External dependencies
 
-| Dependency | Team / Provider | Required date | Status |
-|-----------|----------------|--------------|--------|
-| API of [System X] | [Team name] | [date] | 🟢 Available |
-| Credentials for [Provider Y] | [Contact] | [date] | 🟡 In progress |
-| [Infrastructure Z] | DevOps | [date] | 🔴 Pending |
+| Dependency | Provider | Required for | Status |
+|-----------|---------|-------------|--------|
+| Google OAuth credentials | Google Cloud Console | HU-005 (Google login) | 🟡 To be configured |
+| MQTT Broker | TBD (Mosquitto / HiveMQ) | HU-012 (telemetry ingestion) | 🟡 To be selected |
+| Email service | TBD (SendGrid / AWS SES / SMTP) | HU-003 (email verification), HU-006 (password recovery) | 🟡 To be selected |
+| ESP32 firmware | Hardware team | HU-011, HU-012 (device linking + readings) | 🟡 In development |
+| WhatsApp Business API / SMS provider | TBD | HU-029 (WhatsApp/SMS alerts — Entrega 2) | 🔴 Not started |
 
 ---
 
 ## How to update the scope
 
-The scope can change, but the change has a process:
-
 1. Document the proposed change in this file
 2. Evaluate the impact on schedule and effort
-3. Obtain approval from the Product Owner and Tech Lead
-4. Update the roadmap in `03-product/vision.md`
-5. Create or update HUs in `04-requirements/user-stories.md`
-
----
-
-## Correlations
-
-- Vision and roadmap → `03-product/vision.md`
-- Term glossary → `01-context/glossary.md`
-- System overview → `01-context/overview.md`
-- Scope-related risks → `15-project-control/risks.md`
+3. Obtain agreement from the full team (3 developers)
+4. Update the roadmap and affected user stories in the backlog
+5. Record the decision as an ADR in `05-architecture/decisions/records/` if it affects architecture
