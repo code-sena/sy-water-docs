@@ -1,98 +1,41 @@
 # 06 — Data
 
 > **What is this?** How the system stores, structures, and migrates data.
-> In microservices, data management is one of the most complex challenges.
 
-## Fundamental principle in microservices
+## Fundamental principle
 
-> **Each microservice owns its own data.**
+> **Schema-per-service, shared database.**
 
-No service should access another service's database directly. If it needs data from another
-service, it requests it via API or receives it via event. This principle guarantees independence.
+All services use a single SQL Server instance (`sy_water_db`). Each service owns its schema and must NOT query another service's schema directly. Inter-service data access is via REST API or RabbitMQ events. See [ADR-002](../05-architecture/decisions/records/ADR-002-shared-database-schema-per-service.md).
 
 ---
 
-## What is here and how to fill it in
+## Documents in this section
 
-### `models.md` ⭐
-Data models for each microservice.
-**Fill in:** ER (entity-relationship) diagram or description of collections/tables for each service.
-
-**Format per service:**
-```markdown
-## Service: [name]
-**DB Engine:** [PostgreSQL / MongoDB / Redis / etc.]
-**Justification:** [why this engine for this service]
-
-### Table/Collection: [name]
-| Field | Type | Nullable | Description | Constraints |
-|-------|------|----------|-------------|-------------|
-| id | UUID | No | Unique identifier | PK |
-| [field] | [type] | [Yes/No] | [description] | [FK/Unique/etc.] |
-
-### Indexes
-| Name | Fields | Type | Justification |
-|------|--------|------|---------------|
-```
-
-### `data-dictionary.md` ⭐
-Exact meaning of each important field in the system.
-**Fill in:** especially for fields that may be ambiguous or have business rules.
-
-**Format:**
-```markdown
-| Field | Service | Table | Type | Detailed description | Possible values |
-|-------|---------|-------|------|---------------------|-----------------|
-| status | scheduling | schedule | ENUM | Current status of the schedule | ACTIVE, CANCELLED, PENDING |
-```
-
-### `modeling-conventions.md`
-Naming and style conventions for the project's databases.
-**Fill in:** naming (snake_case or camelCase), use of UUIDs vs sequential, standard timestamps,
-soft delete vs hard delete, auditing (created_at, updated_at, created_by).
-
-### `normalization-assessment.md`
-Analysis of the normalization level and justification for denormalizations.
-**Fill in:** for each intentional denormalization, explain why (performance, simplification).
-
-### `migration-strategy.md`
-Strategy for migrating data between schema versions.
-**Fill in:** migration tool (Flyway, Liquibase, Alembic), rollback policy,
-how to handle migrations with data in production.
+| File | Purpose | Status |
+|------|---------|--------|
+| [models.md](./models.md) | DDL for all schemas and tables (T-SQL), ER diagrams, data ownership matrix, migration strategy | Complete |
 
 ---
 
-## Correlations with other sections
+## Schemas summary
+
+| Schema | Owner service | Tables | Entrega |
+|--------|-------------|--------|---------|
+| `iam` | auth-service | users, verification_tokens, sessions, login_attempts | MVP |
+| `place` | place-service | places, members, invitations | MVP (members/invitations: Entrega 3) |
+| `device` | device-service | devices, readings | MVP |
+| `consumption` | consumption-service | consumption_records, goals, bills, tariffs | MVP (goals: E2, bills/tariffs: E3) |
+| `valve` | valve-service | valves, valve_actions, shutoff_rules | Entrega 2 (shutoff_rules: E3) |
+| `notification` | notification-service | alerts, notification_preferences | Entrega 2 |
+
+---
+
+## Correlations
 
 | This section is fed by... | And feeds into... |
 |---------------------------|-------------------|
-| `02-domain/entities-and-rules.md` → domain entities | DB tables |
-| `05-architecture/` → DB engine decisions | Engine choice in `models.md` |
-| `models.md` | `07-api/contracts/` → what data each service exposes |
-| `models.md` | `08-uml/` → ER diagrams |
-| `models.md` | `09-microservices/[service]/data-model.md` |
-
----
-
-## Important data decisions in microservices
-
-### SQL or NoSQL?
-There is no single answer. It depends on the service:
-- **SQL** (PostgreSQL, MySQL): relational data, ACID transactions, fixed schema
-- **Document** (MongoDB): hierarchical data, flexible schema, high variability
-- **Key-value** (Redis): cache, sessions, high-speed temporary data
-- **Time series** (InfluxDB, TimescaleDB): metrics, event logs
-
-### How to handle consistency between services?
-Without a shared database, consistency is **eventual**:
-- Saga Pattern: chain of compensating transactions
-- Outbox Pattern: guarantee that the event is published along with the transaction
-
----
-
-## Questions this section must answer
-
-- What data does each microservice handle?
-- Why was that database engine chosen for each service?
-- How is the schema updated without breaking the system?
-- Who is the "owner" of each piece of data in the system?
+| `02-domain/entities-and-rules.md` → domain entities | DB tables in `models.md` |
+| `05-architecture/overview.md` → DB strategy | Schema structure |
+| `models.md` | `07-api/contracts/` → API field names and types |
+| `models.md` | `09-microservices/[service]/data-model.md` → per-service detail |
