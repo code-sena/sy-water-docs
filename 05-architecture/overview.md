@@ -1,99 +1,107 @@
 # System Architecture Overview
 
-> **What to fill in here:** The architectural view is the technical snapshot of the system.
-> It includes the C4 system and container diagram, service list, and architectural principles.
-> This document is created after the main ADRs and guides the implementation.
-
----
-
 ## 1. Adopted architectural style
 
-**Style:** [Microservices / Microservices + Event-Driven / Modular Monolith / etc.]
+**Style:** Microservices + Event-Driven
 
-**Justification:** [Why this style for this project and these requirements]
+**Justification:** The system has naturally distinct bounded contexts (IAM, devices, consumption, valve control, notifications) that evolve at different rates and have different scaling needs. Event-driven communication decouples services and enables reactive features like leak detection and auto-shutoff.
 
-**Reference ADR:** [`ADR-001-architectural-style.md`](decisions/records/)
+**Reference:** `02-domain/domain-map.md` for bounded context decomposition.
 
 ---
 
 ## 2. C4 Diagram — System Level (Context)
 
-> Shows how the system fits in the world. External actors and external systems.
-
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        System [Name]                                │
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌────────────────────────┐  │
-│  │ [Service A] │    │ [Service B] │    │ [Service C]            │  │
-│  │             │    │             │    │                        │  │
-│  │ Port: 3001  │    │ Port: 3002  │    │ Port: 3003             │  │
-│  └──────┬──────┘    └──────┬──────┘    └──────────┬─────────────┘  │
-│         │                  │                       │                │
-│         └──────────────────┴───────────────────────┘                │
-│                            │ Message Bus                             │
-└────────────────────────────│────────────────────────────────────────┘
-                             │
-                  ┌──────────┴──────────┐
-                  │                     │
-         ┌────────▼──────┐    ┌─────────▼──────┐
-         │ API Gateway   │    │ Admin Dashboard │
-         │               │    │                 │
-         └────────┬──────┘    └─────────────────┘
-                  │
-         ┌────────▼──────────────┐
-         │    External clients   │
-         │  (Web, Mobile, API)   │
-         └───────────────────────┘
+  ┌────────────┐     ┌────────────┐     ┌──────────────────┐
+  │  Mobile App│     │  Web App   │     │  ESP32 Devices   │
+  │(React Native)    │(RN Web Ext)│     │(Sensor + Valve)  │
+  └─────┬──────┘     └─────┬──────┘     └────────┬─────────┘
+        │                  │                      │
+        │     HTTPS        │     HTTPS            │ MQTT
+        └──────────┬───────┘                      │
+                   ▼                              ▼
+        ┌─────────────────┐            ┌─────────────────┐
+        │   API Gateway   │            │   MQTT Broker   │
+        │ (Spring Cloud   │            │  (Mosquitto)    │
+        │   Gateway)      │            └────────┬────────┘
+        └────────┬────────┘                     │
+                 │                              │
+        ┌────────┴──────────────────────────────┴──────┐
+        │           Save Your Water Platform           │
+        │                                              │
+        │  auth · place · device · consumption         │
+        │  valve · notification                        │
+        └──────────────────┬───────────────────────────┘
+                           │
+              ┌────────────┼────────────────┐
+              ▼            ▼                ▼
+     ┌──────────────┐ ┌──────────┐ ┌──────────────┐
+     │  SQL Server  │ │ RabbitMQ │ │External APIs  │
+     │ (sy_water_db)│ │ (Events) │ │(Email, Push,  │
+     │              │ │          │ │ Google OAuth)  │
+     └──────────────┘ └──────────┘ └──────────────┘
 ```
 
 ---
 
 ## 3. C4 Diagram — Container Level
 
-> Shows the processes, databases, and main communication channels.
-
 ```
-Replace this block with the project-specific diagram.
+                        ┌──────────────────────────────────┐
+    Mobile / Web ──────▶│  API Gateway (Spring Cloud GW)   │
+                        │  :8080                           │
+                        │  JWT validation · routing · CORS │
+                        └──┬────┬────┬────┬────┬───────────┘
+                           │    │    │    │    │
+          ┌────────────────┘    │    │    │    └──────────────────┐
+          ▼                     ▼    │    ▼                      ▼
+  ┌──────────────┐   ┌──────────┐   │  ┌────────────┐   ┌─────────────┐
+  │ auth-service │   │  place-  │   │  │   valve-   │   │notification-│
+  │ (Spring Boot)│   │ service  │   │  │  service   │   │   service   │
+  │   :3001      │   │  :3002   │   │  │   :3005    │   │    :3006    │
+  │              │   │          │   │  │            │   │             │
+  │ Schema: iam  │   │Schema:   │   │  │Schema:     │   │Schema:      │
+  │              │   │ place    │   │  │ valve      │   │ notification│
+  └──────────────┘   └──────────┘   │  └─────┬──────┘   └─────────────┘
+                                    │        │
+                                    ▼        │ REST (valve commands)
+                           ┌────────────┐    │
+                           │consumption-│    │
+                           │  service   │◀───┘
+                           │   :3004    │
+                           │            │
+                           │Schema:     │
+                           │consumption │
+                           └────────────┘
+                                    ▲
+                                    │ Events (ReadingReceived)
+                           ┌────────┴───┐
+                           │device-     │◀──── MQTT Broker ◀──── ESP32
+                           │ service    │        (Mosquitto)
+                           │  :3003     │
+                           │            │
+                           │Schema:     │
+                           │ device     │
+                           └────────────┘
 
-Recommended tools:
-- PlantUML (see 08-uml/diagrams/source/)
-- Mermaid (natively supported on GitHub)
-- draw.io / Lucidchart
-```
-
-**Mermaid example:**
-
-```mermaid
-graph TB
-  subgraph "System [Name]"
-    GW[API Gateway<br/>:8080]
-    SA[Service A<br/>:3001]
-    SB[Service B<br/>:3002]
-    BUS[(Message Bus<br/>Kafka/RabbitMQ)]
-    DBA[(Service A DB<br/>PostgreSQL)]
-    DBB[(Service B DB<br/>MongoDB)]
-  end
-
-  WEB[Web App] --> GW
-  MOB[Mobile] --> GW
-  GW --> SA
-  GW --> SB
-  SA --> DBA
-  SB --> DBB
-  SA --> BUS
-  BUS --> SB
+  All services ──events──▶ RabbitMQ ──events──▶ All services
+  All services ──SQL──▶ SQL Server (sy_water_db) — one instance, schema-per-service
 ```
 
 ---
 
 ## 4. Service catalog
 
-| # | Service | Responsibility | Port | DB | Communication type |
-|---|---------|---------------|------|-----|-------------------|
-| 1 | [api-gateway] | Routing, auth, rate limiting | 8080 | Redis (cache) | HTTP Proxy |
-| 2 | [auth-service] | Registration, login, JWT tokens | 3001 | PostgreSQL | REST + Events |
-| 3 | [xxx-service] | [responsibility] | 300X | [DB] | [REST/Async] |
+| # | Service | Responsibility | Port | Technology | Schema | Communication |
+|---|---------|---------------|------|-----------|--------|---------------|
+| 01 | `api-gateway` | Routing, JWT validation, CORS, rate limiting | 8080 | Spring Cloud Gateway | — | HTTP Proxy |
+| 02 | `auth-service` | Registration, login, JWT tokens, Google OAuth, RBAC | 3001 | Spring Boot | `iam` | REST + Events |
+| 03 | `place-service` | Place CRUD, switching, invitations, shared access | 3002 | TBD (.NET eval) | `place` | REST + Events |
+| 04 | `device-service` | Device linking, MQTT telemetry ingestion, device status | 3003 | TBD (.NET eval) | `device` | MQTT + REST + Events |
+| 05 | `consumption-service` | Consumption aggregation, charts, goals, bill comparison | 3004 | TBD (.NET eval) | `consumption` | REST + Events |
+| 06 | `valve-service` | Valve state, open/close commands, auto-shutoff rules | 3005 | TBD (.NET eval) | `valve` | REST + Events |
+| 07 | `notification-service` | Alert engine, multi-channel delivery (in-app, push, email) | 3006 | TBD (.NET eval) | `notification` | REST + Events |
 
 > Full detail per service in `09-microservices/service-catalog.md`
 
@@ -101,84 +109,143 @@ graph TB
 
 ## 5. Architectural principles
 
-These principles guide the project's technical decisions. Before making an important decision,
-verify it is consistent with these principles.
-
 ### P1: API-First
-Design the API contract (OpenAPI) before implementing the service.
-Contracts are the source of truth for consumers.
+Design the API contract (OpenAPI) before implementing the service. Contracts are the source of truth for consumers.
 
-### P2: Database per Service
-Each service has its own database. No service directly accesses another service's database.
-Communication is always through API or events.
+### P2: Shared Database, Schema Isolation
+All services share a single SQL Server instance (`sy_water_db`). Each service owns its schema and must NOT query another service's schema directly. Inter-service data access is always through REST APIs or domain events via RabbitMQ.
 
 ### P3: Fail Fast, Recover Gracefully
-Detect errors early (validation at the edge). When an external service fails,
-use Circuit Breaker to prevent cascades. Always define a fallback.
+Detect errors early with input validation at the API Gateway. When an external service or the MQTT broker is unavailable, log the failure and respond with a clear error — adopt resilience patterns (Circuit Breaker, Retry) when complexity justifies it.
 
-### P4: Observability by Design
-From day 1: structured JSON logs, metrics with Prometheus,
-distributed traces with Jaeger/Zipkin. It is not optional or a story for "later".
+### P4: Events for Decoupling
+Use RabbitMQ domain events for all operations that do not require an immediate response. Synchronous REST calls are reserved for queries and operations the user is waiting for.
 
-### P5: [Additional principle name]
-[Description]
+### P5: Start Simple, Evolve When Needed
+Do not adopt complex patterns (CQRS, Event Sourcing, Saga) upfront. Add them when a concrete problem demands it, and document the decision as an ADR.
+
+### P6: Hexagonal Architecture per Service
+Each service follows the Ports & Adapters pattern so the domain logic is independent of frameworks and infrastructure. See `05-architecture/hexagonal-architecture.md`.
 
 ---
 
 ## 6. Adopted architectural patterns
 
-| Pattern | Adopted | Reference |
-|---------|---------|-----------|
-| API Gateway | Yes | `05-architecture/pattern-guide.md` |
-| Database per Service | Yes | ADR-00X |
-| CQRS | No (review in Q3) | |
-| Event Sourcing | No | |
-| Circuit Breaker | Yes | ADR-00X |
-| Saga (choreographed) | Yes | ADR-00X |
-| Outbox Pattern | Yes | ADR-00X |
+| Pattern | Adopted? | Justification |
+|---------|---------|---------------|
+| API Gateway | Yes | Single entry point, JWT validation, routing — Spring Cloud Gateway |
+| Schema-per-Service (shared DB) | Yes | Team of 3, single VPS — schema isolation preserves logical boundaries. See ADR-002. |
+| Hexagonal Architecture | Yes | Domain independence from frameworks; testability |
+| Event-Driven (RabbitMQ) | Yes | Decouple services for async operations (readings, alerts, notifications) |
+| Circuit Breaker | Not yet | Will evaluate when inter-service failures become a real concern |
+| Saga | Not yet | Will evaluate when distributed transactions are needed (e.g., device linking flow) |
+| Outbox Pattern | Not yet | Will evaluate when event delivery reliability becomes critical |
+| CQRS | No | Read and write models are similar enough; unnecessary complexity |
+| Event Sourcing | No | No audit/replay requirement justifies the complexity |
+| BFF | No | Single React Native codebase for mobile and web — one API format suffices |
 
 ---
 
-## 7. Cross-cutting concerns
+## 7. Communication patterns
 
-Transversal concerns that apply to ALL services:
+### Synchronous (REST)
 
-| Concern | Adopted solution | Where it is configured |
-|---------|----------------|------------------------|
-| Authentication / Authorization | JWT + validation in API Gateway | `00-governance/security-policy.md` |
-| Logging | Structured JSON + Correlation ID | Shared logger in internal lib |
-| Tracing | OpenTelemetry → Jaeger | Middleware in each service |
-| Health Checks | GET /health (liveness) + GET /health/ready (readiness) | Service template |
-| Error format | Standard ErrorResponse | `07-api/contracts/openapi/_shared.yaml` |
-| Rate Limiting | At the API Gateway | Kong/NGINX configuration |
-| CORS | Configured in API Gateway | |
-| Circuit Breaker | Resiliency4j / opossum per service | Pattern in `pattern-guide.md` |
+| Source | Destination | Purpose |
+|--------|------------|---------|
+| api-gateway | auth-service | JWT token validation on every request |
+| api-gateway | all services | Route requests by path prefix |
+| valve-service | device-service | Send open/close command to ESP32 via device-service |
+| Any service | auth-service | Verify user permissions (when needed beyond JWT claims) |
+
+### Asynchronous (RabbitMQ — domain events)
+
+| Source | Event | Consumers | Purpose |
+|--------|-------|-----------|---------|
+| auth-service | `UserRegistered` | notification-service | Send verification email |
+| place-service | `PlaceCreated` | consumption-service | Provision consumption storage |
+| place-service | `PlaceDeleted` | consumption, notification | Archive data, cancel alerts |
+| device-service | `ReadingReceived` | consumption, notification | Aggregate readings, feed leak detection |
+| device-service | `DeviceDisconnected` | notification-service | Sensor-down alert |
+| consumption-service | `GoalExceeded` | notification, valve | Alert + auto-shutoff evaluation |
+| consumption-service | `LeakSuspected` | notification, valve | Critical alert + auto-shutoff |
+| valve-service | `ValveClosed` | notification-service | Critical alert on all channels |
+
+### IoT (MQTT — Mosquitto)
+
+| Direction | Topic pattern | Purpose |
+|-----------|--------------|---------|
+| ESP32 → device-service | `devices/{hardwareId}/telemetry` | Flow sensor readings |
+| device-service → ESP32 | `devices/{hardwareId}/commands` | Valve open/close commands |
+| ESP32 → device-service | `devices/{hardwareId}/status` | Device heartbeat / connectivity |
 
 ---
 
-## 8. Registered architectural technical debt
+## 8. Cross-cutting concerns
 
-| ID | Description | Impact | Priority | Target sprint |
-|----|-------------|--------|---------|--------------|
-| AT-001 | [description] | [high/medium/low] | [P1/P2/P3] | [Sprint X] |
-
-> See also: `15-project-control/technical-backlog.md`
+| Concern | Solution | Where configured |
+|---------|---------|-----------------|
+| Authentication | JWT (issued by auth-service, validated at API Gateway) | api-gateway config |
+| Authorization | Role-based (Owner/Guest/Admin) in JWT claims | Each service validates role |
+| Logging | Structured JSON with correlation ID | Shared logging config per service |
+| Health Checks | `GET /health` (liveness) + `GET /health/ready` (readiness) | Each service |
+| Error format | Standard error response (code, message, details) | `07-api/contracts/openapi/_shared.yaml` |
+| Rate Limiting | At the API Gateway level | Spring Cloud Gateway config |
+| CORS | Configured at API Gateway for React Native web | api-gateway config |
 
 ---
 
-## 9. Planned evolution
+## 9. Database strategy
 
-| Version | Architectural change | Motivation | Estimated date |
-|---------|---------------------|------------|----------------|
-| v2.0 | [e.g.: Migrate to gRPC for internal communication] | [Latency] | [Q4 2024] |
+**Single instance:** SQL Server — `sy_water_db`
+
+**Schema isolation:** Each service owns its schema. Tables are prefixed by schema name.
+
+| Schema | Owner service | Main tables |
+|--------|-------------|-------------|
+| `iam` | auth-service | users, sessions, verification_tokens |
+| `place` | place-service | places, members, invitations |
+| `device` | device-service | devices, readings |
+| `consumption` | consumption-service | consumption_records, goals, bills, tariffs |
+| `valve` | valve-service | valves, valve_actions, shutoff_rules |
+| `notification` | notification-service | alerts, notification_preferences |
+
+**Rules:**
+- A service may only read/write tables in its own schema
+- Cross-service data access is via REST API or RabbitMQ events
+- Foreign keys across schemas are NOT allowed — use application-level references (UUIDs)
+- Migrations are managed per service, scoped to its schema
+
+> Detailed data model in `06-data/models.md`
+
+---
+
+## 10. Registered architectural technical debt
+
+| ID | Description | Impact | Priority | Target |
+|----|-------------|--------|---------|--------|
+| AT-001 | No Circuit Breaker on inter-service calls | Medium — cascade failures possible | P3 | Evaluate after MVP |
+| AT-002 | No Outbox Pattern for event publishing | Medium — events could be lost on crash | P3 | Evaluate after MVP |
+| AT-003 | No distributed tracing (OpenTelemetry) | Low — debugging across services is harder | P3 | Entrega 2 |
+
+---
+
+## 11. Planned evolution
+
+| Phase | Architectural change | Motivation | Target |
+|-------|---------------------|------------|--------|
+| Post-MVP | Add Circuit Breaker on device-service calls | MQTT/device communication is the most failure-prone path | Entrega 2 |
+| Post-MVP | Add distributed tracing | As service count grows, debugging cross-service flows becomes critical | Entrega 2 |
+| If needed | Split shared DB into separate instances | If query contention becomes a bottleneck | When load demands it |
+| If needed | Add CQRS for consumption reads | If read volume vastly exceeds writes (many users refreshing dashboards) | When load demands it |
 
 ---
 
 ## Key correlations
 
 - Domain bounded contexts → `02-domain/domain-map.md`
-- Specific decision ADRs → `05-architecture/decisions/`
-- Hexagonal architecture per service → `05-architecture/hexagonal-architecture.md`
-- Applied patterns → `05-architecture/pattern-guide.md`
+- ADRs → `05-architecture/decisions/`
+- Hexagonal architecture → `05-architecture/hexagonal-architecture.md`
+- Pattern catalog → `05-architecture/pattern-guide.md`
 - Per-service detail → `09-microservices/service-catalog.md`
-- UML diagrams → `08-uml/`
+- Data model → `06-data/models.md`
+- API contracts → `07-api/contracts/openapi/`

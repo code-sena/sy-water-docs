@@ -542,16 +542,18 @@ Kubernetes Pod:
 > For each pattern: decide whether it is adopted, document the ADR that justifies the decision,
 > and link to the section in this document where you learned when to use it.
 
-| Pattern | Adopted? | Justification / ADR |
-|---------|---------|---------------------|
-| API Gateway | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Database per Service | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Circuit Breaker | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Saga (choreographed) | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Outbox Pattern | [Yes / No — see ADR-NNN] | [Brief reason] |
-| CQRS | [Yes / No — see ADR-NNN] | [Brief reason] |
-| Event Sourcing | [Yes / No — see ADR-NNN] | [Brief reason] |
-| BFF | [Yes / No — see ADR-NNN] | [Brief reason] |
+| Pattern | Adopted? | Justification |
+|---------|---------|---------------|
+| API Gateway | Yes — Spring Cloud Gateway | Single entry point, JWT validation, routing, rate limiting |
+| Schema-per-Service (shared DB) | Yes — see ADR-002 | Team of 3, single VPS; schema isolation preserves logical boundaries without the overhead of separate DB instances |
+| Hexagonal Architecture | Yes | Domain independence from frameworks; testability via ports & adapters |
+| Event-Driven (RabbitMQ) | Yes | Decouple services for async operations (readings, alerts, notifications) |
+| Circuit Breaker | Not yet | Will evaluate when inter-service failures become a real problem |
+| Saga (choreographed) | Not yet | Will evaluate when distributed transactions are needed |
+| Outbox Pattern | Not yet | Will evaluate when event delivery reliability becomes critical |
+| CQRS | No | Read/write models are similar; unnecessary complexity for current scale |
+| Event Sourcing | No | No audit/replay requirement justifies the complexity |
+| BFF | No | Single React Native codebase — one API format suffices |
 
 ---
 

@@ -3,10 +3,10 @@
 | Field | Value |
 |-------|-------|
 | **ID** | ADR-001 |
-| **Date** | 2024-01-10 |
+| **Date** | 2026-09-08 |
 | **Status** | Accepted |
-| **Authors** | María García — Tech Lead |
-| **Reviewers** | Carlos Méndez, Sofía Torres, Andrés Ruiz — Development team |
+| **Authors** | Development team |
+| **Reviewers** | Juan Esteban Ome, Juan Manuel Gómez, Diego Alejandro Alvarado |
 
 ---
 

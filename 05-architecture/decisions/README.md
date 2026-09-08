@@ -20,6 +20,7 @@ ADRs document important architectural decisions. Each file = one decision.
 
 | # | Title | Status | Date |
 |---|-------|--------|------|
-| None yet | — | — | — |
+| ADR-001 | [Documentation Language](records/ADR-001-idioma-documentacion.md) | Accepted | 2026-09-08 |
+| ADR-002 | [Shared Database with Schema-per-Service](records/ADR-002-shared-database-schema-per-service.md) | Accepted | 2026-09-08 |
 
 > Add rows here as you create ADRs in `records/`
