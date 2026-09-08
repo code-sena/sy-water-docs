@@ -79,7 +79,7 @@
 | 2 | One device per place is sufficient (single inlet) | Would need multi-device support per place |
 | 3 | Users have a smartphone with Android or iOS | React Native web extension covers desktop, but mobile is the primary UX |
 | 4 | MQTT broker can handle the expected device volume (initially < 1,000 devices) | Would need to evaluate a managed/cloud broker earlier |
-| 5 | SQL Server is available for all services | If licensing is a constraint, PostgreSQL is the fallback |
+| 5 | A single SQL Server instance is sufficient for all services (schema-per-service) | If volume grows beyond a single instance, would need to split into separate databases per service |
 | 6 | The YF-S201 sensor provides readings accurate enough for bill comparison | If accuracy is insufficient, bill comparison feature loses value |
 
 ---

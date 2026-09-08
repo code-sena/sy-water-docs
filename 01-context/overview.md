@@ -25,7 +25,7 @@ Save Your Water is a web and mobile platform that measures household or business
 | Mobile + Web | React Native (with web extension) | Single codebase for Android, iOS, and web browser |
 | Backend — IAM | Spring Boot (Java) | Mature ecosystem for authentication, authorization, and security |
 | Backend — Other modules | .NET (under evaluation) | Team expertise; strong typing and performance for business services |
-| Database | SQL Server | Team familiarity; robust transactional support |
+| Database | SQL Server (single shared instance, schema-per-service) | Team familiarity; robust transactional support. One instance, logical separation by schema |
 | IoT controller | ESP32 | Low-cost Wi-Fi-enabled microcontroller; handles sensor reading and valve control |
 | IoT protocol | MQTT | Lightweight publish/subscribe protocol optimized for constrained devices |
 | MQTT Broker | TBD (Mosquitto / HiveMQ / cloud-managed) | Receives telemetry from ESP32 devices and routes it to backend services |

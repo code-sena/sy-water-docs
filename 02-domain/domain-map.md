@@ -16,7 +16,7 @@ Save your water manages the real-time monitoring and control of residential and 
 | **Responsibility** | User identity lifecycle: registration, authentication, authorization, profile management |
 | **Owning team** | Full team (3 devs) |
 | **Microservice(s)** | `auth-service` |
-| **Database** | SQL Server — `auth_db` |
+| **Database** | SQL Server — shared instance (`sy_water_db`), schema: `iam` |
 | **Technology** | Spring Boot |
 | **Ubiquitous Language** | User, Account, Session, Role (Owner/Guest/Admin), Credential |
 
@@ -40,7 +40,7 @@ Save your water manages the real-time monitoring and control of residential and 
 | **Responsibility** | Lifecycle of monitored locations: creation, configuration, shared access (invitations) |
 | **Owning team** | Full team |
 | **Microservice(s)** | `place-service` |
-| **Database** | SQL Server — `place_db` |
+| **Database** | SQL Server — shared instance (`sy_water_db`), schema: `place` |
 | **Technology** | TBD (.NET under evaluation) |
 | **Ubiquitous Language** | Place, Address, Stratum, Invitation, Member |
 
@@ -64,7 +64,7 @@ Save your water manages the real-time monitoring and control of residential and 
 | **Responsibility** | Device registry, linking to places, telemetry ingestion via MQTT, device health monitoring |
 | **Owning team** | Full team |
 | **Microservice(s)** | `device-service` |
-| **Database** | SQL Server — `device_db` |
+| **Database** | SQL Server — shared instance (`sy_water_db`), schema: `device` |
 | **Technology** | TBD (.NET under evaluation) |
 | **Ubiquitous Language** | Device, Reading, Telemetry, Link, Status |
 
@@ -89,7 +89,7 @@ Save your water manages the real-time monitoring and control of residential and 
 | **Responsibility** | Aggregation of raw readings into consumption data, real-time display, charts, goals, and bill comparison |
 | **Owning team** | Full team |
 | **Microservice(s)** | `consumption-service` |
-| **Database** | SQL Server — `consumption_db` |
+| **Database** | SQL Server — shared instance (`sy_water_db`), schema: `consumption` |
 | **Technology** | TBD (.NET under evaluation) |
 | **Ubiquitous Language** | Consumption, Period, Chart, Goal, Bill, Tariff, Comparison |
 
@@ -114,7 +114,7 @@ Save your water manages the real-time monitoring and control of residential and 
 | **Responsibility** | Valve state management, manual open/close commands with security checks, auto-shutoff rules |
 | **Owning team** | Full team |
 | **Microservice(s)** | `valve-service` |
-| **Database** | SQL Server — `valve_db` |
+| **Database** | SQL Server — shared instance (`sy_water_db`), schema: `valve` |
 | **Technology** | TBD (.NET under evaluation) |
 | **Ubiquitous Language** | Valve, Command, Confirmation, ShutoffRule, Action Log |
 
@@ -139,7 +139,7 @@ Save your water manages the real-time monitoring and control of residential and 
 | **Responsibility** | Alert engine, multi-channel delivery (in-app, push, email, WhatsApp/SMS), notification center, user preferences |
 | **Owning team** | Full team |
 | **Microservice(s)** | `notification-service` |
-| **Database** | SQL Server — `notification_db` |
+| **Database** | SQL Server — shared instance (`sy_water_db`), schema: `notification` |
 | **Technology** | TBD (.NET under evaluation) |
 | **Ubiquitous Language** | Alert, Notification, Channel, Preference, Urgency Level |
 
@@ -245,7 +245,7 @@ Save your water manages the real-time monitoring and control of residential and 
 | Separate Device and Valve contexts | Merge into one `device-service` | Different criticality (valve = security-sensitive), different scaling needs (telemetry = high volume, valve = low volume), different rate of change |
 | Consumption owns goals and bills | Separate goal-service and billing-service | For a team of 3, the overhead of separate services for closely related data is not justified; they share the same aggregated consumption data |
 | Notification as its own context | Inline alerts in each service | Multi-channel delivery (push, email, SMS, in-app) is cross-cutting; centralizing avoids duplicating channel logic |
-| Single database engine (SQL Server) for all services | Polyglot persistence (PostgreSQL + TimescaleDB for telemetry) | Team familiarity with SQL Server; can revisit if telemetry volume demands a time-series DB |
+| Single shared database (`sy_water_db`) with schema-per-service | Database-per-service (separate SQL Server instances) | Team of 3 and single VPS make separate instances impractical; schema separation preserves logical boundaries while sharing one instance. Services must NOT query another service's schema directly — use events or REST instead |
 
 ---
 
