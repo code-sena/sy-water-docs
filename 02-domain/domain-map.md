@@ -1,156 +1,231 @@
 # Domain Map — Bounded Contexts
 
-> **What to fill in here:** The domain map is the central DDD (Domain-Driven Design) artifact.
-> It defines the system's boundaries and how they relate to each other.
-> Build it first with the team and domain experts in an Event Storming session.
-
-## Before filling in this document: Event Storming
-
-**Event Storming** is a collaborative workshop for modeling the domain before writing code.
-It lasts 2–4 hours with the whole team (dev + PO + business expert).
-
-**Materials:** Long wall, 4-color sticky notes, markers.
-
-**Standard colors:**
-| Color | Represents | Example |
-|-------|-----------|---------|
-| 🟠 Orange | **Domain events** (something that happened, past tense) | `AppointmentScheduled`, `PaymentReceived` |
-| 🔵 Blue | **Commands** (action that triggers the event) | `ScheduleAppointment`, `ProcessPayment` |
-| 🟡 Yellow | **Actors** (who executes the command) | `Patient`, `Doctor`, `Admin` |
-| 🩷 Pink | **External systems** or integration points | `Payment Gateway`, `Email SMTP` |
-
-**Session steps:**
-1. (30 min) Post all events that occur in the business, in chronological order, on the wall
-2. (30 min) Identify which command or actor triggers each event
-3. (45 min) Group related events — each group is a candidate Bounded Context
-4. (30 min) Draw relationships between Bounded Contexts (who depends on whom)
-5. (30 min) Discuss the resulting map and agree on names
-
-**Result:** The session output directly feeds the 3 documents in `02-domain/`:
-- Identified events → `domain-events.md`
-- Entities and their rules → `entities-and-rules.md`
-- Bounded Contexts and their map → this document
-
----
-
----
-
 ## 1. Domain overview
 
-> One paragraph of context about the business and what problem the system solves.
-> Write it without technical terms — it must be readable by a business expert.
-
-```
-[Describe the business domain here. E.g.: "The system manages the complete cycle of
-[X] reservations, from the customer's request through to confirmation and billing."]
-```
+Save your water manages the real-time monitoring and control of residential and commercial water consumption. An IoT device (ESP32 + flow sensor + electrovalve) installed at the property's main water inlet sends flow readings to the platform via MQTT. The platform aggregates readings into consumption data, displays charts, detects suspected leaks, allows remote valve control, and compares measured consumption against utility bills.
 
 ---
 
 ## 2. Identified Bounded Contexts
 
-A **Bounded Context** is the explicit boundary within which a particular domain model
-has consistent meaning. Each bounded context has its own Ubiquitous Language.
-
-> **Signs of a good bounded context:**
-> - Has a clear responsible team
-> - Has its own database
-> - Can be deployed independently
-> - The same term in two different contexts can mean different things
-
-### Bounded Context: [Name — e.g.: User Management]
+### Bounded Context: IAM (Identity & Access Management)
 
 | Field | Value |
 |-------|-------|
-| **Name** | [ContextName] |
-| **Responsibility** | [What this context captures in one sentence] |
-| **Owning team** | [Responsible team or person] |
-| **Microservice(s)** | [service-name, service2-name] |
-| **Database** | [PostgreSQL / MongoDB / Redis / etc.] |
-| **Ubiquitous Language** | [Key business terms in this context] |
+| **Name** | IAM |
+| **Responsibility** | User identity lifecycle: registration, authentication, authorization, profile management |
+| **Owning team** | Full team (3 devs) |
+| **Microservice(s)** | `auth-service` |
+| **Database** | SQL Server — `auth_db` |
+| **Technology** | Spring Boot |
+| **Ubiquitous Language** | User, Account, Session, Role (Owner/Guest/Admin), Credential |
 
-**Context-specific terms (Ubiquitous Language):**
+**Context-specific terms:**
 
 | Term | Meaning in THIS context | Different in another context? |
 |------|------------------------|-------------------------------|
-| [User] | [Person with an active account] | [Yes — in Billing it's "Client"] |
-| [Account] | [Set of credentials] | [No] |
+| User | A person with an active account (email + password or Google OAuth) | No — User ID is shared across all contexts |
+| Role | Permission level: Owner, Guest, or Admin | No |
+| Session | An authenticated period with a JWT token (1h expiry, 7d refresh) | No |
+
+**User Stories:** HU-001, HU-003, HU-004, HU-005, HU-006, HU-007, HU-008
 
 ---
 
-### Bounded Context: [Name — e.g.: Order Management]
+### Bounded Context: Place Management
 
 | Field | Value |
 |-------|-------|
-| **Name** | [ContextName] |
-| **Responsibility** | |
-| **Owning team** | |
-| **Microservice(s)** | |
-| **Database** | |
-| **Ubiquitous Language** | |
+| **Name** | Place Management |
+| **Responsibility** | Lifecycle of monitored locations: creation, configuration, shared access (invitations) |
+| **Owning team** | Full team |
+| **Microservice(s)** | `place-service` |
+| **Database** | SQL Server — `place_db` |
+| **Technology** | TBD (.NET under evaluation) |
+| **Ubiquitous Language** | Place, Address, Stratum, Invitation, Member |
+
+**Context-specific terms:**
+
+| Term | Meaning in THIS context | Different in another context? |
+|------|------------------------|-------------------------------|
+| Place | A registered location with address, country, city, stratum, and inhabitant count | In Device context, a Place is just an ID to associate a device with |
+| Member | A user linked to a place with a specific role (Owner or Guest) | No |
+| Invitation | A pending request for a user to join a place as Guest | No |
+
+**User Stories:** HU-002, HU-009, HU-010, HU-050, HU-051, HU-052, HU-053
+
+---
+
+### Bounded Context: Device Management
+
+| Field | Value |
+|-------|-------|
+| **Name** | Device Management |
+| **Responsibility** | Device registry, linking to places, telemetry ingestion via MQTT, device health monitoring |
+| **Owning team** | Full team |
+| **Microservice(s)** | `device-service` |
+| **Database** | SQL Server — `device_db` |
+| **Technology** | TBD (.NET under evaluation) |
+| **Ubiquitous Language** | Device, Reading, Telemetry, Link, Status |
+
+**Context-specific terms:**
+
+| Term | Meaning in THIS context | Different in another context? |
+|------|------------------------|-------------------------------|
+| Device | A registered IoT unit (ESP32 + sensor + valve) identified by a unique hardware ID | In Valve context, Device is just the communication channel for commands |
+| Reading | A single flow measurement with timestamp, received via MQTT | In Consumption context, readings are aggregated into consumption records |
+| Link | The association between a device and a place (one-to-one) | No |
+| Status | Connectivity state: Connected / Disconnected / Never Reported | No |
+
+**User Stories:** HU-011, HU-012, HU-013, HU-014
+
+---
+
+### Bounded Context: Consumption
+
+| Field | Value |
+|-------|-------|
+| **Name** | Consumption |
+| **Responsibility** | Aggregation of raw readings into consumption data, real-time display, charts, goals, and bill comparison |
+| **Owning team** | Full team |
+| **Microservice(s)** | `consumption-service` |
+| **Database** | SQL Server — `consumption_db` |
+| **Technology** | TBD (.NET under evaluation) |
+| **Ubiquitous Language** | Consumption, Period, Chart, Goal, Bill, Tariff, Comparison |
+
+**Context-specific terms:**
+
+| Term | Meaning in THIS context | Different in another context? |
+|------|------------------------|-------------------------------|
+| Consumption | Aggregated water usage for a place in a specific period (day/week/month) | No |
+| Goal | A monthly consumption target set by the owner for a place | No |
+| Bill | A manually registered utility bill used for comparison against sensor data | No |
+| Tariff | Price per water unit, used to estimate monetary cost | No |
+
+**User Stories:** HU-015, HU-016, HU-017, HU-018, HU-023, HU-024, HU-025, HU-036, HU-037, HU-038, HU-042, HU-043, HU-044, HU-045
+
+---
+
+### Bounded Context: Valve Control
+
+| Field | Value |
+|-------|-------|
+| **Name** | Valve Control |
+| **Responsibility** | Valve state management, manual open/close commands with security checks, auto-shutoff rules |
+| **Owning team** | Full team |
+| **Microservice(s)** | `valve-service` |
+| **Database** | SQL Server — `valve_db` |
+| **Technology** | TBD (.NET under evaluation) |
+| **Ubiquitous Language** | Valve, Command, Confirmation, ShutoffRule, Action Log |
+
+**Context-specific terms:**
+
+| Term | Meaning in THIS context | Different in another context? |
+|------|------------------------|-------------------------------|
+| Valve | The logical representation of the electrovalve, with state (Open/Closed/No Communication) | In Device context, the valve is a physical component of the device |
+| Command | An instruction to open or close the valve, sent to the ESP32 via MQTT through device-service | No |
+| Confirmation | A security code sent to the owner before executing a close command | No |
+| ShutoffRule | An automatic rule that triggers valve closure (leak detected, goal exceeded) | No |
+
+**User Stories:** HU-019, HU-020, HU-021, HU-022, HU-046, HU-047, HU-048, HU-049
+
+---
+
+### Bounded Context: Notification
+
+| Field | Value |
+|-------|-------|
+| **Name** | Notification |
+| **Responsibility** | Alert engine, multi-channel delivery (in-app, push, email, WhatsApp/SMS), notification center, user preferences |
+| **Owning team** | Full team |
+| **Microservice(s)** | `notification-service` |
+| **Database** | SQL Server — `notification_db` |
+| **Technology** | TBD (.NET under evaluation) |
+| **Ubiquitous Language** | Alert, Notification, Channel, Preference, Urgency Level |
+
+**Context-specific terms:**
+
+| Term | Meaning in THIS context | Different in another context? |
+|------|------------------------|-------------------------------|
+| Alert | A system-generated event classified by urgency (Critical/Important/Informative) | No |
+| Channel | A delivery medium: In-App, Push, Email, WhatsApp/SMS | No |
+| Preference | The user's choice of which channels to receive for each urgency level | No |
+
+**User Stories:** HU-026, HU-027, HU-028, HU-029, HU-030, HU-031, HU-032, HU-033, HU-034, HU-035, HU-039, HU-040, HU-041
 
 ---
 
 ## 3. Context Map
 
-The Context Map shows relationships between bounded contexts. Relationships define
-how contexts communicate and who holds the "power" in the integration.
-
 ```
-┌─────────────────────┐        ┌──────────────────────┐
-│  [Context A]        │        │  [Context B]         │
-│                     │──────▶│                      │
-│  Domain:            │  D→C  │  Domain:             │
-│  [responsibility]   │       │  [responsibility]    │
-└─────────────────────┘       └──────────────────────┘
-                                        │
-                               D→C      │
-                                        ▼
-                              ┌──────────────────────┐
-                              │  [Context C]         │
-                              │                      │
-                              │  [responsibility]    │
-                              └──────────────────────┘
+                              ┌─────────────────────┐
+         External clients     │    API Gateway       │
+         (Mobile, Web)   ───▶ │    :8080             │
+                              └──────────┬──────────┘
+                                         │ routes by path
+            ┌────────────┬───────────────┼───────────────┬──────────────┐
+            ▼            ▼               ▼               ▼              ▼
+    ┌──────────────┐ ┌──────────┐ ┌────────────┐ ┌────────────┐ ┌─────────────┐
+    │ auth-service │ │  place-  │ │consumption-│ │   valve-   │ │notification-│
+    │   (IAM)      │ │ service  │ │  service   │ │  service   │ │   service   │
+    │   :3001      │ │  :3002   │ │   :3004    │ │   :3005    │ │    :3006    │
+    └──────┬───────┘ └────┬─────┘ └─────┬──────┘ └─────┬──────┘ └──────┬──────┘
+           │              │             │               │               │
+           │              │             │    ┌──────────┘               │
+           │              │             │    │                          │
+           │              │        ┌────┴────┴───┐                     │
+           │              │        │device-service│                    │
+           │              │        │    :3003     │                    │
+           │              │        └──────┬───────┘                    │
+           │              │               │                            │
+           │              │               │ MQTT                       │
+           │              │        ┌──────┴───────┐                    │
+           │              │        │  MQTT Broker  │                    │
+           │              │        │  (Mosquitto)  │                    │
+           │              │        └──────┬───────┘                    │
+           │              │               │                            │
+           │              │        ┌──────┴───────┐                    │
+           │              │        │  ESP32 + IoT  │                    │
+           │              │        │   Devices     │                    │
+           │              │        └──────────────┘                    │
+           │              │                                            │
+           └──────────────┴──────────────┬─────────────────────────────┘
+                                         ▼
+                                 ┌───────────────┐
+                                 │ Message Broker │
+                                 │(Domain Events) │
+                                 └───────────────┘
 ```
-
-### Context relationship types
-
-| Type | Symbol | Description | Example |
-|------|--------|-------------|---------|
-| **Upstream → Downstream** | `U → D` | U provides, D consumes. D depends on U. | Auth → Orders |
-| **Shared Kernel** | `SK` | Two teams share part of the model | Shared User ID |
-| **Customer/Supplier** | `C/S` | Supplier (U) negotiates with Customer (D) | Inventory → Sales |
-| **Conformist** | `CONF` | D adopts U's model without negotiating | Legacy integration |
-| **Anti-Corruption Layer** | `ACL` | D translates U's model to protect itself | Gateway → External API |
-| **Open Host Service** | `OHS` | U publishes a published protocol | Event Bus, REST API |
-| **Published Language** | `PL` | Explicit shared language | OpenAPI spec, events |
 
 ### Relationships table
 
-| Context A | Relationship | Context B | Communication channel | Contract |
-|-----------|-------------|-----------|----------------------|---------|
-| [Context A] | U → D | [Context B] | REST / Event | OpenAPI / AsyncAPI |
-| [Context B] | ACL | [Context C] | Adapter | Internal interface |
+| Context A | Relationship | Context B | Communication | Description |
+|-----------|-------------|-----------|---------------|-------------|
+| IAM | U → D (OHS) | All contexts | JWT validation | All services validate JWT tokens issued by auth-service |
+| Place Management | U → D | Device Management | REST + Event | A device is linked to a place; `PlaceDeleted` triggers device unlinking |
+| Place Management | U → D | Consumption | Event | `PlaceCreated` provisions consumption storage; `PlaceDeleted` archives data |
+| Device Management | U → D | Consumption | Event | `ReadingReceived` events feed consumption aggregation |
+| Device Management | U → D | Notification | Event | `DeviceDisconnected` triggers sensor-down alert |
+| Consumption | U → D | Notification | Event | `GoalExceeded`, `GoalThresholdReached` trigger alerts |
+| Consumption | U → D | Valve Control | Event | `GoalExceeded` can trigger auto-shutoff rule evaluation |
+| Valve Control | C/S | Device Management | REST (command) | Valve-service sends open/close commands; device-service forwards to ESP32 via MQTT |
+| Device Management | U → D | Valve Control | Event | `ValveStateChanged` confirms command execution |
+| Valve Control | U → D | Notification | Event | `ValveClosed`, `ValveCommandFailed` trigger critical alerts |
+| Notification | ACL | External (Email/Push/SMS) | API | Anti-corruption layer translates internal alerts to external provider formats |
 
 ---
 
 ## 4. Core Domain, Supporting, Generic
 
-DDD classifies subdomains by their strategic value:
-
-| Type | Description | Investment | Example |
-|------|-------------|-----------|---------|
-| **Core Domain** | Where the business competitive advantage lies. What differentiates us. | MAXIMUM — build, don't buy | Matching algorithm |
-| **Supporting Subdomain** | Necessary for the core but not differentiating. Can be outsourced. | MEDIUM | Order management |
-| **Generic Subdomain** | Commodity. Off-the-shelf solution exists. | MINIMUM — buy/use OSS | Authentication, emails |
-
-### Classification of this project's bounded contexts
-
 | Bounded Context | Type | Justification |
 |----------------|------|---------------|
-| [Context A] | Core | [why it is the heart of the business] |
-| [Context B] | Supporting | [why it supports without being differentiating] |
-| [Context C] | Generic | [standard solution available] |
+| **Consumption** | Core | Real-time consumption visibility is the main value proposition — what differentiates the product |
+| **Device Management** | Core | IoT telemetry ingestion is the data foundation; without it, the product has no data |
+| **Valve Control** | Core | Remote valve control is a key differentiator vs. just reading the meter |
+| **Place Management** | Supporting | Necessary structure for organizing devices and data, but not differentiating |
+| **Notification** | Supporting | Alerts add value but the delivery infrastructure is standard |
+| **IAM** | Generic | Authentication and authorization — standard solution, not differentiating |
+| **API Gateway** | Generic | Infrastructure routing — commodity |
 
 ---
 
@@ -158,18 +233,19 @@ DDD classifies subdomains by their strategic value:
 
 ### How were these decisions made?
 
-> Document the Event Storming session or the process you used to arrive at the map.
-> If you changed the map, explain why.
-
-- **Event Storming session:** [date], [participants]
-- **Tool used:** [Miro / Lucidchart / physical whiteboard]
-- **Map iterations:** v1 (date), v2 (date)
+- **Source:** Product backlog v1.0 (2026-09-02) — 61 user stories across 14 epics
+- **Method:** Backlog analysis and context grouping based on cohesion, coupling, and rate of change
+- **Date:** 2026-09-08
+- **Participants:** Development team + Claude (analysis)
 
 ### Key decisions and discarded alternatives
 
 | Decision | Discarded alternative | Reason |
 |----------|----------------------|--------|
-| [Separate Context A and B] | [Have them in one] | [Business logic is different and they evolve at different rates] |
+| Separate Device and Valve contexts | Merge into one `device-service` | Different criticality (valve = security-sensitive), different scaling needs (telemetry = high volume, valve = low volume), different rate of change |
+| Consumption owns goals and bills | Separate goal-service and billing-service | For a team of 3, the overhead of separate services for closely related data is not justified; they share the same aggregated consumption data |
+| Notification as its own context | Inline alerts in each service | Multi-channel delivery (push, email, SMS, in-app) is cross-cutting; centralizing avoids duplicating channel logic |
+| Single database engine (SQL Server) for all services | Polyglot persistence (PostgreSQL + TimescaleDB for telemetry) | Team familiarity with SQL Server; can revisit if telemetry volume demands a time-series DB |
 
 ---
 
@@ -177,10 +253,5 @@ DDD classifies subdomains by their strategic value:
 
 1. Before adding a new microservice, verify whether it belongs to an existing bounded context.
 2. If a context's ubiquitous language is changing, review whether the context should be split.
-3. Run an Event Storming session every time the domain changes significantly.
-4. The context map MUST be synchronized with the C4 system-level diagram (`05-architecture/overview.md`).
-
-> **Important correlation:** The bounded contexts in this document →
-> Microservices in `09-microservices/service-catalog.md` →
-> C4 diagrams in `08-uml/` →
-> Service separation ADRs in `05-architecture/decisions/`
+3. The context map MUST be synchronized with the C4 diagram in `05-architecture/overview.md`.
+4. Record significant changes as ADRs in `05-architecture/decisions/records/`.

@@ -1,6 +1,6 @@
 # Project Glossary
 
-> Official dictionary of the project. If there is ambiguity about a term, this document wins.
+> Official dictionary of the Save Your Water project. If there is ambiguity about a term, this document wins.
 > Add terms throughout the project, not only at the start.
 
 ---

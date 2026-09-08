@@ -1,8 +1,8 @@
 # System Overview
 
-## What is Cuida Tu Agua?
+## What is Save Your Water?
 
-Cuida Tu Agua is a web and mobile platform that measures household or business water consumption in real time through an IoT device (ESP32 + flow sensor) installed at the property's main water inlet. It allows users to remotely shut off the water supply via an electrovalve and compare sensor readings against utility bills to detect overcharges.
+Save Your Water is a web and mobile platform that measures household or business water consumption in real time through an IoT device (ESP32 + flow sensor) installed at the property's main water inlet. It allows users to remotely shut off the water supply via an electrovalve and compare sensor readings against utility bills to detect overcharges.
 
 ## Problem it solves
 
