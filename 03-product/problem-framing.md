@@ -1,102 +1,111 @@
-# Problem Framing — Problem Definition
+# Problem Framing
 
-> This document defines the real problem that Save Your Water intends to solve before proposing any technical solution.
-> The goal is to align the team, the stakeholders, and the product decisions around the actual pain and the concrete value to create.
+> This document defines the real problem that Save Your Water solves
+> before proposing any technical solution.
 
 ---
 
 ## 1. The problem in one sentence
 
-**Household users, operators, and administrators** who **need to monitor and manage water consumption and service incidents** struggle with **limited visibility, delayed detection of anomalies, and inefficient maintenance processes** because **consumption data is fragmented, alerts are not timely, and reporting is not centralized**, resulting in **water waste, delayed attention to service problems, and poor operational decision-making**.
+**Heads of household and business owners** who **pay a water bill** have **no visibility into how much water they consume** until the monthly bill arrives, making it **impossible to detect leaks in time, verify if the billed amount is accurate, or take corrective action** — resulting in **unexpected costs, undetected water waste, and no way to set or track savings goals**.
 
 ---
 
 ## 2. Affected users
 
-| Segment | Description | Estimated size | Priority |
-|---------|-------------|---------------|---------|
-| Households / citizens | People who consume water and want to understand usage patterns and avoid waste | High | High |
-| Operators / field staff | Staff responsible for monitoring service health and responding to incidents | Medium | High |
-| Administrators | People responsible for managing users, rules, alerts, and service configuration | Medium | Medium |
+| Segment | Description | Priority |
+|---------|-------------|---------|
+| Head of household | Person who pays the residential water bill and wants to control consumption | High |
+| Business owner | Person who pays the commercial water bill, often across multiple locations | High |
+| Family members / roommates | People living at the same place who want visibility but don't control the bill | Medium |
 
 ### Jobs-to-be-done (JTBD)
 
-**When** a household wants to understand its monthly water consumption or detect an unusual spike,
-**I want** clear data, alerts, and service visibility,
-**so that** I can reduce waste, act on time, and avoid unnecessary costs.
+**When** I open the tap and wonder how much water I'm using this month,
+**I want** to see my real-time consumption on my phone,
+**so that** I can adjust my habits before the bill arrives.
 
-**When** an operator receives a report of a possible leak or service issue,
-**I want** a structured way to review, validate, and act on the problem,
-**so that** I can resolve it faster and reduce service impact.
+**When** I leave for vacation and worry about a water leak at home,
+**I want** to receive an alert and shut off the water remotely,
+**so that** a leak doesn't run for days and cost me a fortune.
+
+**When** I receive my monthly water bill and it seems too high,
+**I want** to compare what my sensor measured against what the utility billed me,
+**so that** I can determine if I'm being overcharged and file a complaint with evidence.
 
 ---
 
 ## 3. Evidence of the problem
 
-| Evidence type | Source | Date | Key finding |
-|--------------|--------|------|------------|
-| User interviews | Households and service staff | 2026 | Users do not have a centralized view of water consumption and incident reporting |
-| Operational observation | Local service workflows | 2026 | Incidents are often handled after the problem becomes visible to the user |
-| Business need analysis | Team discussions and project brief | 2026 | Water waste and delayed response are recurring operational pain points |
-| Benchmarking | Similar utility and monitoring tools | 2026 | Service monitoring tools exist, but they are fragmented and not focused on household engagement |
+| Evidence type | Source | Key finding |
+|--------------|--------|------------|
+| User experience | Team members' own households | Water bills arrive as a surprise; there's no way to monitor consumption between bills |
+| Market gap | Research on available tools in Colombia, Ecuador, US | Consumer-grade real-time water monitoring with remote valve control is not widely available or affordable |
+| Hardware feasibility | ESP32 + YF-S201 prototyping | A low-cost IoT device can measure residential flow rate accurately enough for consumption tracking |
+| Leak cost | Utility company data (general) | Undetected leaks can waste thousands of liters per month and significantly increase bills |
 
 ---
 
 ## 4. Current user solution (and its problems)
 
-| Current solution | Limitations | Cost/Friction |
-|-----------------|------------|--------------|
-| Manual tracking of readings | Error-prone, inconsistent, limited historical visibility | Time spent checking and reconciling data |
-| Phone calls or informal reports | Slow, hard to track, lack of structure | Delayed response and poor visibility |
-| Dispersed service tools | Information is fragmented across channels | More effort to coordinate actions |
+| Current solution | Limitations | Cost / Friction |
+|-----------------|------------|----------------|
+| Wait for the monthly utility bill | No real-time visibility; reactive, not preventive | Surprise costs; no way to adjust mid-month |
+| Manually read the water meter | Requires physical access to the meter (often outside); error-prone; no historical tracking | Time and effort; meter is often hard to reach |
+| Call the utility company | Slow; limited to billing inquiries; no real-time data | Long wait times; no resolution for measurement disputes |
+| Smart home devices (expensive) | Industrial-grade solutions exist but are priced for utilities, not consumers | $500+ per device; requires professional installation |
 
 ---
 
 ## 5. Solution hypothesis
 
-**We believe that** a digital platform that centralizes water consumption monitoring, anomaly alerts, and service reporting
-**for** households, operators, and administrators,
-**will achieve** reduced waste, faster service response, and better decision-making.
-**We will know we succeeded when** water usage is easier to understand, alerts are acted on in time, and operational incidents are managed with greater visibility and speed.
+**We believe that** an affordable IoT device (ESP32 + flow sensor + electrovalve) paired with a mobile/web platform
+**for** heads of household and business owners,
+**will achieve** real-time consumption visibility, early leak detection, remote water shutoff, and accurate bill comparison.
+**We will know we succeeded when** users actively monitor their consumption, respond to alerts, and use the bill comparison feature to verify their utility charges.
 
 ---
 
-## 6. Success metrics (North Star)
+## 6. Success metrics
 
-| Metric | Current baseline | 6-month target | How to measure it |
-|--------|----------------|---------------|-------------------|
-| Household active engagement | Low / inconsistent | 60% of registered households monthly active | Platform analytics |
-| Alert response time | Not measured / slow | < 24 hours for critical alerts | Alert workflow metrics |
-| Reported issue resolution time | Unstructured process | Reduce by 30% | Service management data |
-| User retention | Low | 70% monthly retention among active users | App analytics |
+| Metric | How to measure | Target |
+|--------|---------------|--------|
+| Users actively viewing consumption | Dashboard visits per week | At least 3 visits/week per active user |
+| Alert response rate | % of critical alerts acknowledged within 1 hour | > 80% |
+| Bill comparison adoption | % of users who register at least 1 bill | > 50% of users with 2+ months of data |
+| Leak detection effectiveness | Leaks flagged by the system vs. confirmed by user | > 70% true positive rate |
+| Device uptime | % of time the device reports without disconnection | > 95% |
 
-**North Star Metric:** percentage of active households that successfully use the platform to monitor consumption and respond to alerts in a given month.
+> **Note:** As a university project, these metrics are aspirational targets for the product design. Actual measurement will depend on the scope of user testing.
 
 ---
 
 ## 7. Hypothesis risks
 
-| Risk | Probability | Impact | Experiment to validate |
-|------|------------|--------|----------------------|
-| Users will not actively record consumption | Medium | High | Pilot with a limited number of households |
-| Alert thresholds are not accurate enough | Medium | High | Compare with historical consumption patterns |
-| Operators may not adopt the workflow | Medium | Medium | Pilot with real service personnel |
+| Risk | Probability | Impact | Mitigation |
+|------|------------|--------|------------|
+| The YF-S201 sensor is not accurate enough for bill comparison | Medium | High | Calibrate sensor per installation; warn users that comparison is an estimate |
+| Users won't install the device themselves | Medium | Medium | Provide clear installation guide; device is designed for main inlet (one point) |
+| Wi-Fi signal doesn't reach the water meter | Medium | High | Document minimum signal requirements; suggest Wi-Fi extender |
+| False leak alerts (continuous flow that isn't a leak) | High | Medium | Tunable thresholds; nighttime weighting; confirmation before auto-shutoff |
+| Auto-shutoff leaves a family without water | Low | Critical | All auto-shutoff rules disabled by default; always requires user confirmation; reopening is always manual |
 
 ---
 
 ## 8. Out of scope (we do not solve)
 
-> This version focuses on the core flow: consumption monitoring, anomaly alerts, and issue reporting. It does not include full billing automation, advanced SCADA integration, or a large public utility ecosystem in the first phase.
-
-- Full billing and invoice management
-- Deep industrial or municipal SCADA integration
-- Advanced predictive maintenance using complex sensor ecosystems
-- Large-scale ERP or finance integrations beyond the initial product scope
+- **Per-fixture breakdown** — The sensor is at the main inlet; it cannot tell which tap uses how much
+- **Billing or payment processing** — We compare against the utility bill, we don't generate or collect payments
+- **Physical installation service** — Users install the device themselves or hire a plumber
+- **Industrial/municipal SCADA integration** — This is a consumer product, not a utility management system
+- **Water quality monitoring** — We measure flow volume, not water quality (pH, turbidity, etc.)
 
 ---
 
 ## Correlations
 
 - Product vision → `03-product/vision.md`
-- HUs that implement this solution → `04-requirements/user-stories.md`
-- Detailed KPIs → `13-operations/README.md`
+- Delivery roadmap → `03-product/roadmap.md`
+- User stories → backlog (61 HUs across 14 epics)
+- System scope → `01-context/scope.md`
+- Identified risks → `15-project-control/risks.md`

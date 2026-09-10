@@ -1,113 +1,65 @@
 # 03 — Product Definition
 
-> **What is this?** The answer to "what are we going to build?". It is not "how" — that comes in
-> architecture. Here the validated problem, product vision, and build plan are defined.
-
-## Why this section exists
-
-Without a clear product definition:
-- The team builds features nobody asked for
-- Scope grows out of control (scope creep)
-- There is no way to know whether the project was successful
-
-This section is the contract between the team and stakeholders about **what will be built and why**.
+> **What is this?** The answer to "what are we going to build and why?".
+> Not "how" — that comes in architecture. Here we define the validated problem,
+> the product vision, and the delivery plan.
 
 ---
 
-## What is here and how to fill it in
+## Documents in this section
 
-### `problem-framing.md` ⭐ (Start here)
-Articulates the problem before proposing solutions.
-**Fill in:** who has the problem, exactly what pain, evidence of the problem, how they solve it today.
-
-**Format:**
-```markdown
-## The problem
-**Who has it?** [Profile of the affected user]
-**What problem do they have?** [Description of the pain, specific]
-**When does it occur?** [Situation that triggers the problem]
-**What is the impact?** [Concrete consequence: time, money, frustration]
-**How do they solve it today?** [Current workaround and why it is insufficient]
-
-## Why it is worth solving
-[Justification for the value of building this system]
-```
-
-### `discovery-brief.md`
-Findings from user research.
-**Fill in:** interviews conducted, insights found, assumptions validated and invalidated.
-
-### `vision.md` ⭐
-The product's north star in 1-2 sentences.
-**Fill in:** format "For [user], who [need], [system name] is a [product type]
-that [key benefit]. Unlike [alternative], our product [differentiator]."
-
-### `roadmap.md`
-Delivery plan over time.
-**Fill in:** milestones per quarter/sprint, which features go into each phase.
-
-**Format:**
-```markdown
-## Phase 1 — MVP (Sprint 1-3)
-- [Critical feature 1]
-- [Critical feature 2]
-
-## Phase 2 — Iteration (Sprint 4-6)
-- [Improvements based on feedback]
-```
-
-### `product-backlog.md` ⭐
-Prioritized list of everything that must be built.
-**Fill in:** using the `_template-backlog.md` template. Order by user value.
-
-### `_template-prd.md`
-Complete Product Requirements Document.
-**Use when:** you need to formalize requirements for an external stakeholder or academic delivery.
-
-### `_template-discovery-brief.md`
-Template for documenting user research.
-
-### `_template-problem-framing.md`
-Structured template for framing the problem.
-
-### `_template-backlog.md`
-Template for initial backlog user stories.
+| File | Purpose | Status |
+|------|---------|--------|
+| [problem-framing.md](./problem-framing.md) | The problem we solve, affected users, JTBD, solution hypothesis, risks | Complete |
+| [vision.md](./vision.md) | Product vision statement, strategic pillars, user roles, roadmap overview, product principles | Complete |
+| [roadmap.md](./roadmap.md) | Delivery plan: 4 Entregas mapped to 14 epics and 56 user stories, dependencies | Complete |
 
 ---
 
-## User Story format
+## Product at a glance
 
-```markdown
-## HU-[SERVICE]-[NNN]: [Title]
-**As** [user role]
-**I want** [action they want to perform]
-**So that** [benefit they receive]
-
-### Acceptance criteria
-- [ ] AC1: Given [context], when [action], then [expected result]
-- [ ] AC2: ...
-
-### Technical notes
-[Constraints or implementation considerations]
-
-**Estimation:** [SP]  **Priority:** [High/Medium/Low]
-```
+| Attribute | Value |
+|-----------|-------|
+| Product name | Save Your Water |
+| Problem | No visibility into water consumption until the monthly bill arrives |
+| Solution | IoT device (ESP32 + YF-S201 + electrovalve) + mobile/web platform |
+| Users | Owner (head of household), Guest (family/roommate), Admin (platform operator) |
+| Deliveries | 4 Entregas (no fixed dates, ordered by priority) |
+| Epics | 14 |
+| User stories | 56 |
+| Total story points | ~249 SP |
 
 ---
 
-## Correlations with other sections
+## Delivery summary
 
-| This section feeds... | Why |
-|-----------------------|-----|
-| `04-requirements/` | Backlog HUs are formalized as requirements |
-| `02-domain/` | Problem framing reveals domain entities |
-| `15-project-control/technical-backlog.md` | Technical debt identified during definition |
+| Entrega | Theme | Epics | HUs | SP |
+|---------|-------|-------|-----|-----|
+| 1 — MVP | Auth + Device + Dashboard | E1–E4 | 17 | ~80 |
+| 2 — Smart | Goals + Alerts + Valve | E5–E7 | 12 | ~56 |
+| 3 — Social | Guests + Bills + Auto-shutoff | E8–E11 | 15 | ~65 |
+| 4 — Admin | Admin panel + Reports + Multi-place | E12–E14 | 12 | ~48 |
 
 ---
 
-## Questions this section must answer
+## Correlations
+
+| This section is fed by... | And feeds into... |
+|---------------------------|-------------------|
+| Team's own experience with water bills | Problem framing |
+| Hardware prototyping (ESP32 + YF-S201) | Solution hypothesis |
+| `problem-framing.md` → problem + users | `02-domain/domain-map.md` → bounded contexts |
+| `vision.md` → user roles | `02-domain/entities-and-rules.md` → User entity |
+| `roadmap.md` → epics and HUs | `04-requirements/user-stories.md` → detailed requirements |
+| `roadmap.md` → Entrega mapping | `06-data/models.md` → tables by Entrega |
+| `roadmap.md` → dependencies | `05-architecture/overview.md` → service interactions |
+
+---
+
+## Questions this section answers
 
 - What problem exactly are we solving?
 - What does product success look like?
+- Who are the users and what do they need?
 - What do we build first and why?
-- What do we NOT build in this cycle?
+- What do we NOT build?
