@@ -12,32 +12,33 @@ Save Your Water is a web and mobile platform that measures household or business
 
 ## Main users
 
-| Role | Description | What they do in the system |
-|------|-------------|---------------------------|
-| **Dueño (Owner)** | Person who pays the water bill (head of household or business owner) | Full access: view consumption, set goals, open/close the valve, register utility bills, configure alerts, invite guests |
-| **Invitado (Guest)** | Family member, roommate, or administrator invited by the owner | Read-only access: view consumption, charts, and history for the place they were invited to |
-| **Administrador (Admin)** | Platform operator | Manage registered users, validate device failures, monitor platform health |
+| Role                            | Description                                                                    | What they do in the system                                                                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Usuario (User)**        | Default user role upon accessing the application, well before entering a home. | Will be able to see if you have a home set up; if not, you can create one.                                                                             |
+| **Dueño (Owner)**        | Person who pays the water bill (head of household or business owner)           | Full access: view consumption, set goals, open/close the valve, register utility bills, configure alerts, invite guests                                |
+| **Miembro (Member)**      | Family member, roommate, or administrator invited by the owner                 | It relies on permissions set by the owner of the location: It depends on whether you only want to read data or need to perform actions within the app. |
+| **Administrador (Admin)** | Platform operator                                                              | Manage registered users, validate device failures, monitor platform health                                                                             |
 
 ## Technology stack
 
-| Layer | Technology | Justification |
-|-------|-----------|---------------|
-| Mobile + Web | React Native (with web extension) | Single codebase for Android, iOS, and web browser |
-| Backend — IAM | Spring Boot (Java) | Mature ecosystem for authentication, authorization, and security |
-| Backend — Other modules | .NET (under evaluation) | Team expertise; strong typing and performance for business services |
-| Database | SQL Server (single shared instance, schema-per-service) | Team familiarity; robust transactional support. One instance, logical separation by schema |
-| IoT controller | ESP32 | Low-cost Wi-Fi-enabled microcontroller; handles sensor reading and valve control |
-| IoT protocol | MQTT | Lightweight publish/subscribe protocol optimized for constrained devices |
-| MQTT Broker | TBD (Mosquitto / HiveMQ / cloud-managed) | Receives telemetry from ESP32 devices and routes it to backend services |
-| Infrastructure | Docker (local) / VPS | Docker for development; VPS for initial deployment. Cloud provider TBD |
+| Layer                    | Technology                                              | Justification                                                                              |
+| ------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Mobile + Web             | React Native (with web extension)                       | Single codebase for Android, iOS, and web browser                                          |
+| Backend — IAM           | Spring Boot (Java)                                      | Mature ecosystem for authentication, authorization, and security                           |
+| Backend — Other modules | .NET (under evaluation)                                 | Team expertise; strong typing and performance for business services                        |
+| Database                 | SQL Server (single shared instance, schema-per-service) | Team familiarity; robust transactional support. One instance, logical separation by schema |
+| IoT controller           | ESP32                                                   | Low-cost Wi-Fi-enabled microcontroller; handles sensor reading and valve control           |
+| IoT protocol             | MQTT                                                    | Lightweight publish/subscribe protocol optimized for constrained devices                   |
+| MQTT Broker              | TBD (Mosquitto / HiveMQ / cloud-managed)                | Receives telemetry from ESP32 devices and routes it to backend services                    |
+| Infrastructure           | Docker (local) / VPS                                    | Docker for development; VPS for initial deployment. Cloud provider TBD                     |
 
 ## Hardware context
 
-| Component | Model / Spec | Purpose |
-|-----------|-------------|---------|
-| Flow sensor | YF-S201 | Measures water flow rate at the main inlet |
-| Electrovalve | Generic normally-open | Allows remote water shutoff |
-| Controller | ESP32 | Reads sensor, controls valve, communicates via MQTT over Wi-Fi |
+| Component    | Model / Spec          | Purpose                                                        |
+| ------------ | --------------------- | -------------------------------------------------------------- |
+| Flow sensor  | YF-S201               | Measures water flow rate at the main inlet                     |
+| Electrovalve | Generic normally-open | Allows remote water shutoff                                    |
+| Controller   | ESP32                 | Reads sensor, controls valve, communicates via MQTT over Wi-Fi |
 
 > **Limitation:** A single sensor at the main inlet measures total consumption for the entire property. It cannot break down usage by individual fixtures (shower, sink, toilet). Saving tips are therefore generic, not personalized per fixture.
 
@@ -50,8 +51,8 @@ Save Your Water is a web and mobile platform that measures household or business
 
 ## Project contacts
 
-| Role | Name | Contact |
-|------|------|---------|
-| Developer | Juan Esteban Ome Esquivel | — |
-| Developer | Juan Manuel Gómez | — |
-| Developer | Diego Alejandro Alvarado | — |
+| Role      | Name                      | Contact |
+| --------- | ------------------------- | ------- |
+| Developer | Juan Esteban Ome Esquivel | —      |
+| Developer | Juan Manuel Gómez        | —      |
+| Developer | Diego Alejandro Alvarado  | —      |
