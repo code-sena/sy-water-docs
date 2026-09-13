@@ -45,7 +45,7 @@
 
 | This section is fed by... | And feeds... |
 |--------------------------|-------------|
-| `02-domain/domain-map.md` → bounded contexts | `09-microservices/` → one service per context |
+| `02-domain/domain-map.md` → 11 bounded contexts | `overview.md` → BC-to-service mapping (11 BCs → 6 services) |
 | Domain events in `02-domain/` | Communication patterns in `overview.md` |
 | ADRs here | Implementation in `09-microservices/` |
 | DB strategy in `overview.md` | Data models in `06-data/models.md` |

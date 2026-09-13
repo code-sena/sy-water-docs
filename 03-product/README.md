@@ -23,11 +23,11 @@
 | Product name | Save Your Water |
 | Problem | No visibility into water consumption until the monthly bill arrives |
 | Solution | IoT device (ESP32 + YF-S201 + electrovalve) + mobile/web platform |
-| Users | Owner (head of household), Guest (family/roommate), Admin (platform operator) |
+| Users | User (default authenticated), Owner (head of household), Member (family/roommate with owner-defined permissions), Admin (platform operator) |
 | Deliveries | 4 Entregas (no fixed dates, ordered by priority) |
 | Epics | 14 |
-| User stories | 56 |
-| Total story points | ~249 SP |
+| User stories | 58 |
+| Total story points | ~257 SP |
 
 ---
 
@@ -37,8 +37,8 @@
 |---------|-------|-------|-----|-----|
 | 1 — MVP | Auth + Device + Dashboard | E1–E4 | 17 | ~80 |
 | 2 — Smart | Goals + Alerts + Valve | E5–E7 | 12 | ~56 |
-| 3 — Social | Guests + Bills + Auto-shutoff | E8–E11 | 15 | ~65 |
-| 4 — Admin | Admin panel + Reports + Multi-place | E12–E14 | 12 | ~48 |
+| 3 — Social | Members + Bills + Auto-shutoff | E8–E11 | 15 | ~65 |
+| 4 — Admin | Admin panel + Recommendations + Reports + Multi-place | E12–E14 | 14 | ~56 |
 
 ---
 

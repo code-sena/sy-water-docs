@@ -10,7 +10,7 @@
 ```
 Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entrega 4 (Admin)
 ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│ E1: Auth         │      │ E5: Goals        │      │ E8: Guests       │      │ E12: Admin Panel │
+│ E1: Auth         │      │ E5: Goals        │      │ E8: Members      │      │ E12: Admin Panel │
 │ E2: Place Mgmt   │      │ E6: Alerts       │      │ E9: Bill Mgmt    │      │ E13: Reports     │
 │ E3: Device Link  │      │ E7: Valve Ctrl   │      │ E10: Tariffs     │      │ E14: Multi-place │
 │ E4: Dashboard    │      │                  │      │ E11: Auto-shutoff│      │                  │
@@ -133,16 +133,16 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 
 ## Entrega 3 — Social & Billing
 
-> **Goal:** Owners invite guests, manage bills and tariffs, and configure automatic shutoff rules.
+> **Goal:** Owners invite members, manage bills and tariffs, and configure automatic shutoff rules.
 
-### E8 — Guest Management
+### E8 — Member Management
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
-| HU-30 | Invite a guest to a place | 5 | Email invitation, role assignment |
-| HU-31 | Guest views consumption dashboard | 3 | Read-only access to place consumption |
-| HU-32 | Revoke guest access | 3 | Immediate access removal |
-| HU-33 | Guest receives alerts for the place | 3 | Same alert types as owner, read-only |
+| HU-30 | Invite a member to a place | 5 | Email invitation, permissions assigned by owner |
+| HU-31 | Member views consumption dashboard | 3 | Access to place consumption per owner-defined permissions |
+| HU-32 | Revoke member access | 3 | Immediate access removal |
+| HU-33 | Member receives alerts for the place | 3 | Alert types based on owner-defined permissions |
 
 **Epic total: 14 SP**
 
@@ -197,12 +197,14 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
-| HU-45 | Admin views all registered users | 3 | Paginated list, search by email/name |
+| HU-45 | Admin views all registered users | 3 | Paginated list, search by email/name. No sensitive data (no passwords, identity documents, or billing info) |
 | HU-46 | Admin blocks/unblocks a user | 3 | User sessions revoked on block |
 | HU-47 | Admin views all devices | 3 | Status, linked place, last reading |
 | HU-48 | Admin views platform metrics | 5 | Total users, devices, places, active/inactive |
+| HU-57 | Admin creates a recommendation | 5 | Title, body, category (saving tip, maintenance, seasonal, general); visible to all users |
+| HU-58 | Admin edits or deactivates a recommendation | 3 | Deactivated recommendations hidden from users but not deleted |
 
-**Epic total: 14 SP**
+**Epic total: 22 SP**
 
 ### E13 — Reports & Analytics
 
@@ -231,8 +233,8 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | Metric | Value |
 |--------|-------|
 | Epics | 3 (E12–E14) |
-| User stories | 12 |
-| Story points | ~48 SP |
+| User stories | 14 |
+| Story points | ~56 SP |
 | New role | Admin (Administrador) |
 
 ---
@@ -244,8 +246,8 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | Entrega 1 (MVP) | E1–E4 | 17 | ~80 | ~80 |
 | Entrega 2 (Smart) | E5–E7 | 12 | ~56 | ~136 |
 | Entrega 3 (Social) | E8–E11 | 15 | ~65 | ~201 |
-| Entrega 4 (Admin) | E12–E14 | 12 | ~48 | ~249 |
-| **Total** | **14 epics** | **56 HUs** | **~249 SP** | |
+| Entrega 4 (Admin) | E12–E14 | 14 | ~56 | ~257 |
+| **Total** | **14 epics** | **58 HUs** | **~257 SP** | |
 
 > **Note:** Story point totals are approximate. Some stories may be split or merged during sprint planning. The original backlog references 61 HUs / 266 SP — the difference accounts for stories that may be consolidated or re-estimated during detailed planning.
 

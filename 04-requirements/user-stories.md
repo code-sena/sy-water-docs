@@ -28,11 +28,11 @@
 | E5 | Consumption Goals | 2 | Set monthly goals and receive progress alerts |
 | E6 | Alerts & Notifications | 2 | Leak detection, alert history, notification preferences |
 | E7 | Valve Control | 2 | Manual remote open/close of the electrovalve |
-| E8 | Guest Management | 3 | Invite guests with read-only access to a place |
+| E8 | Member Management | 3 | Invite members with owner-defined permissions to a place |
 | E9 | Bill Management | 3 | Register bills and compare against sensor data |
 | E10 | Tariff Configuration | 3 | Configure tariffs for cost estimation |
 | E11 | Automatic Shutoff | 3 | Rule-based automatic valve closure |
-| E12 | Admin Panel | 4 | Platform-wide user and device management |
+| E12 | Admin Panel | 4 | Platform-wide user/device management (no sensitive data) and generic recommendations |
 | E13 | Reports & Analytics | 4 | Monthly reports, savings analysis, PDF export |
 | E14 | Multi-place | 4 | Manage multiple places from one account |
 
@@ -758,21 +758,21 @@ Scenario: action history
 
 ---
 
-## E8 — Guest Management
+## E8 — Member Management
 
-### HU-30 — Invite a guest to a place
+### HU-30 — Invite a member to a place
 
 > **As** an Owner
-> **I want** to invite someone to my place as a guest
-> **so that** family members or roommates can view consumption data
+> **I want** to invite someone to my place as a member
+> **so that** family members or roommates can access consumption data
 
 ```gherkin
-Scenario: invite guest
+Scenario: invite member
   Given the owner provides a valid email
-  When they send the invitation
+  When they send the invitation with selected permissions
   Then the system sends an email invitation and creates a pending invitation record
 
-Scenario: guest already invited
+Scenario: member already invited
   Given the email already has a pending or active invitation for this place
   When the owner tries to invite again
   Then the system rejects with "user already invited"
@@ -787,17 +787,17 @@ Scenario: guest already invited
 
 ---
 
-### HU-31 — Guest views consumption dashboard
+### HU-31 — Member views consumption dashboard
 
-> **As** a Guest
+> **As** a Member
 > **I want** to view the consumption dashboard for a place I was invited to
 > **so that** I can see how much water is being used
 
 ```gherkin
-Scenario: guest dashboard
-  Given the guest has accepted the invitation
+Scenario: member dashboard
+  Given the member has accepted the invitation
   When they open the dashboard for the place
-  Then the system shows the same consumption data as the owner (read-only)
+  Then the system shows consumption data according to their owner-defined permissions
 ```
 
 | Field | Value |
@@ -809,18 +809,18 @@ Scenario: guest dashboard
 
 ---
 
-### HU-32 — Revoke guest access
+### HU-32 — Revoke member access
 
 > **As** an Owner
-> **I want** to remove a guest's access to my place
+> **I want** to remove a member's access to my place
 > **so that** they can no longer see my consumption data
 
 ```gherkin
 Scenario: revoke access
-  Given the guest has active access to the place
+  Given the member has active access to the place
   When the owner revokes access
-  Then the system removes the guest's access immediately
-  And publishes a GuestAccessRevoked event
+  Then the system removes the member's access immediately
+  And publishes a MemberAccessRevoked event
 ```
 
 | Field | Value |
@@ -832,17 +832,17 @@ Scenario: revoke access
 
 ---
 
-### HU-33 — Guest receives alerts for the place
+### HU-33 — Member receives alerts for the place
 
-> **As** a Guest
+> **As** a Member
 > **I want** to receive alerts for the place I have access to
 > **so that** I am aware of leaks or anomalies even though I am not the owner
 
 ```gherkin
-Scenario: guest alert
-  Given the guest has active access and alerts are enabled
+Scenario: member alert
+  Given the member has active access and alerts are enabled by owner permissions
   When a LeakSuspected or GoalExceeded event occurs
-  Then the guest receives the alert through their preferred channel
+  Then the member receives the alert through their preferred channel
 ```
 
 | Field | Value |
@@ -1201,6 +1201,60 @@ Scenario: metrics dashboard
 
 ---
 
+### HU-57 — Admin creates a recommendation
+
+> **As** an Admin
+> **I want** to create a generic water-saving recommendation
+> **so that** all users can see tips and best practices in the app
+
+```gherkin
+Scenario: create recommendation
+  Given the admin enters a title, body, and category
+  When they submit the recommendation
+  Then the system saves it and makes it visible to all users
+
+Scenario: invalid recommendation
+  Given the admin leaves the title or body empty
+  When they try to submit
+  Then the system rejects with validation errors
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Should Have |
+| Service(s) | notification-service |
+| Dependencies | — |
+
+---
+
+### HU-58 — Admin edits or deactivates a recommendation
+
+> **As** an Admin
+> **I want** to edit or deactivate an existing recommendation
+> **so that** outdated or incorrect tips are no longer shown to users
+
+```gherkin
+Scenario: edit recommendation
+  Given the admin modifies the title, body, or category
+  When they save the changes
+  Then the system updates the recommendation
+
+Scenario: deactivate recommendation
+  Given the admin deactivates a recommendation
+  When they confirm the action
+  Then the recommendation is hidden from users but not deleted
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 3 |
+| Priority | Could Have |
+| Service(s) | notification-service |
+| Dependencies | HU-57 |
+
+---
+
 ## E13 — Reports & Analytics
 
 ### HU-49 — View monthly consumption report
@@ -1388,7 +1442,7 @@ Scenario: device per place
 
 ```
 ✓ As an Owner
-✓ As a Guest
+✓ As a Member
 ✓ As an Admin
 ✗ As a user
 ✗ As a person

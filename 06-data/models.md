@@ -51,9 +51,10 @@ All queries must include `WHERE deleted_at IS NULL` unless explicitly querying a
 
 ---
 
-## Schema: iam (auth-service)
+## Schema: iam (auth-service) — BC-01 IAM
 
 **Owner:** auth-service (Spring Boot)
+**Bounded Context:** BC-01 IAM (Supporting)
 
 ### Table: iam.users
 
@@ -173,9 +174,10 @@ CREATE INDEX IX_login_attempts_user_id ON iam.login_attempts (user_id);
 
 ---
 
-## Schema: place (place-service)
+## Schema: place (place-service) — BC-02 Place Management
 
 **Owner:** place-service
+**Bounded Context:** BC-02 Place Management (Supporting)
 
 ### Table: place.places
 
@@ -219,20 +221,24 @@ CREATE INDEX IX_places_owner_id          ON place.places (owner_id) WHERE delete
 
 ### Table: place.members *(Entrega 3)*
 
-**Purpose:** Users with access to a place (Owner or Guest).
+**Purpose:** Users with access to a place (Owner or Member).
 
 ```sql
 CREATE TABLE place.members (
-    id        UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id  UNIQUEIDENTIFIER NOT NULL REFERENCES place.places(id),
-    user_id   UNIQUEIDENTIFIER NOT NULL,   -- references iam.users via app-level
+    id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    place_id    UNIQUEIDENTIFIER NOT NULL REFERENCES place.places(id),
+    user_id     UNIQUEIDENTIFIER NOT NULL,   -- references iam.users via app-level
 
-    role      NVARCHAR(10)     NOT NULL
-              CONSTRAINT CK_members_role CHECK (role IN ('OWNER', 'GUEST')),
+    role        NVARCHAR(10)     NOT NULL
+                CONSTRAINT CK_members_role CHECK (role IN ('OWNER', 'MEMBER')),
 
-    created_at DATETIMEOFFSET  NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at DATETIMEOFFSET  NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at DATETIMEOFFSET  NULL
+    -- Permissions (comma-separated, only applies to MEMBER role; OWNER has all implicitly)
+    permissions NVARCHAR(500)    NULL,
+    -- Valid values: VIEW_CONSUMPTION, VIEW_DEVICE_STATUS, CONTROL_VALVE, VIEW_ALERTS, VIEW_BILLS
+
+    created_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    updated_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    deleted_at  DATETIMEOFFSET   NULL
 );
 
 CREATE UNIQUE INDEX UX_members_place_user ON place.members (place_id, user_id) WHERE deleted_at IS NULL;
@@ -242,7 +248,7 @@ CREATE UNIQUE INDEX UX_members_place_user ON place.members (place_id, user_id) W
 
 ### Table: place.invitations *(Entrega 3)*
 
-**Purpose:** Pending invitations to join a place as Guest.
+**Purpose:** Pending invitations to join a place as Member.
 
 ```sql
 CREATE TABLE place.invitations (
@@ -250,6 +256,10 @@ CREATE TABLE place.invitations (
     place_id       UNIQUEIDENTIFIER NOT NULL REFERENCES place.places(id),
     invited_email  NVARCHAR(320)    NOT NULL,
     invited_by     UNIQUEIDENTIFIER NOT NULL,   -- references iam.users via app-level
+
+    -- Permissions the member will receive upon acceptance
+    permissions    NVARCHAR(500)    NOT NULL,
+    -- Valid values: VIEW_CONSUMPTION, VIEW_DEVICE_STATUS, CONTROL_VALVE, VIEW_ALERTS, VIEW_BILLS
 
     status         NVARCHAR(10)     NOT NULL DEFAULT 'PENDING'
                    CONSTRAINT CK_invitations_status CHECK (status IN ('PENDING', 'ACCEPTED', 'EXPIRED', 'REJECTED')),
@@ -267,9 +277,10 @@ CREATE INDEX IX_invitations_email    ON place.invitations (invited_email) WHERE 
 
 ---
 
-## Schema: device (device-service)
+## Schema: device (device-service) — BC-03 Device Management
 
 **Owner:** device-service
+**Bounded Context:** BC-03 Device Management (Supporting)
 
 ### Table: device.devices
 
@@ -343,11 +354,12 @@ ALTER TABLE device.readings ADD CONSTRAINT CK_readings_volume    CHECK (volume >
 
 ---
 
-## Schema: consumption (consumption-service)
+## Schema: consumption (consumption-service) — BC-04, BC-05, BC-06, BC-10
 
 **Owner:** consumption-service
+**Bounded Contexts:** BC-04 Consumption Monitoring (Core), BC-05 Consumption Goals (Supporting), BC-06 Billing & Tariffs (Supporting), BC-10 Reports & Export (Generic)
 
-### Table: consumption.consumption_records
+### Table: consumption.consumption_records — BC-04 Consumption Monitoring
 
 **Purpose:** Aggregated consumption data by place and time interval.
 
@@ -380,7 +392,7 @@ CREATE INDEX IX_consumption_place_id ON consumption.consumption_records
 
 ---
 
-### Table: consumption.goals *(Entrega 2)*
+### Table: consumption.goals — BC-05 Consumption Goals *(Entrega 2)*
 
 **Purpose:** Monthly water consumption targets per place.
 
@@ -406,7 +418,7 @@ CREATE UNIQUE INDEX UX_goals_place_month ON consumption.goals (place_id, month) 
 
 ---
 
-### Table: consumption.bills *(Entrega 3)*
+### Table: consumption.bills — BC-06 Billing & Tariffs *(Entrega 3)*
 
 **Purpose:** Utility bills registered by the user for comparison against sensor data.
 
@@ -437,7 +449,7 @@ CREATE INDEX IX_bills_place_id ON consumption.bills (place_id, period_start DESC
 
 ---
 
-### Table: consumption.tariffs *(Entrega 3)*
+### Table: consumption.tariffs — BC-06 Billing & Tariffs *(Entrega 3)*
 
 **Purpose:** Price per unit of water, used to estimate monetary cost of consumption.
 
@@ -463,9 +475,10 @@ CREATE INDEX IX_tariffs_place_id ON consumption.tariffs (place_id, effective_fro
 
 ---
 
-## Schema: valve (valve-service) *(Entrega 2)*
+## Schema: valve (valve-service) — BC-07 Valve Control *(Entrega 2)*
 
 **Owner:** valve-service
+**Bounded Context:** BC-07 Valve Control (Core)
 
 ### Table: valve.valves
 
@@ -544,11 +557,12 @@ CREATE UNIQUE INDEX UX_srules_valve_trigger ON valve.shutoff_rules (valve_id, tr
 
 ---
 
-## Schema: notification (notification-service) *(Entrega 2)*
+## Schema: notification (notification-service) — BC-08, BC-09, BC-11 *(Entrega 2)*
 
 **Owner:** notification-service
+**Bounded Contexts:** BC-08 Alerts & Detection (Core), BC-09 Notification Delivery (Generic), BC-11 Savings Tips (Generic)
 
-### Table: notification.alerts
+### Table: notification.alerts — BC-08 Alerts & Detection
 
 **Purpose:** System-generated alerts triggered by domain events.
 
@@ -582,7 +596,7 @@ CREATE INDEX IX_alerts_unread    ON notification.alerts (user_id) WHERE is_read 
 
 ---
 
-### Table: notification.notification_preferences
+### Table: notification.notification_preferences — BC-09 Notification Delivery
 
 **Purpose:** User's channel preferences per urgency level.
 
@@ -609,21 +623,50 @@ CREATE UNIQUE INDEX UX_nprefs_user_urgency ON notification.notification_preferen
 
 ---
 
+### Table: notification.recommendations — BC-11 Savings Tips *(Entrega 4)*
+
+**Purpose:** Generic water-saving tips and recommendations created by Admins. Displayed to all users.
+
+```sql
+CREATE TABLE notification.recommendations (
+    id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    created_by  UNIQUEIDENTIFIER NOT NULL,   -- references iam.users via app-level (Admin)
+
+    title       NVARCHAR(200)    NOT NULL,
+    body        NVARCHAR(2000)   NOT NULL,
+    category    NVARCHAR(20)     NOT NULL
+                CONSTRAINT CK_recommendations_category CHECK (category IN ('SAVING_TIP', 'MAINTENANCE', 'SEASONAL', 'GENERAL')),
+    is_active   BIT              NOT NULL DEFAULT 1,
+
+    created_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    updated_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
+    deleted_at  DATETIMEOFFSET   NULL
+);
+
+CREATE INDEX IX_recommendations_active   ON notification.recommendations (is_active) WHERE deleted_at IS NULL;
+CREATE INDEX IX_recommendations_category ON notification.recommendations (category) WHERE is_active = 1 AND deleted_at IS NULL;
+```
+
+---
+
 ## Data ownership matrix
 
-| Entity / Data | Owner schema | How other services access |
-|---------------|-------------|--------------------------|
-| User identity | `iam` | REST API (`GET /users/:id`) or JWT claims |
-| Place info | `place` | REST API (`GET /places/:id`) |
-| Device registry | `device` | REST API + `DeviceLinked` / `DeviceUnlinked` events |
-| Raw readings | `device` | `ReadingReceived` events via RabbitMQ |
-| Aggregated consumption | `consumption` | REST API (`GET /consumption/:placeId`) |
-| Goals | `consumption` | REST API |
-| Bills & tariffs | `consumption` | REST API |
-| Valve state | `valve` | REST API + `ValveClosed` / `ValveOpened` events |
-| Valve action log | `valve` | REST API |
-| Alerts | `notification` | REST API (`GET /alerts`) |
-| Notification preferences | `notification` | REST API |
+| Entity / Data | Owner schema | Owner BC | How other services access |
+|---------------|-------------|---------|--------------------------|
+| User identity | `iam` | BC-01 IAM | REST API (`GET /users/:id`) or JWT claims |
+| Place info | `place` | BC-02 Place Mgmt | REST API (`GET /places/:id`) |
+| Members & invitations | `place` | BC-02 Place Mgmt | REST API (`GET /places/:id/members`) |
+| Device registry | `device` | BC-03 Device Mgmt | REST API + `DeviceLinked` / `DeviceUnlinked` events |
+| Raw readings | `device` | BC-03 Device Mgmt | `ReadingReceived` events via RabbitMQ |
+| Aggregated consumption | `consumption` | BC-04 Monitoring | REST API (`GET /consumption/:placeId`) |
+| Goals | `consumption` | BC-05 Goals | REST API |
+| Bills & tariffs | `consumption` | BC-06 Billing | REST API |
+| Reports | `consumption` | BC-10 Reports | REST API (read-only projections) |
+| Valve state | `valve` | BC-07 Valve Control | REST API + `ValveClosed` / `ValveOpened` events |
+| Valve action log | `valve` | BC-07 Valve Control | REST API |
+| Alerts | `notification` | BC-08 Alerts | REST API (`GET /alerts`) |
+| Notification preferences | `notification` | BC-09 Delivery | REST API |
+| Recommendations | `notification` | BC-11 Tips | REST API (`GET /recommendations`) |
 
 ---
 
@@ -683,6 +726,34 @@ Examples:
                                └─────────────────────────────┘
 ```
 
+### place schema
+
+```
+┌──────────────────────────┐
+│      place.places        │
+├──────────────────────────┤
+│ id (PK)                  │──┐
+│ owner_id                 │  │    ┌──────────────────────────────┐
+│ name (UQ w/owner)        │  │    │      place.members           │
+│ street_address           │  │    │         *(Entrega 3)*        │
+│ country, department, city│  │    ├──────────────────────────────┤
+│ stratum, inhabitants     │  ├───▶│ place_id (FK)                │
+│ measurement_unit         │  │    │ user_id (UQ w/place)         │
+│ currency                 │  │    │ role (OWNER / MEMBER)        │
+│ linked_device_id         │  │    │ permissions                  │
+└──────────────────────────┘  │    └──────────────────────────────┘
+                              │
+                              │    ┌──────────────────────────────┐
+                              │    │    place.invitations         │
+                              │    │         *(Entrega 3)*        │
+                              │    ├──────────────────────────────┤
+                              └───▶│ place_id (FK)                │
+                                   │ invited_email, invited_by    │
+                                   │ permissions                  │
+                                   │ status, expires_at           │
+                                   └──────────────────────────────┘
+```
+
 ### device schema
 
 ```
@@ -697,6 +768,38 @@ Examples:
 │ disconnect_threshold   │       │ timestamp (UQ w/device) │
 └────────────────────────┘       │ received_at             │
                                  └─────────────────────────┘
+```
+
+### consumption schema
+
+```
+┌────────────────────────────────┐
+│ consumption.consumption_records│
+├────────────────────────────────┤
+│ id (PK)                        │
+│ place_id                       │       ┌─────────────────────────┐
+│ period_type (UQ w/place+start) │       │   consumption.goals     │
+│ period_start, period_end       │       │      *(Entrega 2)*      │
+│ total_volume, reading_count    │       ├─────────────────────────┤
+└────────────────────────────────┘       │ id (PK)                 │
+                                         │ place_id (UQ w/month)   │
+       ┌─────────────────────────┐       │ set_by                  │
+       │  consumption.bills      │       │ month, target_volume    │
+       │     *(Entrega 3)*       │       │ unit, source            │
+       ├─────────────────────────┤       └─────────────────────────┘
+       │ id (PK)                 │
+       │ place_id                │       ┌─────────────────────────┐
+       │ registered_by           │       │ consumption.tariffs     │
+       │ billed_volume           │       │     *(Entrega 3)*       │
+       │ total_amount, currency  │       ├─────────────────────────┤
+       │ period_start, period_end│       │ id (PK)                 │
+       │ payment_due_date        │       │ place_id                │
+       │ is_paid                 │       │ price_per_unit, unit    │
+       └─────────────────────────┘       │ currency, fixed_charge  │
+                                         │ effective_from/until    │
+                                         └─────────────────────────┘
+
+All tables linked by place_id (app-level, no FK cross-schema)
 ```
 
 ### valve schema *(Entrega 2)*
@@ -714,6 +817,7 @@ Examples:
                             │
                             │    ┌───────────────────────────┐
                             │    │   valve.shutoff_rules     │
+                            │    │      *(Entrega 3)*        │
                             │    ├───────────────────────────┤
                             └───▶│ valve_id (FK)             │
                                  │ trigger_type (UQ w/valve) │
@@ -721,11 +825,37 @@ Examples:
                                  └───────────────────────────┘
 ```
 
+### notification schema *(Entrega 2)*
+
+```
+┌─────────────────────────────┐
+│     notification.alerts     │
+├─────────────────────────────┤
+│ id (PK)                     │
+│ place_id, user_id           │
+│ type, urgency               │       ┌─────────────────────────────────────┐
+│ title, body                 │       │ notification.notification_preferences│
+│ is_read, channels           │       ├─────────────────────────────────────┤
+└─────────────────────────────┘       │ id (PK)                             │
+                                      │ user_id (UQ w/urgency)              │
+┌─────────────────────────────┐       │ urgency_level                       │
+│notification.recommendations│       │ in_app, push, email, sms _enabled   │
+│      *(Entrega 4)*         │       └─────────────────────────────────────┘
+├─────────────────────────────┤
+│ id (PK)                     │
+│ created_by (Admin)          │
+│ title, body                 │
+│ category, is_active         │
+└─────────────────────────────┘
+```
+
 ---
 
 ## Correlations
 
-- Domain entities → `02-domain/entities-and-rules.md`
+- Bounded contexts and domain map → `02-domain/domain-map.md`
+- Domain entities and aggregates → `02-domain/entities-and-rules.md`
+- Domain events → `02-domain/domain-events.md`
+- BC-to-service mapping → `05-architecture/overview.md` § 4
 - Schema-per-service decision → `05-architecture/decisions/records/ADR-002-shared-database-schema-per-service.md`
-- Per-service data model detail → `09-microservices/services/NN-service/data-model.md`
 - API contracts exposing this data → `07-api/contracts/openapi/`

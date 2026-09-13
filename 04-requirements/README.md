@@ -24,7 +24,7 @@
 | User stories | 56 (HU-01 to HU-56) |
 | Epics | 14 (E1 to E14) |
 | Planned test files | 32 |
-| Services involved | 7 (api-gateway + 6 domain services) |
+| Services involved | 7 (api-gateway + 6 domain services hosting 11 bounded contexts) |
 
 ---
 

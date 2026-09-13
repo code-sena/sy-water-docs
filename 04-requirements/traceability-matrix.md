@@ -33,11 +33,11 @@ If code exists without an HU → unplanned work (gold plating)
 | FR-010 | Alert management | Users view alert history, configure notification channels, mark as resolved | Should Have |
 | FR-011 | Valve control | Owners open/close the electrovalve remotely via MQTT commands | Must Have |
 | FR-012 | Valve audit | Users view valve status and action history (who, when, why) | Should Have |
-| FR-013 | Guest access | Owners invite guests with read-only access; guests view dashboard and receive alerts | Must Have |
+| FR-013 | Member access | Owners invite members with owner-defined permissions; members view dashboard and receive alerts | Must Have |
 | FR-014 | Bill management | Owners register bills and compare against sensor measurements | Must Have |
 | FR-015 | Tariff configuration | Owners configure tariffs for cost estimation from sensor data | Should Have |
 | FR-016 | Automatic shutoff | Rule-based valve closure on events (leak, goal exceeded); manual reopen only | Must Have |
-| FR-017 | Admin panel | Admin views all users and devices; blocks/unblocks users; views platform metrics | Must Have |
+| FR-017 | Admin panel | Admin views users (no sensitive data), blocks/unblocks users, views devices and platform metrics, creates/manages generic recommendations | Must Have |
 | FR-018 | Reports | Monthly/savings reports with charts and PDF export | Should Have |
 | FR-019 | Multi-place | Users manage multiple places with place switcher and aggregated consumption | Must Have |
 
@@ -71,7 +71,7 @@ If code exists without an HU → unplanned work (gold plating)
 
 | FR | HU(s) | Service(s) | Test file (planned) | Status |
 |----|-------|-----------|---------------------|--------|
-| FR-013 | HU-30, HU-31, HU-32, HU-33 | place-service, notification-service | `guest-invite.spec`, `guest-access.spec` | Planned |
+| FR-013 | HU-30, HU-31, HU-32, HU-33 | place-service, notification-service | `member-invite.spec`, `member-access.spec` | Planned |
 | FR-014 | HU-34, HU-35, HU-36, HU-37 | consumption-service, notification-service | `bill-register.spec`, `bill-compare.spec` | Planned |
 | FR-015 | HU-38, HU-39, HU-40 | consumption-service | `tariff-config.spec`, `cost-estimate.spec` | Planned |
 | FR-016 | HU-41, HU-42, HU-43, HU-44 | valve-service, notification-service | `shutoff-rule.spec`, `auto-shutoff.spec` | Planned |
@@ -80,7 +80,7 @@ If code exists without an HU → unplanned work (gold plating)
 
 | FR | HU(s) | Service(s) | Test file (planned) | Status |
 |----|-------|-----------|---------------------|--------|
-| FR-017 | HU-45, HU-46, HU-47, HU-48 | auth-service, device-service, place-service | `admin-users.spec`, `admin-devices.spec` | Planned |
+| FR-017 | HU-45, HU-46, HU-47, HU-48, HU-57, HU-58 | auth-service, device-service, place-service, notification-service | `admin-users.spec`, `admin-devices.spec`, `admin-recommendations.spec` | Planned |
 | FR-018 | HU-49, HU-50, HU-51, HU-52 | consumption-service | `report-monthly.spec`, `report-pdf.spec` | Planned |
 | FR-019 | HU-53, HU-54, HU-55, HU-56 | place-service, consumption-service, device-service | `multi-place.spec` | Planned |
 
@@ -134,10 +134,10 @@ If code exists without an HU → unplanned work (gold plating)
 | HU-27 | Open valve remotely | FR-011 | 2 |
 | HU-28 | View valve status | FR-012 | 2 |
 | HU-29 | View valve action history | FR-012 | 2 |
-| HU-30 | Invite guest | FR-013 | 3 |
-| HU-31 | Guest views dashboard | FR-013 | 3 |
-| HU-32 | Revoke guest access | FR-013 | 3 |
-| HU-33 | Guest receives alerts | FR-013 | 3 |
+| HU-30 | Invite member | FR-013 | 3 |
+| HU-31 | Member views dashboard | FR-013 | 3 |
+| HU-32 | Revoke member access | FR-013 | 3 |
+| HU-33 | Member receives alerts | FR-013 | 3 |
 | HU-34 | Register a bill | FR-014 | 3 |
 | HU-35 | Compare bill vs. sensor | FR-014 | 3 |
 | HU-36 | View bill history | FR-014 | 3 |
@@ -161,6 +161,8 @@ If code exists without an HU → unplanned work (gold plating)
 | HU-54 | Switch between places | FR-019 | 4 |
 | HU-55 | Aggregated consumption | FR-019 | 4 |
 | HU-56 | Manage devices per place | FR-019 | 4 |
+| HU-57 | Admin creates recommendation | FR-017 | 4 |
+| HU-58 | Admin edits/deactivates recommendation | FR-017 | 4 |
 
 ---
 
@@ -171,8 +173,8 @@ If code exists without an HU → unplanned work (gold plating)
 | 1 | FR-001 to FR-007 | 17 | 11 |
 | 2 | FR-008 to FR-012 | 12 | 9 |
 | 3 | FR-013 to FR-016 | 15 | 8 |
-| 4 | FR-017 to FR-019 | 12 | 4 |
-| **Total** | **19 FRs** | **56 HUs** | **32 test files** |
+| 4 | FR-017 to FR-019 | 14 | 5 |
+| **Total** | **19 FRs** | **58 HUs** | **33 test files** |
 
 ---
 

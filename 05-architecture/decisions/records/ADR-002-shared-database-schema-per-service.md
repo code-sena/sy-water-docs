@@ -14,7 +14,7 @@
 
 The standard microservices recommendation is "database per service" — each service owns a separate database instance. This maximizes independence but increases operational overhead: multiple database servers to manage, backup, monitor, and pay for.
 
-Save Your Water is built by a team of 3 developers, deployed on a single VPS with Docker. The project has 6 domain services, and maintaining 6+ SQL Server instances (or even containers) is impractical given the team size and infrastructure budget (university project, no cloud budget).
+Save Your Water is built by a team of 3 developers, deployed on a single VPS with Docker. The project has 11 bounded contexts deployed across 6 microservices (see `05-architecture/overview.md` § 4 for the mapping), and maintaining 6+ SQL Server instances (or even containers) is impractical given the team size and infrastructure budget (university project, no cloud budget).
 
 At the same time, we need to preserve the logical independence of each service's data to avoid tight coupling and to allow a future migration to separate databases if scale demands it.
 

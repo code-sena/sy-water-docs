@@ -15,16 +15,21 @@
 
 ---
 
-## Bounded Contexts Summary
+## Bounded Contexts Summary (11 BCs → 6 services)
 
-| Context | Type | Microservice | Entrega |
-|---------|------|-------------|---------|
-| IAM | Generic | auth-service | MVP |
-| Place Management | Supporting | place-service | MVP |
-| Device Management | Core | device-service | MVP |
-| Consumption | Core | consumption-service | MVP |
-| Valve Control | Core | valve-service | 2 |
-| Notification | Supporting | notification-service | 2 |
+| # | Context | Subdomain | Service | Entrega |
+|---|---------|----------|---------|---------|
+| BC-01 | IAM | Supporting | auth-service | MVP |
+| BC-02 | Place Management | Supporting | place-service | MVP |
+| BC-03 | Device Management | Supporting | device-service | MVP |
+| BC-04 | Consumption Monitoring | Core | consumption-service | MVP |
+| BC-05 | Consumption Goals | Supporting | consumption-service | 2 |
+| BC-06 | Billing & Tariffs | Supporting | consumption-service | 3 |
+| BC-07 | Valve Control | Core | valve-service | 2 |
+| BC-08 | Alerts & Detection | Core | notification-service | 2 |
+| BC-09 | Notification Delivery | Generic | notification-service | 2 |
+| BC-10 | Reports & Export | Generic | consumption-service | 4 |
+| BC-11 | Savings Tips | Generic | notification-service | 4 |
 
 ---
 

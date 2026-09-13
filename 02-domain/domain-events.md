@@ -2,6 +2,7 @@
 
 > Events are facts that occurred in the business, stated in past tense.
 > They are the backbone of asynchronous communication between bounded contexts.
+> Organized by BC — see `02-domain/domain-map.md` for the context map.
 
 ---
 
@@ -26,16 +27,16 @@ All events follow this structure:
 
 ## Event Catalog
 
-### IAM Context
+### BC-01: IAM Context
 
 #### Event: UserRegistered
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | IAM |
+| **Bounded Context** | BC-01 IAM |
 | **Aggregate** | User |
 | **Trigger** | User completes registration (local or Google OAuth) |
-| **Consumers** | notification-service (send verification email for local accounts) |
+| **Consumers** | BC-09 Notification Delivery (send verification email for local accounts) |
 | **Topic** | `iam.user.registered` |
 | **Version** | v1 |
 
@@ -56,7 +57,7 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | IAM |
+| **Bounded Context** | BC-01 IAM |
 | **Aggregate** | User |
 | **Trigger** | User clicks the email verification link |
 | **Consumers** | — (internal state change) |
@@ -78,7 +79,7 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | IAM |
+| **Bounded Context** | BC-01 IAM |
 | **Aggregate** | User |
 | **Trigger** | Successful login |
 | **Consumers** | — (audit log) |
@@ -100,10 +101,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | IAM |
+| **Bounded Context** | BC-01 IAM |
 | **Aggregate** | User |
 | **Trigger** | 5 consecutive failed login attempts |
-| **Consumers** | notification-service (notify user of blocked account) |
+| **Consumers** | BC-09 Notification Delivery (notify user of blocked account) |
 | **Topic** | `iam.account.blocked` |
 | **Version** | v1 |
 
@@ -123,10 +124,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | IAM |
+| **Bounded Context** | BC-01 IAM |
 | **Aggregate** | User |
 | **Trigger** | User changes or resets their password |
-| **Consumers** | auth-service (invalidate all active sessions) |
+| **Consumers** | BC-01 IAM (invalidate all active sessions) |
 | **Topic** | `iam.password.changed` |
 | **Version** | v1 |
 
@@ -140,16 +141,16 @@ All events follow this structure:
 
 ---
 
-### Place Management Context
+### BC-02: Place Management Context
 
 #### Event: PlaceCreated
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Place Management |
+| **Bounded Context** | BC-02 Place Management |
 | **Aggregate** | Place |
 | **Trigger** | Owner registers a new place |
-| **Consumers** | consumption-service (provision storage for the new place) |
+| **Consumers** | BC-04 Consumption Monitoring (provision storage for the new place) |
 | **Topic** | `place.created` |
 | **Version** | v1 |
 
@@ -171,10 +172,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Place Management |
+| **Bounded Context** | BC-02 Place Management |
 | **Aggregate** | Place |
 | **Trigger** | Owner deletes a place (after unlinking device) |
-| **Consumers** | consumption-service (archive data), notification-service (cancel pending alerts) |
+| **Consumers** | BC-04 Consumption Monitoring (archive data), BC-08 Alerts & Detection (cancel pending alerts) |
 | **Topic** | `place.deleted` |
 | **Version** | v1 |
 
@@ -189,15 +190,15 @@ All events follow this structure:
 
 ---
 
-#### Event: GuestInvited *(Entrega 3)*
+#### Event: MemberInvited *(Entrega 3)*
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Place Management |
+| **Bounded Context** | BC-02 Place Management |
 | **Aggregate** | Place |
 | **Trigger** | Owner sends an invitation to a person |
-| **Consumers** | notification-service (send invitation email) |
-| **Topic** | `place.guest.invited` |
+| **Consumers** | BC-09 Notification Delivery (send invitation email) |
+| **Topic** | `place.member.invited` |
 | **Version** | v1 |
 
 **Payload:**
@@ -213,38 +214,38 @@ All events follow this structure:
 
 ---
 
-#### Event: GuestAccessRevoked *(Entrega 3)*
+#### Event: MemberAccessRevoked *(Entrega 3)*
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Place Management |
+| **Bounded Context** | BC-02 Place Management |
 | **Aggregate** | Place |
-| **Trigger** | Owner removes a guest's access |
-| **Consumers** | auth-service (invalidate guest's sessions for this place) |
-| **Topic** | `place.guest.revoked` |
+| **Trigger** | Owner removes a member's access |
+| **Consumers** | BC-01 IAM (invalidate member's sessions for this place) |
+| **Topic** | `place.member.revoked` |
 | **Version** | v1 |
 
 **Payload:**
 ```json
 {
   "placeId": "uuid",
-  "guestUserId": "uuid",
+  "memberUserId": "uuid",
   "revokedBy": "uuid"
 }
 ```
 
 ---
 
-### Device Management Context
+### BC-03: Device Management Context
 
 #### Event: DeviceLinked
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Device Management |
+| **Bounded Context** | BC-03 Device Management |
 | **Aggregate** | Device |
 | **Trigger** | Owner links a device to a place (via hardware ID or QR scan) |
-| **Consumers** | consumption-service (start expecting readings for this place), valve-service (create valve record) |
+| **Consumers** | BC-04 Consumption Monitoring (start expecting readings), BC-07 Valve Control (create valve record) |
 | **Topic** | `device.linked` |
 | **Version** | v1 |
 
@@ -265,10 +266,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Device Management |
+| **Bounded Context** | BC-03 Device Management |
 | **Aggregate** | Device |
 | **Trigger** | Owner unlinks a device from a place |
-| **Consumers** | valve-service (deactivate valve record), consumption-service (stop expecting readings) |
+| **Consumers** | BC-07 Valve Control (deactivate valve record), BC-04 Consumption Monitoring (stop expecting readings) |
 | **Topic** | `device.unlinked` |
 | **Version** | v1 |
 
@@ -288,10 +289,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Device Management |
+| **Bounded Context** | BC-03 Device Management |
 | **Aggregate** | Device |
 | **Trigger** | No reading received for the configured threshold (default: 15 minutes) |
-| **Consumers** | notification-service (sensor disconnected alert) |
+| **Consumers** | BC-08 Alerts & Detection (create SENSOR_DISCONNECTED alert) |
 | **Topic** | `device.disconnected` |
 | **Version** | v1 |
 
@@ -311,10 +312,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Device Management |
+| **Bounded Context** | BC-03 Device Management |
 | **Aggregate** | Device |
 | **Trigger** | A reading is received from a previously disconnected device |
-| **Consumers** | notification-service (clear sensor disconnected alert) |
+| **Consumers** | BC-08 Alerts & Detection (clear sensor disconnected alert) |
 | **Topic** | `device.reconnected` |
 | **Version** | v1 |
 
@@ -333,10 +334,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Device Management |
+| **Bounded Context** | BC-03 Device Management |
 | **Aggregate** | Device |
 | **Trigger** | ESP32 sends a flow measurement via MQTT |
-| **Consumers** | consumption-service (aggregate into consumption), notification-service (feed leak detection) |
+| **Consumers** | BC-04 Consumption Monitoring (aggregate into consumption), BC-08 Alerts & Detection (feed leak detection) |
 | **Topic** | `device.reading.received` |
 | **Delivery guarantee** | At-least-once |
 | **Version** | v1 |
@@ -357,16 +358,16 @@ All events follow this structure:
 
 ---
 
-### Consumption Context
+### BC-05: Consumption Goals Context *(Entrega 2)*
 
-#### Event: GoalThresholdReached *(Entrega 2)*
+#### Event: GoalThresholdReached
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Consumption |
+| **Bounded Context** | BC-05 Consumption Goals |
 | **Aggregate** | — (domain service: GoalEvaluator) |
 | **Trigger** | Monthly consumption reaches 80% of the defined goal |
-| **Consumers** | notification-service (informative alert) |
+| **Consumers** | BC-08 Alerts & Detection (create GOAL_WARNING alert) |
 | **Topic** | `consumption.goal.threshold` |
 | **Version** | v1 |
 
@@ -384,14 +385,14 @@ All events follow this structure:
 
 ---
 
-#### Event: GoalExceeded *(Entrega 2)*
+#### Event: GoalExceeded
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Consumption |
+| **Bounded Context** | BC-05 Consumption Goals |
 | **Aggregate** | — (domain service: GoalEvaluator) |
 | **Trigger** | Monthly consumption reaches 100% of the defined goal |
-| **Consumers** | notification-service (important alert), valve-service (evaluate auto-shutoff rule) |
+| **Consumers** | BC-08 Alerts & Detection (create GOAL_EXCEEDED alert), BC-07 Valve Control (evaluate auto-shutoff rule) |
 | **Topic** | `consumption.goal.exceeded` |
 | **Version** | v1 |
 
@@ -410,15 +411,45 @@ All events follow this structure:
 
 ---
 
-#### Event: LeakSuspected *(Entrega 2)*
+### BC-06: Billing & Tariffs Context *(Entrega 3)*
+
+#### Event: BillMismatchDetected
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Consumption |
+| **Bounded Context** | BC-06 Billing & Tariffs |
+| **Aggregate** | — (domain service: BillComparator) |
+| **Trigger** | Sensor-vs-bill comparison exceeds 15% deviation |
+| **Consumers** | BC-08 Alerts & Detection (create BILL_MISMATCH alert) |
+| **Topic** | `billing.bill.mismatch` |
+| **Version** | v1 |
+
+**Payload:**
+```json
+{
+  "billId": "uuid",
+  "placeId": "uuid",
+  "billedVolume": 18000,
+  "measuredVolume": 14500,
+  "deviationPercent": 24.1,
+  "billingPeriodStart": "2026-08-01",
+  "billingPeriodEnd": "2026-08-31"
+}
+```
+
+---
+
+### BC-08: Alerts & Detection Context *(Entrega 2)*
+
+#### Event: LeakSuspected
+
+| Field | Value |
+|-------|-------|
+| **Bounded Context** | BC-08 Alerts & Detection |
 | **Aggregate** | — (domain service: LeakDetector) |
 | **Trigger** | Continuous flow above threshold for sustained period (default: 30 min) |
-| **Consumers** | notification-service (critical alert), valve-service (evaluate auto-shutoff rule) |
-| **Topic** | `consumption.leak.suspected` |
+| **Consumers** | BC-07 Valve Control (evaluate auto-shutoff rule), BC-09 Notification Delivery (send critical alert) |
+| **Topic** | `alerts.leak.suspected` |
 | **Version** | v1 |
 
 **Payload:**
@@ -438,16 +469,16 @@ All events follow this structure:
 
 ---
 
-### Valve Control Context *(Entrega 2)*
+### BC-07: Valve Control Context *(Entrega 2)*
 
 #### Event: ValveClosed
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Valve Control |
+| **Bounded Context** | BC-07 Valve Control |
 | **Aggregate** | Valve |
 | **Trigger** | Device confirms valve closure (manual or auto) |
-| **Consumers** | notification-service (critical alert — all 4 channels) |
+| **Consumers** | BC-08 Alerts & Detection (create VALVE_CLOSED critical alert) |
 | **Topic** | `valve.closed` |
 | **Version** | v1 |
 
@@ -468,10 +499,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Valve Control |
+| **Bounded Context** | BC-07 Valve Control |
 | **Aggregate** | Valve |
 | **Trigger** | Device confirms valve opening (always manual) |
-| **Consumers** | notification-service (confirm water restored) |
+| **Consumers** | BC-09 Notification Delivery (confirm water restored) |
 | **Topic** | `valve.opened` |
 | **Version** | v1 |
 
@@ -491,10 +522,10 @@ All events follow this structure:
 
 | Field | Value |
 |-------|-------|
-| **Bounded Context** | Valve Control |
+| **Bounded Context** | BC-07 Valve Control |
 | **Aggregate** | Valve |
 | **Trigger** | Device does not confirm within 30 seconds |
-| **Consumers** | notification-service (alert user that command failed) |
+| **Consumers** | BC-08 Alerts & Detection (alert user that command failed) |
 | **Topic** | `valve.command.failed` |
 | **Version** | v1 |
 
@@ -513,45 +544,47 @@ All events follow this structure:
 
 ## Event Summary Table
 
-| Event | Origin context | Topic | Consumers | Version | Entrega |
-|-------|---------------|-------|-----------|---------|---------|
-| UserRegistered | IAM | `iam.user.registered` | notification-service | v1 | MVP |
-| UserVerified | IAM | `iam.user.verified` | — | v1 | MVP |
-| SessionStarted | IAM | `iam.session.started` | — | v1 | MVP |
-| AccountBlocked | IAM | `iam.account.blocked` | notification-service | v1 | MVP |
-| PasswordChanged | IAM | `iam.password.changed` | auth-service | v1 | MVP |
-| PlaceCreated | Place Mgmt | `place.created` | consumption-service | v1 | MVP |
-| PlaceDeleted | Place Mgmt | `place.deleted` | consumption, notification | v1 | MVP |
-| GuestInvited | Place Mgmt | `place.guest.invited` | notification-service | v1 | 3 |
-| GuestAccessRevoked | Place Mgmt | `place.guest.revoked` | auth-service | v1 | 3 |
-| DeviceLinked | Device Mgmt | `device.linked` | consumption, valve | v1 | MVP |
-| DeviceUnlinked | Device Mgmt | `device.unlinked` | valve, consumption | v1 | MVP |
-| DeviceDisconnected | Device Mgmt | `device.disconnected` | notification-service | v1 | MVP |
-| DeviceReconnected | Device Mgmt | `device.reconnected` | notification-service | v1 | MVP |
-| ReadingReceived | Device Mgmt | `device.reading.received` | consumption, notification | v1 | MVP |
-| GoalThresholdReached | Consumption | `consumption.goal.threshold` | notification-service | v1 | 2 |
-| GoalExceeded | Consumption | `consumption.goal.exceeded` | notification, valve | v1 | 2 |
-| LeakSuspected | Consumption | `consumption.leak.suspected` | notification, valve | v1 | 2 |
-| ValveClosed | Valve Control | `valve.closed` | notification-service | v1 | 2 |
-| ValveOpened | Valve Control | `valve.opened` | notification-service | v1 | 2 |
-| ValveCommandFailed | Valve Control | `valve.command.failed` | notification-service | v1 | 2 |
+| Event | Origin BC | Topic | Consumer BCs | Version | Entrega |
+|-------|----------|-------|-------------|---------|---------|
+| UserRegistered | BC-01 IAM | `iam.user.registered` | BC-09 Delivery | v1 | MVP |
+| UserVerified | BC-01 IAM | `iam.user.verified` | — | v1 | MVP |
+| SessionStarted | BC-01 IAM | `iam.session.started` | — | v1 | MVP |
+| AccountBlocked | BC-01 IAM | `iam.account.blocked` | BC-09 Delivery | v1 | MVP |
+| PasswordChanged | BC-01 IAM | `iam.password.changed` | BC-01 IAM | v1 | MVP |
+| PlaceCreated | BC-02 Place | `place.created` | BC-04 Monitoring | v1 | MVP |
+| PlaceDeleted | BC-02 Place | `place.deleted` | BC-04 Monitoring, BC-08 Alerts | v1 | MVP |
+| MemberInvited | BC-02 Place | `place.member.invited` | BC-09 Delivery | v1 | 3 |
+| MemberAccessRevoked | BC-02 Place | `place.member.revoked` | BC-01 IAM | v1 | 3 |
+| DeviceLinked | BC-03 Device | `device.linked` | BC-04 Monitoring, BC-07 Valve | v1 | MVP |
+| DeviceUnlinked | BC-03 Device | `device.unlinked` | BC-07 Valve, BC-04 Monitoring | v1 | MVP |
+| DeviceDisconnected | BC-03 Device | `device.disconnected` | BC-08 Alerts | v1 | MVP |
+| DeviceReconnected | BC-03 Device | `device.reconnected` | BC-08 Alerts | v1 | MVP |
+| ReadingReceived | BC-03 Device | `device.reading.received` | BC-04 Monitoring, BC-08 Alerts | v1 | MVP |
+| GoalThresholdReached | BC-05 Goals | `consumption.goal.threshold` | BC-08 Alerts | v1 | 2 |
+| GoalExceeded | BC-05 Goals | `consumption.goal.exceeded` | BC-08 Alerts, BC-07 Valve | v1 | 2 |
+| BillMismatchDetected | BC-06 Billing | `billing.bill.mismatch` | BC-08 Alerts | v1 | 3 |
+| LeakSuspected | BC-08 Alerts | `alerts.leak.suspected` | BC-07 Valve, BC-09 Delivery | v1 | 2 |
+| ValveClosed | BC-07 Valve | `valve.closed` | BC-08 Alerts | v1 | 2 |
+| ValveOpened | BC-07 Valve | `valve.opened` | BC-09 Delivery | v1 | 2 |
+| ValveCommandFailed | BC-07 Valve | `valve.command.failed` | BC-08 Alerts | v1 | 2 |
 
 ---
 
 ## Policies — Automatic reactions to events
 
-| Trigger event | Policy | Emitted command / action | Service |
-|--------------|--------|--------------------------|---------|
-| ReadingReceived | Aggregate reading into consumption by hour/day/month | Update consumption records | consumption-service |
-| ReadingReceived | Check for continuous flow pattern | Evaluate leak detection rules | notification-service (LeakDetector) |
-| DeviceDisconnected | If threshold exceeded, generate alert | CreateAlert (SENSOR_DISCONNECTED) | notification-service |
-| GoalThresholdReached | Generate informative alert (in-app only) | CreateAlert (GOAL_WARNING) | notification-service |
-| GoalExceeded | Generate important alert + evaluate auto-shutoff | CreateAlert (GOAL_EXCEEDED) + EvaluateShutoffRule | notification + valve |
-| LeakSuspected | Generate critical alert + evaluate auto-shutoff | CreateAlert (LEAK_SUSPECTED) + EvaluateShutoffRule | notification + valve |
-| ValveClosed | Generate critical alert on all 4 channels | CreateAlert (VALVE_CLOSED) | notification-service |
-| UserRegistered (LOCAL) | Send verification email | SendEmail (verification link) | notification-service |
-| PasswordChanged | Invalidate all active sessions for that user | InvalidateSessions | auth-service |
-| GuestAccessRevoked | Invalidate guest's sessions for that place | InvalidateSessionsByPlace | auth-service |
+| Trigger event | Policy | Emitted command / action | Responsible BC |
+|--------------|--------|--------------------------|---------------|
+| ReadingReceived | Aggregate reading into consumption by hour/day/month | Update consumption records | BC-04 Monitoring |
+| ReadingReceived | Check for continuous flow pattern | Evaluate leak detection rules | BC-08 Alerts |
+| DeviceDisconnected | If threshold exceeded, generate alert | CreateAlert (SENSOR_DISCONNECTED) | BC-08 Alerts |
+| GoalThresholdReached | Generate informative alert | CreateAlert (GOAL_WARNING) | BC-08 Alerts |
+| GoalExceeded | Generate important alert + evaluate auto-shutoff | CreateAlert (GOAL_EXCEEDED) + EvaluateShutoffRule | BC-08 Alerts + BC-07 Valve |
+| BillMismatchDetected | Generate important alert | CreateAlert (BILL_MISMATCH) | BC-08 Alerts |
+| LeakSuspected | Generate critical alert + evaluate auto-shutoff | CreateAlert (LEAK_SUSPECTED) + EvaluateShutoffRule | BC-08 Alerts + BC-07 Valve |
+| ValveClosed | Generate critical alert on all channels | CreateAlert (VALVE_CLOSED) | BC-08 Alerts |
+| UserRegistered (LOCAL) | Send verification email | SendEmail (verification link) | BC-09 Delivery |
+| PasswordChanged | Invalidate all active sessions | InvalidateSessions | BC-01 IAM |
+| MemberAccessRevoked | Invalidate member's sessions for place | InvalidateSessionsByPlace | BC-01 IAM |
 
 ---
 
@@ -573,3 +606,12 @@ Each consumer stores processed `eventId` values. Before processing, check if the
 | Backoff | Exponential (1s → 2s → 4s) |
 | DLQ retention | 7 days |
 | Alert | When DLQ has > 0 messages |
+
+---
+
+## Correlations
+
+- Bounded contexts → `02-domain/domain-map.md`
+- Entities and aggregates → `02-domain/entities-and-rules.md`
+- Architecture communication patterns → `05-architecture/overview.md`
+- Data model → `06-data/models.md`

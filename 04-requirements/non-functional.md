@@ -57,7 +57,7 @@
 - All protected endpoints require a valid JWT in `Authorization: Bearer <token>`
 - Access token expiration: **1 hour**
 - Refresh token expiration: **7 days**
-- Role-based access control (RBAC): Owner, Guest, Admin
+- Role-based access control (RBAC): User, Owner, Member, Admin
 - Login attempt rate limiting: max 5 failed attempts per 15 minutes, then account is temporarily locked
 
 ### Data protection

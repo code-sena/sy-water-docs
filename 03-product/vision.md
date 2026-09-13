@@ -39,9 +39,10 @@ We build an affordable and accessible tool that turns water consumption from an 
 
 | Role | Who they are | What they do | Entrega |
 |------|-------------|-------------|---------|
-| Owner (Dueño) | The person who manages the place and pays the bill | Registers, links devices, monitors consumption, controls the valve, sets goals, compares bills | MVP |
-| Guest (Invitado) | A family member, roommate, or employee invited by the Owner | Views consumption dashboard (read-only); receives alerts | Entrega 3 |
-| Admin (Administrador) | Platform operator (the development team during university phase) | Manages users, views platform-wide metrics | Entrega 4 |
+| User (Usuario) | Default role upon accessing the application, before entering a home | Can see existing places or create a new one; can accept invitations to join a place | MVP |
+| Owner (Dueño) | The person who manages the place and pays the bill | Registers, links devices, monitors consumption, controls the valve, sets goals, compares bills, invites members | MVP |
+| Member (Miembro) | A family member, roommate, or employee invited by the Owner | Permissions defined by the Owner: from read-only consumption viewing to performing actions within the app | Entrega 3 |
+| Admin (Administrador) | Platform operator (the development team during university phase) | Views users (no sensitive data), blocks/unblocks users, monitors platform health, creates generic water-saving recommendations | Entrega 4 |
 
 ---
 
@@ -51,17 +52,17 @@ We build an affordable and accessible tool that turns water consumption from an 
 Entrega 1 ──── Entrega 2 ──── Entrega 3 ──── Entrega 4
 (MVP)          (Smart)        (Social)       (Admin)
     │               │              │              │
- Auth +         Goals +       Guests +       Admin panel +
- Device +       Alerts +      Bill mgmt +    Reports +
- Dashboard      Valve ctrl    Auto-shutoff   Multi-place
+ Auth +         Goals +       Members +      Admin panel +
+ Device +       Alerts +      Bill mgmt +    Recommendations +
+ Dashboard      Valve ctrl    Auto-shutoff   Reports + Multi-place
 ```
 
 | Entrega | Objective | Epics | Story points |
 |---------|----------|-------|-------------|
 | **Entrega 1 (MVP)** | A user registers, links a device, and sees consumption in real time | E1 (Auth), E2 (Place), E3 (Device), E4 (Consumption Dashboard) | ~80 SP |
 | **Entrega 2** | Smart monitoring with goals, alerts, and manual valve control | E5 (Goals), E6 (Alerts), E7 (Valve Control) | ~70 SP |
-| **Entrega 3** | Social features and bill management | E8 (Guests), E9 (Bill Management), E10 (Tariffs), E11 (Auto-shutoff) | ~66 SP |
-| **Entrega 4** | Administration, analytics, and multi-place | E12 (Admin Panel), E13 (Reports), E14 (Multi-place) | ~50 SP |
+| **Entrega 3** | Social features and bill management | E8 (Members), E9 (Bill Management), E10 (Tariffs), E11 (Auto-shutoff) | ~66 SP |
+| **Entrega 4** | Administration, recommendations, analytics, and multi-place | E12 (Admin Panel + Recommendations), E13 (Reports), E14 (Multi-place) | ~56 SP |
 
 > **Note:** No fixed dates. Deliveries are ordered by priority. This is a university project; the team advances through each Entrega sequentially.
 

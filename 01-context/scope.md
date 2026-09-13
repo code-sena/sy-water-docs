@@ -54,7 +54,7 @@
 | 5 | Utility bill registration and comparison | Depends on stable consumption data to compare against | Entrega 3 |
 | 6 | Tariffs and currency configuration | Depends on bill comparison feature | Entrega 3 |
 | 7 | Automatic valve shutoff rules | High-risk feature; requires confirmed manual valve control first | Entrega 3 |
-| 8 | Guest/shared user access | Core owner features must be stable before adding shared access | Entrega 3 |
+| 8 | Member/shared user access | Core owner features must be stable before adding shared access | Entrega 3 |
 | 9 | Downloadable PDF/Excel reports | Nice-to-have; core value is real-time visibility | Entrega 4 |
 | 10 | Water saving tips | Generic content; low priority vs. measurement features | Entrega 4 |
 | 11 | Pre-loaded tariff catalogs (CO, EC, US) | Ongoing maintenance cost; manual tariff entry covers the need | Entrega 4 |

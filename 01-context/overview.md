@@ -15,9 +15,9 @@ Save Your Water is a web and mobile platform that measures household or business
 | Role                            | Description                                                                    | What they do in the system                                                                                                                             |
 | ------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Usuario (User)**        | Default user role upon accessing the application, well before entering a home. | Will be able to see if you have a home set up; if not, you can create one.                                                                             |
-| **Dueño (Owner)**        | Person who pays the water bill (head of household or business owner)           | Full access: view consumption, set goals, open/close the valve, register utility bills, configure alerts, invite guests                                |
+| **Dueño (Owner)**        | Person who pays the water bill (head of household or business owner)           | Full access: view consumption, set goals, open/close the valve, register utility bills, configure alerts, invite members                                |
 | **Miembro (Member)**      | Family member, roommate, or administrator invited by the owner                 | It relies on permissions set by the owner of the location: It depends on whether you only want to read data or need to perform actions within the app. |
-| **Administrador (Admin)** | Platform operator                                                              | Manage registered users, validate device failures, monitor platform health                                                                             |
+| **Administrador (Admin)** | Platform operator                                                              | View registered users (no sensitive data), block/unblock users, validate device failures, monitor platform health, create generic water-saving recommendations |
 
 ## Technology stack
 
@@ -29,7 +29,7 @@ Save Your Water is a web and mobile platform that measures household or business
 | Database                 | SQL Server (single shared instance, schema-per-service) | Team familiarity; robust transactional support. One instance, logical separation by schema |
 | IoT controller           | ESP32                                                   | Low-cost Wi-Fi-enabled microcontroller; handles sensor reading and valve control           |
 | IoT protocol             | MQTT                                                    | Lightweight publish/subscribe protocol optimized for constrained devices                   |
-| MQTT Broker              | TBD (Mosquitto / HiveMQ / cloud-managed)                | Receives telemetry from ESP32 devices and routes it to backend services                    |
+| MQTT Broker              | Eclipse Mosquitto 2                                      | Lightweight broker; receives telemetry from ESP32 devices and routes it to backend services |
 | Infrastructure           | Docker (local) / VPS                                    | Docker for development; VPS for initial deployment. Cloud provider TBD                     |
 
 ## Hardware context

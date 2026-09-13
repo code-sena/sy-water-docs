@@ -74,7 +74,7 @@
 | **Port** | 3001 |
 | **Technology** | [Node.js + Express / Spring Boot / etc.] |
 | **DB** | PostgreSQL |
-| **Bounded Context** | `02-domain/domain-map.md` → IAM Context |
+| **Bounded Context** | BC-01 IAM (see `02-domain/domain-map.md`) |
 | **Externally exposed** | Only through the API Gateway |
 
 **Key endpoints:**
