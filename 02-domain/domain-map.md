@@ -47,7 +47,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Supporting |
 | **Responsibility** | User identity lifecycle: registration, authentication, authorization, profile management, admin user panel |
 | **Microservice** | `auth-service` |
-| **Schema** | `iam` |
+| **Schema** | `security` |
 | **Technology** | Spring Boot |
 | **Ubiquitous Language** | User, Account, Session, Role (User/Owner/Member/Admin), Credential, Verification |
 
@@ -70,7 +70,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Supporting |
 | **Responsibility** | Lifecycle of monitored locations, member access (invitations and permissions), multi-place management |
 | **Microservice** | `place-service` |
-| **Schema** | `place` |
+| **Schema** | `places` |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Place, Address, Stratum, Member, Invitation, Permissions |
 
@@ -93,7 +93,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Supporting |
 | **Responsibility** | Device registry, linking to places, MQTT telemetry ingestion, device health monitoring |
 | **Microservice** | `device-service` |
-| **Schema** | `device` |
+| **Schema** | `devices` |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Device, HardwareId, Reading, Telemetry, Link, Status |
 
@@ -117,7 +117,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Core |
 | **Responsibility** | Aggregation of raw readings into consumption data, real-time display, charts by period (hour/day/week/month) |
 | **Microservice** | `consumption-service` |
-| **Schema** | `consumption` |
+| **Schema** | `monitoring` |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Consumption, ConsumptionRecord, Period, Aggregation, Chart, Volume |
 
@@ -140,7 +140,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Supporting |
 | **Responsibility** | Monthly consumption targets per place, percentage progress tracking, suggested goals based on historical data |
 | **Microservice** | `consumption-service` |
-| **Schema** | `consumption` |
+| **Schema** | `goals` |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Goal, Target, Progress, Threshold (80%), Exceeded (100%), Suggestion |
 
@@ -163,7 +163,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Supporting |
 | **Responsibility** | Manual bill registration, tariff configuration, sensor-vs-bill comparison, cost estimation |
 | **Microservice** | `consumption-service` |
-| **Schema** | `consumption` |
+| **Schema** | `billing` |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Bill, Tariff, BillingPeriod, BilledVolume, Comparison, CostEstimate, Mismatch |
 
@@ -211,7 +211,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Core |
 | **Responsibility** | Rule engine that evaluates conditions (leak, goal breach, sensor disconnection, bill mismatch), classifies urgency, deduplicates alerts, and dispatches to delivery |
 | **Microservice** | `notification-service` |
-| **Schema** | `notification` |
+| **Schema** | `alerts` |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Alert, Rule, Condition, Urgency (Critical/Important/Informative), Detection, Deduplication |
 
@@ -235,7 +235,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Generic |
 | **Responsibility** | Multi-channel transport: push (Android/iOS), email, SMS/WhatsApp, in-app. No business logic — only delivers what Alerts & Detection decides |
 | **Microservice** | `notification-service` |
-| **Schema** | `notification` |
+| **Schema** | `notifications` |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Channel, Preference, Delivery, Push, Email, SMS |
 
@@ -257,7 +257,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Generic |
 | **Responsibility** | Generation of consumption reports (monthly, savings), PDF/CSV export. Data consumer with no domain rules |
 | **Microservice** | `consumption-service` |
-| **Schema** | `consumption` |
+| **Schema** | — (reads from `monitoring`) |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Report, Export, PDF, CSV, Summary |
 
@@ -272,7 +272,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Type** | Generic |
 | **Responsibility** | Static catalog of water-saving recommendations created by Admin. No dependencies on other contexts |
 | **Microservice** | `notification-service` |
-| **Schema** | `notification` |
+| **Schema** | `content` |
 | **Technology** | .NET |
 | **Ubiquitous Language** | Recommendation, Tip, Category (Saving, Maintenance, Seasonal, General) |
 
@@ -367,20 +367,20 @@ Each row is a dependency between bounded contexts with its DDD integration patte
 
 The 11 bounded contexts are deployed across 6 microservices. Multiple BCs in one service are separated by internal packages/modules — they share a runtime and schema but maintain distinct domain logic.
 
-| Service | Port | BCs hosted | Schema | Technology |
-|---------|------|-----------|--------|------------|
-| `auth-service` | 3001 | BC-01 (IAM) | `iam` | Spring Boot |
-| `place-service` | 3002 | BC-02 (Place Management) | `place` | .NET |
-| `device-service` | 3003 | BC-03 (Device Management) | `device` | .NET |
-| `consumption-service` | 3004 | BC-04 (Consumption Monitoring), BC-05 (Goals), BC-06 (Billing & Tariffs), BC-10 (Reports) | `consumption` | .NET |
+| Service | Port | BCs hosted | Schemas | Technology |
+|---------|------|-----------|---------|------------|
+| `auth-service` | 3001 | BC-01 (IAM) | `security` | Spring Boot |
+| `place-service` | 3002 | BC-02 (Place Management) | `places` | .NET |
+| `device-service` | 3003 | BC-03 (Device Management) | `devices` | .NET |
+| `consumption-service` | 3004 | BC-04 (Monitoring), BC-05 (Goals), BC-06 (Billing), BC-10 (Reports) | `monitoring`, `goals`, `billing` | .NET |
 | `valve-service` | 3005 | BC-07 (Valve Control) | `valve` | .NET |
-| `notification-service` | 3006 | BC-08 (Alerts & Detection), BC-09 (Notification Delivery), BC-11 (Savings Tips) | `notification` | .NET |
+| `notification-service` | 3006 | BC-08 (Alerts), BC-09 (Delivery), BC-11 (Tips) | `alerts`, `notifications`, `content` | .NET |
 
 **Why 6 services for 11 contexts?**
 
 A team of 3 cannot operate 11 independent services. The deployment grouping follows two rules:
 
-1. **Shared data gravity:** BCs that read/write the same tables live in the same service (Consumption Monitoring + Goals + Billing all pivot on `consumption_records`; Alerts + Delivery both access `alerts`)
+1. **Shared data gravity:** BCs that read/write related data live in the same service (Consumption Monitoring + Goals + Billing all pivot on place consumption data; Alerts + Delivery both access alert and notification tables)
 2. **Distinct scaling/criticality:** BCs with different SLAs or scaling profiles get their own service (Device Management handles high-volume MQTT ingestion; Valve Control is security-critical with low volume)
 
 ---

@@ -32,6 +32,9 @@
         │                                              │
         │  auth · place · device · consumption         │
         │  valve · notification                        │
+        │  (10 schemas: security, places, devices,     │
+        │   monitoring, goals, billing, valve,         │
+        │   alerts, notifications, content)            │
         └──────────────────┬───────────────────────────┘
                            │
               ┌────────────┼────────────────┐
@@ -61,9 +64,11 @@
   │ (Spring Boot)│   │ service  │   │  │  service   │   │   service   │
   │   :3001      │   │  :3002   │   │  │   :3005    │   │    :3006    │
   │              │   │          │   │  │            │   │             │
-  │ Schema: iam  │   │Schema:   │   │  │Schema:     │   │Schema:      │
-  │              │   │ place    │   │  │ valve      │   │ notification│
-  │ BC-01        │   │ BC-02    │   │  │ BC-07      │   │ BC-08,09,11 │
+  │Schema:       │   │Schema:   │   │  │Schema:     │   │Schemas:     │
+  │ security     │   │ places   │   │  │ valve      │   │ alerts,     │
+  │ BC-01        │   │ BC-02    │   │  │ BC-07      │   │ notifications│
+  │              │   │          │   │  │            │   │ content     │
+  │              │   │          │   │  │            │   │ BC-08,09,11 │
   └──────────────┘   └──────────┘   │  └─────┬──────┘   └─────────────┘
                                     │        │
                                     ▼        │ REST (valve commands)
@@ -72,8 +77,10 @@
                            │  service   │◀───┘
                            │   :3004    │
                            │            │
-                           │Schema:     │
-                           │consumption │
+                           │Schemas:    │
+                           │monitoring, │
+                           │goals,      │
+                           │billing     │
                            │BC-04,05,   │
                            │  06,10     │
                            └────────────┘
@@ -85,7 +92,7 @@
                            │  :3003     │
                            │            │
                            │Schema:     │
-                           │ device     │
+                           │ devices    │
                            │ BC-03      │
                            └────────────┘
 
@@ -151,12 +158,12 @@ If the team grows or a BC's traffic demands it, the first candidates for extract
 | # | Service | Responsibility | Port | Technology | Schema | BCs | Communication |
 |---|---------|---------------|------|-----------|--------|-----|---------------|
 | 01 | `api-gateway` | Routing, JWT validation, CORS, rate limiting | 8080 | Spring Cloud Gateway | — | — | HTTP Proxy |
-| 02 | `auth-service` | Registration, login, JWT tokens, Google OAuth, RBAC | 3001 | Spring Boot | `iam` | BC-01 | REST + Events |
-| 03 | `place-service` | Place CRUD, switching, invitations, shared access | 3002 | .NET 8 | `place` | BC-02 | REST + Events |
-| 04 | `device-service` | Device linking, MQTT telemetry ingestion, device status | 3003 | .NET 8 | `device` | BC-03 | MQTT + REST + Events |
-| 05 | `consumption-service` | Consumption aggregation, goals, bill comparison, reports | 3004 | .NET 8 | `consumption` | BC-04,05,06,10 | REST + Events |
+| 02 | `auth-service` | Registration, login, JWT tokens, Google OAuth, RBAC | 3001 | Spring Boot | `security` | BC-01 | REST + Events |
+| 03 | `place-service` | Place CRUD, switching, invitations, shared access | 3002 | .NET 8 | `places` | BC-02 | REST + Events |
+| 04 | `device-service` | Device linking, MQTT telemetry ingestion, device status | 3003 | .NET 8 | `devices` | BC-03 | MQTT + REST + Events |
+| 05 | `consumption-service` | Consumption aggregation, goals, bill comparison, reports | 3004 | .NET 8 | `monitoring`, `goals`, `billing` | BC-04,05,06,10 | REST + Events |
 | 06 | `valve-service` | Valve state, open/close commands, auto-shutoff rules | 3005 | .NET 8 | `valve` | BC-07 | REST + Events |
-| 07 | `notification-service` | Alert engine, leak detection, multi-channel delivery, tips | 3006 | .NET 8 | `notification` | BC-08,09,11 | REST + Events |
+| 07 | `notification-service` | Alert engine, leak detection, multi-channel delivery, tips | 3006 | .NET 8 | `alerts`, `notifications`, `content` | BC-08,09,11 | REST + Events |
 
 ---
 
@@ -166,7 +173,7 @@ If the team grows or a BC's traffic demands it, the first candidates for extract
 Design the API contract (OpenAPI) before implementing the service. Contracts are the source of truth for consumers.
 
 ### P2: Shared Database, Schema Isolation
-All services share a single SQL Server instance (`sy_water_db`). Each service owns its schema and must NOT query another service's schema directly. Inter-service data access is always through REST APIs or domain events via RabbitMQ. See ADR-002.
+All services share a single SQL Server instance (`sy_water_db`) with 10 schemas separated for logical organization. Cross-schema foreign keys ARE enforced by SQL Server for referential integrity. However, application-level data access across services is through REST APIs or domain events via RabbitMQ — services must NOT JOIN across schemas at the application layer. See ADR-002.
 
 ### P3: Fail Fast, Recover Gracefully
 Detect errors early with input validation at the API Gateway. When an external service or the MQTT broker is unavailable, log the failure and respond with a clear error — adopt resilience patterns (Circuit Breaker, Retry) when complexity justifies it.
@@ -358,22 +365,27 @@ All containers share a Docker bridge network (`sy-water-net`). Services resolve 
 
 **Single instance:** SQL Server — `sy_water_db`
 
-**Schema isolation:** Each service owns its schema. See ADR-002.
+**Schema isolation:** 10 schemas separated for logical organization. See ADR-002.
 
 | Schema | Owner service | Owner BCs | Main tables |
 |--------|-------------|----------|-------------|
-| `iam` | auth-service | BC-01 | users, sessions, verification_tokens |
-| `place` | place-service | BC-02 | places, members, invitations |
-| `device` | device-service | BC-03 | devices, readings |
-| `consumption` | consumption-service | BC-04, BC-05, BC-06, BC-10 | consumption_records, goals, bills, tariffs, recommendations |
-| `valve` | valve-service | BC-07 | valves, valve_actions, shutoff_rules |
-| `notification` | notification-service | BC-08, BC-09, BC-11 | alerts, notification_preferences, tips |
+| `security` | auth-service | BC-01 | users, user_credentials, email_verifications, password_resets, refresh_tokens, login_attempts, activity_log |
+| `places` | place-service | BC-02 | places, place_members, invitations |
+| `devices` | device-service | BC-03 | devices, device_link_history |
+| `monitoring` | consumption-service | BC-04 | readings, consumption_hourly, consumption_daily, consumption_monthly |
+| `goals` | consumption-service | BC-05 | consumption_goals, goal_suggestions |
+| `billing` | consumption-service | BC-06 | water_bills, tariffs, tariff_catalog |
+| `valve` | valve-service | BC-07 | valve_states, valve_commands, valve_rules |
+| `alerts` | notification-service | BC-08 | alert_type_config, alert_events, notification_preferences |
+| `notifications` | notification-service | BC-09 | notification_log, push_subscriptions |
+| `content` | notification-service | BC-11 | savings_tips, tip_favorites |
 
 **Rules:**
-- A service may only read/write tables in its own schema
-- Cross-service data access is via REST API or RabbitMQ events
-- Foreign keys across schemas are NOT allowed — use application-level references (UUIDs)
-- Migrations are managed per service, scoped to its schema
+- A service may only read/write tables in its own schemas
+- Cross-service data access at application level is via REST API or RabbitMQ events
+- Cross-schema foreign keys ARE enforced by SQL Server for referential integrity
+- Application-layer cross-schema JOINs are NOT allowed — use the owning service's API
+- Migrations are managed per service, scoped to its schemas
 
 > Detailed data model in `06-data/models.md`
 

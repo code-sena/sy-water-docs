@@ -99,7 +99,7 @@ Checklist that every service must meet before going to production.
 
 | This section is fed by... | And feeds into... |
 |---------------------------|-------------------|
-| `02-domain/domain-map.md` → 11 bounded contexts | 6 services (see `05-architecture/overview.md` § 4 for BC-to-service mapping) |
+| `02-domain/domain-map.md` → bounded contexts | One per context |
 | `05-architecture/overview.md` → defined services | README of each service |
 | `07-api/contracts/openapi/` → service contract | `services/[service]/` implements it |
 | `06-data/models.md` → data model | `services/[service]/data-model.md` |

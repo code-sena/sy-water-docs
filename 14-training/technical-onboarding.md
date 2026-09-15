@@ -109,8 +109,8 @@ The Tech Lead will assign you a small task labeled `good-first-issue`:
 Before writing code, understand these 5 concepts from the project's architecture:
 
 ### 1. Bounded Contexts
-The domain has 11 bounded contexts deployed across 6 microservices.
-See: `02-domain/domain-map.md` for contexts, `05-architecture/overview.md` § 4 for BC-to-service mapping.
+Each service corresponds to a Bounded Context of the domain.
+See: `02-domain/domain-map.md`
 
 ### 2. Hexagonal Architecture
 The domain is the center. Nothing from the framework enters the domain.

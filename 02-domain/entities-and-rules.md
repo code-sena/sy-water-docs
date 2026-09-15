@@ -20,17 +20,14 @@
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
 | userId | UUID | Unique identifier | Yes | Auto-generated |
-| fullName | string | Full name | Yes | Min 2 chars |
+| firstName | string | First name | Yes | Min 2 chars |
+| lastName | string | Last name | Yes | Min 2 chars |
 | email | Email (VO) | Account email | Yes | Unique across system, immutable |
-| identityDocument | string | Government-issued ID number | Yes | Unique across system |
-| phone | Phone (VO) | Mobile number | Yes | Valid format per country |
-| passwordHash | string | Bcrypt/Argon2 hashed password | Yes (local accounts) | Never stored in plain text |
-| authProvider | enum | LOCAL or GOOGLE | Yes | Set on creation, immutable |
-| isVerified | boolean | Email verification status | Yes | Default: false (true for Google accounts) |
-| isBlocked | boolean | Account temporarily blocked | Yes | Default: false |
-| blockedUntil | DateTime | Block expiration timestamp | No | Set after 5 failed login attempts |
-| failedLoginAttempts | int | Consecutive failed logins | Yes | Reset to 0 on successful login |
-| photoUrl | string | Profile picture URL | No | — |
+| phone | Phone (VO) | Mobile number | No | Valid format per country |
+| phoneVerified | boolean | Phone verification status | Yes | Default: false |
+| avatarUrl | string | Profile picture URL | No | — |
+| emailVerified | boolean | Email verification status | Yes | Default: false (true for Google accounts) |
+| accountLockedUntil | DateTime | Block expiration timestamp | No | Set after 5 failed login attempts |
 | createdAt | DateTime | Registration date | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
@@ -61,6 +58,17 @@ INV-U007: After 5 consecutive failed login attempts, the account is blocked for 
 INV-U008: Failed login attempts reset to 0 on successful login
 ```
 
+**Supporting entities (inside security schema):**
+
+| Entity | Description | Entrega |
+|--------|-------------|---------|
+| UserCredential | Stores credential per type (LOCAL with password_hash, GOOGLE with google_id). One per type per user | MVP |
+| EmailVerification | Token-based email verification with expiry | MVP |
+| PasswordReset | Token-based password reset with expiry and single-use tracking | MVP |
+| RefreshToken | Long-lived token for session renewal, with device_info and revocation | MVP |
+| LoginAttempt | Audit record of every login attempt (success or failure) with IP | MVP |
+| ActivityLog | General audit trail: action, entity_type, entity_id, metadata (JSON) | MVP |
+
 ---
 
 ## BC-02: Place Management — Supporting
@@ -76,20 +84,19 @@ INV-U008: Failed login attempts reset to 0 on successful login
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| placeId | UUID | Unique identifier | Yes | Auto-generated |
-| ownerId | UUID | User who created and owns this place | Yes | Immutable after creation |
-| name | string | Reference name (e.g., "Mi Casa", "Oficina Centro") | Yes | Unique per owner |
-| address | Address (VO) | Full address | Yes | Valid for the registered country |
-| country | string | Country code | Yes | CO, EC, US |
-| department | string | Department/State | Yes | — |
+| placeId | UUID | Public unique identifier | Yes | Auto-generated |
+| ownerId | UUID | User who created and owns this place | Yes | Denormalized from place_members for fast lookup |
+| name | string | Reference name (e.g., "Mi Casa", "Oficina Centro") | Yes | — |
+| placeType | enum | RESIDENTIAL, COMMERCIAL | Yes | — |
+| address | string | Full street address | Yes | — |
 | city | string | City | Yes | — |
-| stratum | int | Socioeconomic stratum (Colombia only) | No | 1–6, only when country = CO |
-| inhabitants | int | Number of people at the place | Yes | Min 1 |
+| countryCode | string | Country code | Yes | CO, EC, US |
+| currency | string | Currency code | Yes | Default: COP |
 | measurementUnit | enum | LITERS, CUBIC_METERS, GALLONS | Yes | Default: LITERS |
-| currency | string | Currency code based on country | Yes | COP, USD |
-| linkedDeviceId | UUID | Currently linked device (if any) | No | At most one device per place |
+| isDefault | boolean | Whether this is the user's default place | Yes | Default: false |
 | createdAt | DateTime | Creation date | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
+| deletedAt | DateTime | Soft-delete timestamp | No | Only table with soft-delete |
 
 **Lifecycle:**
 
@@ -100,12 +107,10 @@ INV-U008: Failed login attempts reset to 0 on successful login
 **Invariants:**
 
 ```
-INV-P001: Place name must be unique within the same owner's places
+INV-P001: A place has at most one linked device at any time
 INV-P002: A place cannot be deleted if it has a linked device — unlink first
-INV-P003: A place has at most one linked device at any time
-INV-P004: Owner cannot be changed after creation
-INV-P005: Stratum is required and valid (1–6) only when country is CO
-INV-P006: Deletion is a soft-delete; consumption history is preserved for archive
+INV-P003: Deletion is a soft-delete (deleted_at); consumption history is preserved
+INV-P004: Only places.places uses soft delete in the entire system
 ```
 
 ---
@@ -123,20 +128,12 @@ INV-P006: Deletion is a soft-delete; consumption history is preserved for archiv
 | memberId | UUID | Unique identifier | Yes | Auto-generated |
 | placeId | UUID | Place this membership belongs to | Yes | Must reference an active place |
 | userId | UUID | User who is a member | Yes | Unique per place |
-| role | enum | OWNER or MEMBER | Yes | Exactly one OWNER per place |
-| permissions | Permissions (VO) | Set of permissions granted by the Owner | Yes (for MEMBER role) | Owner has all permissions implicitly |
+| role | enum | OWNER or GUEST | Yes | Exactly one OWNER per place |
+| revokedAt | DateTime | When the membership was revoked | No | Null while active |
 | createdAt | DateTime | When the membership was created | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
-**Permissions (for MEMBER role, assigned by Owner):**
-
-| Permission | Description |
-|------------|-------------|
-| VIEW_CONSUMPTION | View consumption dashboard, charts, and history |
-| VIEW_DEVICE_STATUS | View device connectivity status |
-| CONTROL_VALVE | Open/close the valve remotely |
-| VIEW_ALERTS | View and acknowledge alerts |
-| VIEW_BILLS | View registered utility bills and comparisons |
+> **Nota:** El valor `GUEST` en la BD corresponde al concepto de "Miembro" en el lenguaje ubicuo del dominio. Se eligió GUEST en el modelo físico para distinguirlo del concepto genérico de "member" (la tabla misma).
 
 **Invariants:**
 
@@ -144,8 +141,7 @@ INV-P006: Deletion is a soft-delete; consumption history is preserved for archiv
 INV-M001: A place always has exactly one member with role OWNER
 INV-M002: The OWNER member cannot be removed or have their role changed
 INV-M003: Only one membership per user per place (unique: placeId + userId)
-INV-M004: OWNER role has all permissions implicitly — permissions list only applies to MEMBER role
-INV-M005: A MEMBER must have at least VIEW_CONSUMPTION permission
+INV-M004: OWNER role has all permissions implicitly
 ```
 
 ---
@@ -206,12 +202,14 @@ INV-I005: An expired invitation cannot be accepted — the Owner must send a new
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| deviceId | UUID | Internal unique identifier | Yes | Auto-generated on first registration |
-| hardwareId | string | Physical identifier (QR code / serial number) | Yes | Unique, immutable |
-| linkedPlaceId | UUID | Place this device is linked to | No | Null when unlinked |
+| deviceId | UUID | Public unique identifier | Yes | Auto-generated |
+| serialNumber | string | Physical identifier (serial number on device) | Yes | Unique, immutable |
+| placeId | UUID | Place this device is linked to | No | Null when available/unlinked |
+| authTokenHash | string | Hashed authentication token for MQTT | Yes | — |
 | status | enum | CONNECTED, DISCONNECTED, NEVER_REPORTED | Yes | Default: NEVER_REPORTED |
 | lastReportAt | DateTime | Timestamp of last received reading | No | Null until first reading |
-| disconnectThreshold | Duration | Time without reports before marking disconnected | Yes | Default: 15 minutes |
+| inactivityThresholdMin | int | Minutes without reports before marking disconnected | Yes | Default: 15 |
+| linkedAt | DateTime | When the device was linked to current place | No | — |
 | createdAt | DateTime | First registration date | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
@@ -241,8 +239,10 @@ INV-D002: Only authenticated/recognized devices can be linked (hardware ID must 
 INV-D003: Unlinking preserves the place's consumption history
 INV-D004: Duplicate readings (same device + same timestamp) are rejected
 INV-D005: Readings with negative values or physically implausible flow rates are rejected
-INV-D006: Device is considered DISCONNECTED after disconnectThreshold without a reading
+INV-D006: Device is considered DISCONNECTED after inactivityThresholdMin without a reading
 ```
+
+**Supporting entity:** `DeviceLinkHistory` — audit trail of every link/unlink, tracking who linked/unlinked and when.
 
 ---
 
@@ -257,13 +257,13 @@ INV-D006: Device is considered DISCONNECTED after disconnectThreshold without a 
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| readingId | UUID | Unique identifier | Yes | Auto-generated |
-| deviceId | UUID | Device that sent this reading | Yes | Must reference a linked device |
-| placeId | UUID | Place associated at the time of reading | Yes | Denormalized from device link |
-| flowRate | decimal | Instantaneous flow rate (liters/min) | Yes | Must be ≥ 0 and within physical range |
-| volume | decimal | Volume measured in this interval (liters) | Yes | Must be ≥ 0 |
-| timestamp | DateTime | When the measurement was taken (device clock) | Yes | Cannot be in the future |
-| receivedAt | DateTime | When the backend received the reading | Yes | Server clock |
+| readingId | BIGINT | Internal identifier | Yes | Auto-generated |
+| deviceId | BIGINT | Device that sent this reading | Yes | FK cross → devices.devices |
+| placeId | BIGINT | Place associated at the time of reading | Yes | FK cross → places.places (denormalized, D1) |
+| flowRateLph | decimal | Instantaneous flow rate (liters/hour) | Yes | Must be ≥ 0 |
+| cumulativeLiters | decimal | Cumulative volume since device install | Yes | Must be ≥ 0 |
+| recordedAt | DateTime | When the measurement was taken (device clock) | Yes | — |
+| receivedAt | DateTime | When the backend received the reading | Yes | Server clock, SYSUTCDATETIME() |
 
 **Invariants:**
 
@@ -278,35 +278,26 @@ INV-R004: timestamp cannot be in the future (tolerance: 5 minutes for clock drif
 
 ## BC-04: Consumption Monitoring — Core
 
-### Entity: ConsumptionRecord
+### Consumption Aggregates (3 tables)
 
-**Aggregate Root:** Yes
-**Description:** Aggregated water consumption for a place during a specific time interval. Created and updated by the ConsumptionAggregator domain service as readings arrive.
-**Identifier:** `recordId` (UUID)
+**Aggregate Root:** Yes (each table is a materialized aggregate)
+**Description:** Pre-aggregated consumption data at 3 granularities. Created by the ConsumptionAggregator domain service as readings arrive.
 **Entrega:** MVP
 
-**Attributes:**
-
-| Attribute | Type | Description | Required | Rules |
-|-----------|------|-------------|---------|-------|
-| recordId | UUID | Unique identifier | Yes | Auto-generated |
-| placeId | UUID | Place this consumption belongs to | Yes | Must reference an active place |
-| periodType | enum | HOUR, DAY, WEEK, MONTH | Yes | — |
-| periodStart | DateTime | Start of the aggregation window | Yes | — |
-| periodEnd | DateTime | End of the aggregation window | Yes | Must be after periodStart |
-| totalVolume | decimal | Total liters consumed in this period | Yes | Default: 0, must be ≥ 0 |
-| readingCount | int | Number of readings aggregated | Yes | Default: 0, must be ≥ 0 |
-| createdAt | DateTime | When the record was first created | Yes | Immutable |
-| updatedAt | DateTime | Last aggregation update | Yes | Auto-updated |
+| Table | Key | Extra columns |
+|-------|-----|---------------|
+| `consumption_hourly` | place_id + hour_start (UQ) | total_liters, reading_count |
+| `consumption_daily` | place_id + date (UQ) | total_liters, avg_hourly, peak_hour (0–23), reading_count |
+| `consumption_monthly` | place_id + month_start (UQ) | total_liters, avg_daily, peak_day, reading_count, days_with_data |
 
 **Invariants:**
 
 ```
-INV-CR001: Only one record per (placeId + periodType + periodStart) — no duplicate windows
-INV-CR002: totalVolume must be ≥ 0
-INV-CR003: readingCount must be ≥ 0
-INV-CR004: periodEnd must be after periodStart
-INV-CR005: HOUR records feed DAY aggregation; DAY records feed WEEK and MONTH aggregation
+INV-CA001: Only one record per (placeId + period start) per granularity — no duplicate windows
+INV-CA002: total_liters must be ≥ 0
+INV-CA003: reading_count must be ≥ 0
+INV-CA004: month_start must be the first day of the month
+INV-CA005: Hourly aggregates feed daily; daily feeds monthly
 ```
 
 ---
@@ -323,24 +314,24 @@ INV-CR005: HOUR records feed DAY aggregation; DAY records feed WEEK and MONTH ag
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| goalId | UUID | Unique identifier | Yes | Auto-generated |
-| placeId | UUID | Place this goal applies to | Yes | — |
-| setBy | UUID | User (Owner) who set the goal | Yes | Must be Owner of the place |
-| month | string | Target month (format: "2026-09") | Yes | — |
-| targetVolume | decimal | Target consumption in the place's measurement unit | Yes | Must be > 0 |
-| unit | enum | LITERS, CUBIC_METERS, GALLONS | Yes | Matches place's measurementUnit |
-| source | enum | MANUAL or SUGGESTED | Yes | Default: MANUAL |
+| goalId | BIGINT | Internal identifier | Yes | Auto-generated |
+| placeId | BIGINT | Place this goal applies to | Yes | FK cross → places.places |
+| monthStart | Date | First day of the target month | Yes | Must be DAY = 1 |
+| targetLiters | decimal | Target consumption in liters | Yes | Must be > 0 |
+| source | enum | MANUAL, SUGGESTED, CARRIED_OVER | Yes | Default: MANUAL |
 | createdAt | DateTime | When the goal was set | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
 **Invariants:**
 
 ```
-INV-G001: Only one goal per place per month
-INV-G002: targetVolume must be > 0
+INV-G001: Only one goal per place per month (unique: placeId + monthStart)
+INV-G002: targetLiters must be > 0
 INV-G003: Only the Owner can set or modify a goal
 INV-G004: A goal for a past month cannot be modified
 ```
+
+**Supporting entity:** `GoalSuggestion` — automatically proposed goal based on historical consumption (based_on_months ≥ 1), with accepted flag for tracking user response.
 
 ---
 
@@ -412,128 +403,160 @@ INV-T005: Only the Owner can configure tariffs
 
 ## BC-07: Valve Control — Core
 
-### Entity: Valve *(Entrega 2)*
+### Entity: ValveState *(Entrega 2)*
 
 **Aggregate Root:** Yes
-**Description:** Logical representation of the electrovalve at a place's water inlet.
-**Identifier:** `valveId` (UUID)
+**Description:** Current state of the electrovalve at a place. One record per device/place (unique constraints).
+**Table:** `valve.valve_states`
 
 **Attributes:**
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| valveId | UUID | Unique identifier | Yes | Auto-generated |
-| placeId | UUID | Place this valve belongs to | Yes | One-to-one with place's device |
-| deviceId | UUID | Device that physically controls this valve | Yes | — |
-| state | enum | OPEN, CLOSED, NO_COMMUNICATION | Yes | Reflects last confirmed state from device |
+| deviceId | BIGINT | Device (unique) | Yes | FK cross → devices.devices |
+| placeId | BIGINT | Place (unique) | Yes | FK cross → places.places |
+| state | enum | OPEN, CLOSED, UNKNOWN | Yes | Default: UNKNOWN |
 | lastConfirmedAt | DateTime | When the device last confirmed the state | No | — |
-| autoShutoffEnabled | boolean | Whether auto-shutoff rules are active | Yes | Default: false |
+| updatedAt | DateTime | Last change | Yes | Auto-updated |
 
 **Invariants:**
 
 ```
 INV-V001: Only a user with the Owner role (or CONTROL_VALVE permission) can send open/close commands
-INV-V002: A close command requires a confirmation code sent to the owner
-INV-V003: State reflects the device's confirmed state, not the last command sent
-INV-V004: If the device does not confirm within 30 seconds, the command is marked as failed
-INV-V005: Auto-shutoff rules are disabled by default and can only be enabled by the owner
-INV-V006: Auto-shutoff never executes without explicit user confirmation
-INV-V007: The system never reopens the valve automatically — reopening is always manual
+INV-V002: State reflects the device's confirmed state, not the last command sent
+INV-V003: The system never reopens the valve automatically — reopening is always MANUAL
 ```
 
 ---
 
-### Entity: ValveAction *(Entrega 2)*
+### Entity: ValveCommand *(Entrega 2)*
 
-**Aggregate Root:** No (audit log)
-**Description:** An auditable record of every open/close action on a valve. Immutable after creation.
-**Identifier:** `actionId` (UUID)
+**Aggregate Root:** No (command log, immutable after terminal state)
+**Description:** A command to open or close the valve, with a 6-state lifecycle.
+**Table:** `valve.valve_commands`
 
 **Attributes:**
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| actionId | UUID | Unique identifier | Yes | Auto-generated |
-| valveId | UUID | Valve acted upon | Yes | — |
-| userId | UUID | User who initiated the action | Yes | Must be Owner of the place |
-| action | enum | OPEN, CLOSE | Yes | — |
+| deviceId | BIGINT | Target device | Yes | FK cross → devices.devices |
+| placeId | BIGINT | Target place | Yes | FK cross → places.places (D2) |
+| commandedBy | BIGINT | User who initiated (null = auto) | No | FK cross → security.users |
+| command | enum | OPEN, CLOSE | Yes | — |
 | origin | enum | MANUAL, AUTO_LEAK, AUTO_GOAL | Yes | — |
-| result | enum | SUCCESS, FAILED, TIMEOUT | Yes | — |
-| requestedAt | DateTime | When the command was sent | Yes | — |
-| confirmedAt | DateTime | When the device confirmed | No | Null if failed/timeout |
+| status | enum | (see lifecycle below) | Yes | Default: PENDING_CONFIRMATION |
+| confirmationCode | string | Security code for confirmation step | No | — |
+| confirmedAt | DateTime | When user confirmed | No | — |
+| sentAt | DateTime | When sent to device via MQTT | No | — |
+| deviceAckAt | DateTime | When device acknowledged | No | — |
+| timeoutAt | DateTime | When 30s timeout expired | No | — |
+| failureReason | string | Failure details | No | — |
+| createdAt | DateTime | When command was created | Yes | Immutable |
+
+**Command lifecycle:**
+
+```
+PENDING_CONFIRMATION ──(user confirms code)──▶ CONFIRMED
+                                                   │
+                                             (sent via MQTT)
+                                                   ▼
+                                                 SENT
+                                                   │
+                                     ┌─────────────┼────────────┐
+                                     ▼             ▼            ▼
+                               ACK_SUCCESS    ACK_TIMEOUT    FAILED
+                                              (30s no ack)
+```
+
+**Invariants:**
+
+```
+INV-VC001: A close command requires a confirmation code sent to the owner
+INV-VC002: If the device does not ACK within 30 seconds → ACK_TIMEOUT
+INV-VC003: Auto-shutoff never executes without explicit user confirmation (PENDING_CONFIRMATION)
+INV-VC004: Reopening is always MANUAL origin
+```
 
 ---
 
-### Entity: ShutoffRule *(Entrega 3)*
+### Entity: ValveRule *(Entrega 3)*
 
 **Aggregate Root:** No (inside Valve aggregate)
 **Description:** An automatic rule that triggers valve closure when a specific condition is met.
-**Identifier:** `ruleId` (UUID)
+**Table:** `valve.valve_rules`
 
 **Attributes:**
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| ruleId | UUID | Unique identifier | Yes | Auto-generated |
-| valveId | UUID | Valve this rule belongs to | Yes | — |
-| triggerType | enum | LEAK or GOAL | Yes | — |
-| isEnabled | boolean | Whether the rule is active | Yes | Default: false |
+| placeId | BIGINT | Place this rule applies to | Yes | FK cross → places.places |
+| ruleType | enum | LEAK_DETECTION, GOAL_EXCEEDED | Yes | — |
+| enabled | boolean | Whether the rule is active | Yes | Default: false |
+| requiresConfirmation | boolean | Whether to require user confirmation | Yes | Default: true |
+| confirmationTimeoutMin | int | Minutes before auto-expiry of confirmation | Yes | Default: 10, must be > 0 |
+| createdBy | BIGINT | User who created this rule | Yes | FK cross → security.users |
 | createdAt | DateTime | When the rule was created | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
 **Invariants:**
 
 ```
-INV-SR001: Only one rule per trigger type per valve
-INV-SR002: Rules can only be enabled if the valve state is OPEN or CLOSED (not NO_COMMUNICATION)
-INV-SR003: Only the Owner can enable/disable shutoff rules
-INV-SR004: When a rule triggers, the system sends a confirmation request to the Owner before closing
+INV-VR001: Only one rule per (placeId + ruleType) — unique constraint
+INV-VR002: Only the Owner can enable/disable valve rules
+INV-VR003: When a rule triggers, the system sends a confirmation request to the Owner before closing
 ```
 
 ---
 
 ## BC-08: Alerts & Detection — Core
 
-### Entity: Alert *(Entrega 2)*
+### Entity: AlertTypeConfig *(Entrega 2 — seed data)*
+
+**Aggregate Root:** Yes (reference data)
+**Description:** Configuration for each alert type: severity, description, deduplication rules. Seed data — not user-modifiable.
+**Table:** `alerts.alert_type_config`
+
+**Alert types and severity:**
+
+| alert_type | severity | max_per_period | period_unit |
+|-----------|----------|---------------|-------------|
+| SUSPECTED_LEAK | CRITICAL | 1 | HOUR |
+| VALVE_CLOSED | CRITICAL | — | — |
+| GOAL_EXCEEDED | IMPORTANT | 1 | MONTH |
+| SENSOR_DISCONNECTED | IMPORTANT | 1 | (until reconnect) |
+| GOAL_80_PERCENT | INFORMATIVE | 1 | MONTH |
+| BILL_MISALIGNED | IMPORTANT | 1 | MONTH |
+| BILL_REGISTER_REMINDER | INFORMATIVE | — | — |
+| BILL_PAYMENT_REMINDER | INFORMATIVE | — | — |
+
+---
+
+### Entity: AlertEvent *(Entrega 2)*
 
 **Aggregate Root:** Yes
-**Description:** A system-generated fact triggered by a domain event, classified by urgency. The rule engine in this BC evaluates conditions and creates alerts; the Notification Delivery BC handles transport.
-**Identifier:** `alertId` (UUID)
+**Description:** A system-generated fact triggered by a domain event, classified by severity. The rule engine evaluates conditions and creates alert events; the Notification Delivery BC handles transport.
+**Table:** `alerts.alert_events`
 
 **Attributes:**
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| alertId | UUID | Unique identifier | Yes | Auto-generated |
-| placeId | UUID | Place this alert relates to | Yes | — |
-| userId | UUID | Alert recipient | Yes | — |
-| type | enum | LEAK_SUSPECTED, VALVE_CLOSED, GOAL_EXCEEDED, GOAL_WARNING, SENSOR_DISCONNECTED, BILL_MISMATCH, BILL_REMINDER, PAYMENT_REMINDER | Yes | — |
-| urgency | enum | CRITICAL, IMPORTANT, INFORMATIVE | Yes | Derived from type |
-| title | string | Short description | Yes | — |
-| body | string | Detailed message | Yes | — |
-| isRead | boolean | Whether the user has seen it | Yes | Default: false |
-| channels | list | Channels used for delivery | Yes | Based on urgency + user preferences |
-| createdAt | DateTime | When the alert was generated | Yes | Immutable |
-
-**Urgency derivation:**
-
-| Type | Urgency |
-|------|---------|
-| LEAK_SUSPECTED | CRITICAL |
-| VALVE_CLOSED | CRITICAL |
-| SENSOR_DISCONNECTED | IMPORTANT |
-| GOAL_EXCEEDED | IMPORTANT |
-| BILL_MISMATCH | IMPORTANT |
-| GOAL_WARNING | INFORMATIVE |
-| BILL_REMINDER | INFORMATIVE |
-| PAYMENT_REMINDER | INFORMATIVE |
+| placeId | BIGINT | Place this alert relates to | Yes | FK cross → places.places |
+| alertType | string | One of the 8 configured alert types | Yes | — |
+| severity | enum | CRITICAL, IMPORTANT, INFORMATIVE | Yes | Snapshot at creation time (D3) |
+| title | string | Short description | Yes | Max 200 chars |
+| message | string | Detailed message | Yes | Max 2000 chars |
+| metadata | JSON | Additional context (flow rate, percentages, etc.) | No | Must be valid JSON |
+| triggeredAt | DateTime | When the alert was generated | Yes | SYSUTCDATETIME() |
+| readAt | DateTime | When the user marked it as read | No | — |
+| deletedAt | DateTime | When the user dismissed it | No | — |
 
 **Invariants:**
 
 ```
-INV-A001: Urgency is derived from type — cannot be set independently
+INV-A001: Severity is derived from alert_type via alert_type_config — snapshot at creation
 INV-A002: CRITICAL alerts are delivered on all enabled channels — cannot be fully silenced
-INV-A003: Alerts for Members are delivered only if the Member has VIEW_ALERTS permission
+INV-A003: Deduplication enforced via max_per_period from alert_type_config
 ```
 
 ---
@@ -550,53 +573,55 @@ INV-A003: Alerts for Members are delivered only if the Member has VIEW_ALERTS pe
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| preferenceId | UUID | Unique identifier | Yes | Auto-generated |
-| userId | UUID | User this preference belongs to | Yes | — |
-| urgencyLevel | enum | CRITICAL, IMPORTANT, INFORMATIVE | Yes | — |
-| inAppEnabled | boolean | In-app notifications | Yes | Default: true |
-| pushEnabled | boolean | Push notifications | Yes | Default: true |
-| emailEnabled | boolean | Email notifications | Yes | Default: false |
-| smsEnabled | boolean | SMS/WhatsApp notifications | Yes | Default: false |
-| createdAt | DateTime | When the preference was created | Yes | Immutable |
+| userId | BIGINT | User this preference belongs to | Yes | FK cross → security.users |
+| alertSeverity | enum | CRITICAL, IMPORTANT, INFORMATIVE | Yes | — |
+| channelApp | boolean | In-app notifications | Yes | Default: true |
+| channelPush | boolean | Push notifications | Yes | Default: true |
+| channelEmail | boolean | Email notifications | Yes | Default: false |
+| channelSms | boolean | SMS notifications | Yes | Default: false |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
 **Invariants:**
 
 ```
-INV-NP001: One preference record per user per urgency level
-INV-NP002: CRITICAL urgency must have at least one channel enabled — cannot disable all channels
-INV-NP003: Default preferences are created on user registration (in-app + push enabled for all levels)
+INV-NP001: One preference record per user per severity level (unique: userId + alertSeverity)
+INV-NP002: CRITICAL severity must have channel_app = true — cannot disable in-app for critical
+INV-NP003: Default preferences are created on user registration (app + push enabled for all levels)
 ```
+
+**Supporting entities:**
+- `NotificationLog` — delivery record per (alert_event + user + channel) with status lifecycle: PENDING → SENT → DELIVERED | FAILED
+- `PushSubscription` — device tokens for push notifications per user, with platform and active flag
 
 ---
 
 ## BC-11: Savings Tips — Generic
 
-### Entity: Recommendation *(Entrega 4)*
+### Entity: SavingsTip *(Entrega 4)*
 
 **Aggregate Root:** Yes (single-entity aggregate)
-**Description:** A generic water-saving tip or recommendation created by an Admin. Displayed to all users in a dedicated section. Not personalized per place.
-**Identifier:** `recommendationId` (UUID)
+**Description:** A generic water-saving tip created by an Admin. Displayed to all users. Not personalized per place.
+**Table:** `content.savings_tips`
 
 **Attributes:**
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| recommendationId | UUID | Unique identifier | Yes | Auto-generated |
-| createdBy | UUID | Admin user who created the recommendation | Yes | Must have Admin role |
+| category | enum | RESIDENTIAL, COMMERCIAL, GENERAL | Yes | — |
 | title | string | Short title | Yes | Max 200 chars |
-| body | string | Full recommendation text | Yes | Max 2000 chars |
-| category | enum | SAVING_TIP, MAINTENANCE, SEASONAL, GENERAL | Yes | — |
-| isActive | boolean | Whether the recommendation is visible to users | Yes | Default: true |
-| createdAt | DateTime | When the recommendation was created | Yes | Immutable |
-| updatedAt | DateTime | Last modification | Yes | Auto-updated |
+| body | string | Full tip text | Yes | Max 2000 chars |
+| sortOrder | int | Display order | Yes | Default: 0 |
+| active | boolean | Whether the tip is visible to users | Yes | Default: true |
+| createdAt | DateTime | When the tip was created | Yes | Immutable |
 
 **Invariants:**
 
 ```
-INV-REC001: Only users with Admin role can create, edit, or deactivate recommendations
-INV-REC002: Deactivated recommendations are hidden from users but not deleted
+INV-TIP001: Only users with Admin role can create, edit, or deactivate tips
+INV-TIP002: Deactivated tips are hidden from users but not deleted
 ```
+
+**Supporting entity:** `TipFavorite` — tracks which users marked a tip as favorite (unique: userId + tipId).
 
 ---
 
@@ -673,19 +698,19 @@ INV-REC002: Deactivated recommendations are hidden from users but not deleted
 
 ## Aggregates Summary
 
-| Aggregate Root | BC | Internal Entities | Value Objects | Aggregate Invariants |
-|---------------|-----|-------------------|---------------|---------------------|
-| User | BC-01 IAM | — | Email, Phone | Identity and credentials must be consistent as a unit |
-| Place | BC-02 Place Mgmt | Member, Invitation | Address, Permissions | A place always has exactly one Owner; invitations cannot target existing members |
-| Device | BC-03 Device Mgmt | — (Reading stored separately) | — | Device identity, link state, and health must be consistent |
-| ConsumptionRecord | BC-04 Consumption Monitoring | — | — | One record per (place + periodType + periodStart) |
-| Goal | BC-05 Goals | — | — | One goal per place per month; only Owner can set |
+| Aggregate Root | BC | Internal/Supporting Entities | Value Objects | Aggregate Invariants |
+|---------------|-----|------------------------------|---------------|---------------------|
+| User | BC-01 IAM | UserCredential, EmailVerification, PasswordReset, RefreshToken, LoginAttempt, ActivityLog | Email, Phone | Identity and credentials must be consistent as a unit |
+| Place | BC-02 Place Mgmt | Member, Invitation | Address | A place always has exactly one Owner; only table with soft delete |
+| Device | BC-03 Device Mgmt | DeviceLinkHistory | — | Device identity, link state, and health must be consistent |
+| ConsumptionHourly/Daily/Monthly | BC-04 Monitoring | — | — | One record per (place + period start) per granularity |
+| Goal | BC-05 Goals | GoalSuggestion | — | One goal per place per month; only Owner can set |
 | Bill | BC-06 Billing | — | DateRange, Money | Billing periods must not overlap per place |
-| Tariff | BC-06 Billing | — | Money | One active tariff per place at any date |
-| Valve | BC-07 Valve Control | ShutoffRule | — | Valve state and shutoff rules must be consistent |
-| Alert | BC-08 Alerts | — | — | Urgency derived from type; critical alerts cannot be silenced |
-| NotificationPreference | BC-09 Delivery | — | — | One preference per user per urgency; critical must have ≥ 1 channel |
-| Recommendation | BC-11 Tips | — | — | Only Admin can manage; deactivation ≠ deletion |
+| Tariff | BC-06 Billing | TariffCatalog | Money | One active tariff per place at any date |
+| ValveState | BC-07 Valve Control | ValveCommand, ValveRule | — | State confirmed by device; commands follow 6-state lifecycle |
+| AlertTypeConfig | BC-08 Alerts | AlertEvent | — | Severity derived from type config; deduplication via max_per_period |
+| NotificationPreference | BC-09 Delivery | NotificationLog, PushSubscription | — | One preference per user per severity; critical must have app enabled |
+| SavingsTip | BC-11 Tips | TipFavorite | — | Only Admin can manage; deactivation ≠ deletion |
 
 ---
 
@@ -694,7 +719,7 @@ INV-REC002: Deactivated recommendations are hidden from users but not deleted
 ### ConsumptionAggregator
 
 **BC:** BC-04 Consumption Monitoring
-**Description:** Aggregates raw readings into consumption records for display (by hour, day, week, month). Stateless — reads from the readings store and writes aggregated results.
+**Description:** Aggregates raw readings into 3 tiers: consumption_hourly, consumption_daily, consumption_monthly. Stateless — reads from monitoring.readings and writes aggregated results.
 **Entrega:** MVP
 
 ### GoalEvaluator *(Entrega 2)*
@@ -726,30 +751,44 @@ INV-REC002: Deactivated recommendations are hidden from users but not deleted
 
 ## Entity Summary Table
 
-| Name | Type | Bounded Context | Aggregate Root? | Entrega |
-|------|------|----------------|----------------|---------|
-| User | Entity | BC-01 IAM | Yes | MVP |
-| Place | Entity | BC-02 Place Management | Yes | MVP |
-| Member | Entity | BC-02 Place Management | No (inside Place) | 3 |
-| Invitation | Entity | BC-02 Place Management | No (inside Place) | 3 |
-| Device | Entity | BC-03 Device Management | Yes | MVP |
-| Reading | Entity | BC-03 Device Management | No (stored separately) | MVP |
-| ConsumptionRecord | Entity | BC-04 Consumption Monitoring | Yes | MVP |
-| Goal | Entity | BC-05 Consumption Goals | Yes (single-entity) | 2 |
-| Bill | Entity | BC-06 Billing & Tariffs | Yes (single-entity) | 3 |
-| Tariff | Entity | BC-06 Billing & Tariffs | Yes (single-entity) | 3 |
-| Valve | Entity | BC-07 Valve Control | Yes | 2 |
-| ValveAction | Entity | BC-07 Valve Control | No (audit log) | 2 |
-| ShutoffRule | Entity | BC-07 Valve Control | No (inside Valve) | 3 |
-| Alert | Entity | BC-08 Alerts & Detection | Yes | 2 |
-| NotificationPreference | Entity | BC-09 Notification Delivery | Yes (single-entity) | 2 |
-| Recommendation | Entity | BC-11 Savings Tips | Yes (single-entity) | 4 |
-| Email | Value Object | Shared | N/A | MVP |
-| Phone | Value Object | Shared | N/A | MVP |
-| Address | Value Object | BC-02 Place Management | N/A | MVP |
-| DateRange | Value Object | Shared | N/A | MVP |
-| Money | Value Object | BC-06 Billing & Tariffs | N/A | 3 |
-| Permissions | Value Object | BC-02 Place Management | N/A | 3 |
+| Name | Type | Bounded Context | Schema | Aggregate Root? | Entrega |
+|------|------|----------------|--------|----------------|---------|
+| User | Entity | BC-01 IAM | security | Yes | MVP |
+| UserCredential | Entity | BC-01 IAM | security | No (inside User) | MVP |
+| EmailVerification | Entity | BC-01 IAM | security | No | MVP |
+| PasswordReset | Entity | BC-01 IAM | security | No | MVP |
+| RefreshToken | Entity | BC-01 IAM | security | No | MVP |
+| LoginAttempt | Entity | BC-01 IAM | security | No | MVP |
+| ActivityLog | Entity | BC-01 IAM | security | No | MVP |
+| Place | Entity | BC-02 Place Management | places | Yes | MVP |
+| Member | Entity | BC-02 Place Management | places | No (inside Place) | 3 |
+| Invitation | Entity | BC-02 Place Management | places | No (inside Place) | 3 |
+| Device | Entity | BC-03 Device Management | devices | Yes | MVP |
+| DeviceLinkHistory | Entity | BC-03 Device Management | devices | No (audit) | MVP |
+| Reading | Entity | BC-03/04 Device → Monitoring | monitoring | No (stored separately) | MVP |
+| ConsumptionHourly | Entity | BC-04 Consumption Monitoring | monitoring | Yes (aggregate) | MVP |
+| ConsumptionDaily | Entity | BC-04 Consumption Monitoring | monitoring | Yes (aggregate) | MVP |
+| ConsumptionMonthly | Entity | BC-04 Consumption Monitoring | monitoring | Yes (aggregate) | MVP |
+| Goal | Entity | BC-05 Consumption Goals | goals | Yes (single-entity) | 2 |
+| GoalSuggestion | Entity | BC-05 Consumption Goals | goals | No | 2 |
+| Bill | Entity | BC-06 Billing & Tariffs | billing | Yes (single-entity) | 3 |
+| Tariff | Entity | BC-06 Billing & Tariffs | billing | Yes (single-entity) | 3 |
+| TariffCatalog | Entity | BC-06 Billing & Tariffs | billing | No (reference) | 4 |
+| ValveState | Entity | BC-07 Valve Control | valve | Yes | 2 |
+| ValveCommand | Entity | BC-07 Valve Control | valve | No (command log) | 2 |
+| ValveRule | Entity | BC-07 Valve Control | valve | No (inside Valve) | 3 |
+| AlertTypeConfig | Entity | BC-08 Alerts & Detection | alerts | Yes (seed data) | 2 |
+| AlertEvent | Entity | BC-08 Alerts & Detection | alerts | Yes | 2 |
+| NotificationPreference | Entity | BC-08 Alerts & Detection | alerts | Yes (single-entity) | 2 |
+| NotificationLog | Entity | BC-09 Notification Delivery | notifications | No (delivery record) | 2 |
+| PushSubscription | Entity | BC-09 Notification Delivery | notifications | No | 2 |
+| SavingsTip | Entity | BC-11 Savings Tips | content | Yes (single-entity) | 4 |
+| TipFavorite | Entity | BC-11 Savings Tips | content | No | 4 |
+| Email | Value Object | Shared | — | N/A | MVP |
+| Phone | Value Object | Shared | — | N/A | MVP |
+| Address | Value Object | BC-02 Place Management | — | N/A | MVP |
+| DateRange | Value Object | Shared | — | N/A | MVP |
+| Money | Value Object | BC-06 Billing & Tariffs | — | N/A | 3 |
 
 ---
 

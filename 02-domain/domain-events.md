@@ -160,9 +160,9 @@ All events follow this structure:
   "placeId": "uuid",
   "ownerId": "uuid",
   "name": "string",
-  "country": "string",
-  "city": "string",
-  "stratum": "int | null"
+  "placeType": "RESIDENTIAL | COMMERCIAL",
+  "countryCode": "string",
+  "city": "string"
 }
 ```
 

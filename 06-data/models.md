@@ -1,861 +1,1038 @@
 # Data Models per Service
 
-> Save Your Water — SQL Server (`sy_water_db`), schema-per-service.
-> See ADR-002 for the shared database decision.
-> All DDL uses T-SQL (SQL Server) syntax.
+> Save Your Water — SQL Server (`sy_water_db`).
+> Authoritative source: `sy-water-db/cuida-tu-agua-model-v5.dbml`
+> All bounded contexts share one database, separated by schema for logical organization.
+> Cross-schema FK are real — SQL Server enforces referential integrity.
 
 ---
 
 ## Data modeling principles
 
-### 1. Schema-per-Service (shared database)
+### 1. Schema-per-BC (shared database)
 
-All services share a single SQL Server instance. Each service owns its own schema.
-No service may query another service's schema — inter-service data access is via REST or RabbitMQ events.
+All bounded contexts share a single SQL Server instance (`sy_water_db`). Each BC owns its own schema — **10 schemas** for 11 BCs (BC-10 Reports has no tables, reads from `monitoring`).
 
 ```
-✓ auth-service  → iam.users
-✓ place-service → place.places
-✗ place-service → iam.users (direct JOIN)
+✓ auth-service  → security.users
+✓ place-service → places.places
+✗ place-service → security.users (direct JOIN) — use FK reference + API
 ```
 
-### 2. Standard audit fields
+Cross-schema foreign keys ARE used for referential integrity. Data access across services is still via REST or events at the application level, but the database enforces FK constraints.
 
-All tables include:
+### 2. PK strategy: bigint + uuid
+
+All tables use `BIGINT IDENTITY` as internal PK (efficient for JOINs and indexes). A separate `uuid` column (`UNIQUEIDENTIFIER`) serves as the public API identifier exposed in REST and JWT.
 
 ```sql
-id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-created_at  DATETIMEOFFSET   NOT NULL    DEFAULT SYSDATETIMEOFFSET(),
-updated_at  DATETIMEOFFSET   NOT NULL    DEFAULT SYSDATETIMEOFFSET(),
-deleted_at  DATETIMEOFFSET   NULL        -- NULL = active (soft delete)
+id   BIGINT       IDENTITY(1,1) PRIMARY KEY,
+uuid UNIQUEIDENTIFIER NOT NULL  DEFAULT NEWID(),
+-- UNIQUE constraint on uuid
 ```
 
-### 3. Soft delete
+### 3. Timestamps
 
-All tables use soft delete. Records are never physically deleted.
-All queries must include `WHERE deleted_at IS NULL` unless explicitly querying archived data.
+All tables use `DATETIME2` with `SYSUTCDATETIME()` (UTC). No timezone offset stored — application layer handles timezone conversion.
 
-### 4. Naming conventions
+### 4. Soft delete
+
+Only `places.places` uses soft delete (`deleted_at`). Other tables use hard delete or status-based lifecycle (e.g., `revoked_at` for tokens, `unlinked_at` for device history).
+
+### 5. Naming conventions
 
 ```sql
--- Schemas:     lowercase, service name          → iam, place, device
--- Tables:      snake_case, plural               → users, places, readings
--- Columns:     snake_case, descriptive          → flow_rate, last_report_at
--- FKs:         [referenced_table_singular]_id   → user_id, place_id
--- Indexes:     IX_[table]_[column(s)]           → IX_users_email
--- Constraints: CK_[table]_[rule]                → CK_users_auth_provider
--- Defaults:    DF_[table]_[column]              → DF_users_is_verified
--- Timestamps:  always DATETIMEOFFSET (with timezone)
--- IDs:         UNIQUEIDENTIFIER (UUID) — never INT/BIGINT
+-- Schemas:     lowercase, plural where natural     → security, places, devices
+-- Tables:      snake_case, plural                  → users, readings, valve_commands
+-- Columns:     snake_case                          → flow_rate_lph, last_report_at
+-- FKs:         [referenced_table_singular]_id      → user_id, place_id
+-- Indexes:     IX_[abbrev]_[columns]               → IX_reading_place_time
+-- Unique:      UQ_[abbrev]_[columns]               → UQ_cred_user_type
+-- Filtered UQ: UX_[abbrev]_[columns]               → UX_inv_pending
+-- Timestamps:  DATETIME2 with SYSUTCDATETIME()
+-- IDs:         BIGINT IDENTITY (internal), UNIQUEIDENTIFIER (public)
 ```
+
+### 6. Documented denormalizations (3NF violations)
+
+| Code | Table | Column | Reason |
+|------|-------|--------|--------|
+| D1 | monitoring.readings | place_id | Avoid JOIN to devices on every reading query |
+| D2 | valve.valve_commands | place_id | Command belongs to the place, not just the device |
+| D3 | alerts.alert_events | severity | Snapshot of classification at alert creation time |
+| D4 | places.places | owner_id | List "my places" without JOIN to place_members |
 
 ---
 
-## Schema: iam (auth-service) — BC-01 IAM
+## Schema: security — BC-01 IAM (Supporting)
 
 **Owner:** auth-service (Spring Boot)
-**Bounded Context:** BC-01 IAM (Supporting)
 
-### Table: iam.users
-
-**Purpose:** Registered platform users.
+### Table: security.users
 
 ```sql
-CREATE TABLE iam.users (
-    id                    UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+CREATE TABLE security.users (
+    id                   BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    uuid                 UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    name                 NVARCHAR(200) NOT NULL,
+    email                NVARCHAR(320) NOT NULL,
+    phone                NVARCHAR(20)  NULL,
+    phone_verified       BIT           NOT NULL DEFAULT 0,
+    avatar_url           NVARCHAR(500) NULL,
+    email_verified       BIT           NOT NULL DEFAULT 0,
+    account_locked_until DATETIME2     NULL,
+    created_at           DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at           DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    -- Identity
-    full_name             NVARCHAR(200)    NOT NULL,
-    email                 NVARCHAR(320)    NOT NULL,
-    identity_document     NVARCHAR(50)     NOT NULL,
-    phone_country_code    NVARCHAR(5)      NOT NULL,
-    phone_number          NVARCHAR(20)     NOT NULL,
-    photo_url             NVARCHAR(500)    NULL,
+    CONSTRAINT UQ_users_uuid  UNIQUE (uuid),
+    CONSTRAINT UQ_users_email UNIQUE (email)
+);
+```
 
-    -- Authentication
-    password_hash         NVARCHAR(500)    NULL,       -- NULL for Google OAuth accounts
-    auth_provider         NVARCHAR(10)     NOT NULL DEFAULT 'LOCAL'
-                          CONSTRAINT CK_users_auth_provider CHECK (auth_provider IN ('LOCAL', 'GOOGLE')),
+### Table: security.user_credentials
 
-    -- Verification & blocking
-    is_verified           BIT              NOT NULL DEFAULT 0,
-    is_blocked            BIT              NOT NULL DEFAULT 0,
-    blocked_until         DATETIMEOFFSET   NULL,
-    failed_login_attempts INT              NOT NULL DEFAULT 0,
+```sql
+CREATE TABLE security.user_credentials (
+    id              BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    user_id         BIGINT        NOT NULL REFERENCES security.users(id),
+    credential_type NVARCHAR(10)  NOT NULL
+                    CONSTRAINT CK_cred_type CHECK (credential_type IN ('LOCAL', 'GOOGLE')),
+    password_hash   NVARCHAR(256) NULL,
+    google_id       NVARCHAR(256) NULL,
+    created_at      DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    -- Audit
-    created_at            DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at            DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at            DATETIMEOFFSET   NULL,
+    CONSTRAINT UQ_cred_user_type UNIQUE (user_id, credential_type)
+);
+```
 
-    -- Constraints
-    CONSTRAINT UQ_users_email             UNIQUE (email),
-    CONSTRAINT UQ_users_identity_document UNIQUE (identity_document)
+### Table: security.email_verifications
+
+```sql
+CREATE TABLE security.email_verifications (
+    id          BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    user_id     BIGINT        NOT NULL REFERENCES security.users(id),
+    token_hash  NVARCHAR(256) NOT NULL,
+    expires_at  DATETIME2     NOT NULL,
+    verified_at DATETIME2     NULL,
+    created_at  DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_emailver_token UNIQUE (token_hash)
+);
+```
+
+### Table: security.password_resets
+
+```sql
+CREATE TABLE security.password_resets (
+    id          BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    user_id     BIGINT        NOT NULL REFERENCES security.users(id),
+    token_hash  NVARCHAR(256) NOT NULL,
+    expires_at  DATETIME2     NOT NULL,
+    used_at     DATETIME2     NULL,
+    created_at  DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_pwdreset_token UNIQUE (token_hash)
+);
+```
+
+### Table: security.refresh_tokens
+
+```sql
+CREATE TABLE security.refresh_tokens (
+    id          BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    user_id     BIGINT        NOT NULL REFERENCES security.users(id),
+    token_hash  NVARCHAR(256) NOT NULL,
+    device_info NVARCHAR(500) NULL,
+    expires_at  DATETIME2     NOT NULL,
+    revoked_at  DATETIME2     NULL,
+    created_at  DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_rtoken_hash UNIQUE (token_hash)
 );
 
-CREATE INDEX IX_users_email    ON iam.users (email) WHERE deleted_at IS NULL;
-CREATE INDEX IX_users_deleted  ON iam.users (deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IX_rtoken_user ON security.refresh_tokens (user_id);
+```
+
+### Table: security.login_attempts
+
+```sql
+CREATE TABLE security.login_attempts (
+    id             BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    user_id        BIGINT        NULL REFERENCES security.users(id),
+    email          NVARCHAR(320) NOT NULL,
+    ip_address     NVARCHAR(45)  NOT NULL,
+    success        BIT           NOT NULL,
+    failure_reason NVARCHAR(50)  NULL,
+    attempted_at   DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    INDEX IX_login_user_time (user_id, attempted_at)
+);
+```
+
+### Table: security.activity_log
+
+```sql
+CREATE TABLE security.activity_log (
+    id          BIGINT         IDENTITY(1,1) PRIMARY KEY,
+    user_id     BIGINT         NOT NULL REFERENCES security.users(id),
+    action      NVARCHAR(50)   NOT NULL,
+    entity_type NVARCHAR(50)   NULL,
+    entity_id   NVARCHAR(100)  NULL,
+    metadata    NVARCHAR(4000) NULL,
+    ip_address  NVARCHAR(45)   NULL,
+    created_at  DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    INDEX IX_actlog_user_time (user_id, created_at),
+    CONSTRAINT CK_actlog_json CHECK (metadata IS NULL OR ISJSON(metadata) = 1)
+);
 ```
 
 ---
 
-### Table: iam.verification_tokens
+## Schema: places — BC-02 Place Management (Supporting)
 
-**Purpose:** Email verification and password reset tokens.
+**Owner:** place-service (.NET 8)
 
-```sql
-CREATE TABLE iam.verification_tokens (
-    id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    user_id     UNIQUEIDENTIFIER NOT NULL REFERENCES iam.users(id),
-
-    token       NVARCHAR(500)    NOT NULL,
-    token_type  NVARCHAR(20)     NOT NULL
-                CONSTRAINT CK_vtokens_type CHECK (token_type IN ('EMAIL_VERIFICATION', 'PASSWORD_RESET')),
-    expires_at  DATETIMEOFFSET   NOT NULL,
-    used_at     DATETIMEOFFSET   NULL,       -- NULL = not yet used
-
-    created_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at  DATETIMEOFFSET   NULL
-);
-
-CREATE INDEX IX_vtokens_token   ON iam.verification_tokens (token) WHERE used_at IS NULL;
-CREATE INDEX IX_vtokens_user_id ON iam.verification_tokens (user_id);
-```
-
----
-
-### Table: iam.sessions
-
-**Purpose:** Active user sessions (JWT refresh tokens).
+### Table: places.places
 
 ```sql
-CREATE TABLE iam.sessions (
-    id              UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    user_id         UNIQUEIDENTIFIER NOT NULL REFERENCES iam.users(id),
-
-    refresh_token   NVARCHAR(500)    NOT NULL,
-    device_info     NVARCHAR(500)    NULL,       -- browser/device description
-    ip_address      NVARCHAR(45)     NULL,
-    expires_at      DATETIMEOFFSET   NOT NULL,
-    revoked_at      DATETIMEOFFSET   NULL,       -- NULL = active
-
-    created_at      DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at      DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at      DATETIMEOFFSET   NULL
-);
-
-CREATE INDEX IX_sessions_user_id       ON iam.sessions (user_id) WHERE revoked_at IS NULL;
-CREATE INDEX IX_sessions_refresh_token ON iam.sessions (refresh_token) WHERE revoked_at IS NULL;
-```
-
----
-
-### Table: iam.login_attempts
-
-**Purpose:** Audit log of failed login attempts. Cleared on successful login.
-
-```sql
-CREATE TABLE iam.login_attempts (
-    id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    user_id     UNIQUEIDENTIFIER NOT NULL REFERENCES iam.users(id),
-
-    ip_address  NVARCHAR(45)     NULL,
-    device_info NVARCHAR(500)    NULL,
-    attempted_at DATETIMEOFFSET  NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-
-    created_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at  DATETIMEOFFSET   NULL
-);
-
-CREATE INDEX IX_login_attempts_user_id ON iam.login_attempts (user_id);
-```
-
----
-
-## Schema: place (place-service) — BC-02 Place Management
-
-**Owner:** place-service
-**Bounded Context:** BC-02 Place Management (Supporting)
-
-### Table: place.places
-
-**Purpose:** Monitored locations (homes or businesses).
-
-```sql
-CREATE TABLE place.places (
-    id               UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    owner_id         UNIQUEIDENTIFIER NOT NULL,   -- references iam.users via app-level, no FK cross-schema
-
-    -- Place info
+CREATE TABLE places.places (
+    id               BIGINT           IDENTITY(1,1) PRIMARY KEY,
+    uuid             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    owner_id         BIGINT           NOT NULL, -- FK cross → security.users.id [D4]
     name             NVARCHAR(200)    NOT NULL,
-    street_address   NVARCHAR(500)    NOT NULL,
-    country          NVARCHAR(3)      NOT NULL
-                     CONSTRAINT CK_places_country CHECK (country IN ('CO', 'EC', 'US')),
-    department       NVARCHAR(200)    NOT NULL,
-    city             NVARCHAR(200)    NOT NULL,
-    postal_code      NVARCHAR(20)     NULL,
-    stratum          INT              NULL
-                     CONSTRAINT CK_places_stratum CHECK (stratum IS NULL OR stratum BETWEEN 1 AND 6),
-    inhabitants      INT              NOT NULL DEFAULT 1
-                     CONSTRAINT CK_places_inhabitants CHECK (inhabitants >= 1),
-
-    -- Configuration
+    place_type       NVARCHAR(15)     NOT NULL
+                     CONSTRAINT CK_places_type CHECK (place_type IN ('RESIDENTIAL', 'COMMERCIAL')),
+    address          NVARCHAR(500)    NOT NULL,
+    city             NVARCHAR(100)    NOT NULL,
+    country_code     NVARCHAR(2)      NOT NULL
+                     CONSTRAINT CK_places_country CHECK (country_code IN ('CO', 'EC', 'US')),
+    currency         NVARCHAR(3)      NOT NULL DEFAULT 'COP',
     measurement_unit NVARCHAR(15)     NOT NULL DEFAULT 'LITERS'
                      CONSTRAINT CK_places_unit CHECK (measurement_unit IN ('LITERS', 'CUBIC_METERS', 'GALLONS')),
-    currency         NVARCHAR(3)      NOT NULL DEFAULT 'COP',
-    linked_device_id UNIQUEIDENTIFIER NULL,       -- references device.devices via app-level
+    is_default       BIT              NOT NULL DEFAULT 0,
+    created_at       DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at       DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    deleted_at       DATETIME2        NULL,
 
-    -- Audit
-    created_at       DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at       DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at       DATETIMEOFFSET   NULL
+    CONSTRAINT UQ_places_uuid UNIQUE (uuid)
 );
 
-CREATE UNIQUE INDEX UX_places_owner_name ON place.places (owner_id, name) WHERE deleted_at IS NULL;
-CREATE INDEX IX_places_owner_id          ON place.places (owner_id) WHERE deleted_at IS NULL;
+CREATE INDEX IX_places_owner ON places.places (owner_id);
+```
+
+### Table: places.place_members *(Entrega 3)*
+
+```sql
+CREATE TABLE places.place_members (
+    id         BIGINT      IDENTITY(1,1) PRIMARY KEY,
+    place_id   BIGINT      NOT NULL REFERENCES places.places(id),
+    user_id    BIGINT      NOT NULL, -- FK cross → security.users.id
+    role       NVARCHAR(10) NOT NULL
+               CONSTRAINT CK_member_role CHECK (role IN ('OWNER', 'GUEST')),
+    joined_at  DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
+    revoked_at DATETIME2   NULL,
+
+    CONSTRAINT UQ_member_place_user UNIQUE (place_id, user_id)
+);
+```
+
+> **Nota de dominio:** El valor `GUEST` en la BD corresponde al rol "Miembro (Member)" en el lenguaje ubicuo del dominio (ver `01-context/glossary.md`).
+
+### Table: places.invitations *(Entrega 3)*
+
+```sql
+CREATE TABLE places.invitations (
+    id           BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    place_id     BIGINT        NOT NULL REFERENCES places.places(id),
+    invited_by   BIGINT        NOT NULL, -- FK cross → security.users.id
+    email        NVARCHAR(320) NOT NULL,
+    status       NVARCHAR(10)  NOT NULL DEFAULT 'PENDING'
+                 CONSTRAINT CK_inv_status CHECK (status IN ('PENDING', 'ACCEPTED', 'EXPIRED', 'REJECTED')),
+    token_hash   NVARCHAR(256) NOT NULL,
+    expires_at   DATETIME2     NOT NULL,
+    created_at   DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    responded_at DATETIME2     NULL,
+
+    CONSTRAINT UQ_inv_token UNIQUE (token_hash)
+);
+
+CREATE INDEX IX_inv_place_email ON places.invitations (place_id, email);
+-- Filtered unique: one pending invitation per place+email
+-- CREATE UNIQUE INDEX UX_inv_pending ON places.invitations(place_id, email) WHERE status = 'PENDING';
 ```
 
 ---
 
-### Table: place.members *(Entrega 3)*
+## Schema: devices — BC-03 Device Management (Supporting)
 
-**Purpose:** Users with access to a place (Owner or Member).
+**Owner:** device-service (.NET 8)
+
+### Table: devices.devices
 
 ```sql
-CREATE TABLE place.members (
-    id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id    UNIQUEIDENTIFIER NOT NULL REFERENCES place.places(id),
-    user_id     UNIQUEIDENTIFIER NOT NULL,   -- references iam.users via app-level
+CREATE TABLE devices.devices (
+    id                       BIGINT           IDENTITY(1,1) PRIMARY KEY,
+    uuid                     UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    serial_number            NVARCHAR(100)    NOT NULL,
+    place_id                 BIGINT           NULL, -- FK cross → places.places.id (NULL = available)
+    auth_token_hash          NVARCHAR(256)    NOT NULL,
+    auth_token_last_used_at  DATETIME2        NULL,
+    auth_token_revoked_at    DATETIME2        NULL,
+    status                   NVARCHAR(20)     NOT NULL DEFAULT 'NEVER_REPORTED'
+                             CONSTRAINT CK_dev_status CHECK (status IN ('CONNECTED', 'DISCONNECTED', 'NEVER_REPORTED')),
+    last_report_at           DATETIME2        NULL,
+    inactivity_threshold_min INT              NOT NULL DEFAULT 15,
+    linked_at                DATETIME2        NULL,
+    created_at               DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at               DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    role        NVARCHAR(10)     NOT NULL
-                CONSTRAINT CK_members_role CHECK (role IN ('OWNER', 'MEMBER')),
-
-    -- Permissions (comma-separated, only applies to MEMBER role; OWNER has all implicitly)
-    permissions NVARCHAR(500)    NULL,
-    -- Valid values: VIEW_CONSUMPTION, VIEW_DEVICE_STATUS, CONTROL_VALVE, VIEW_ALERTS, VIEW_BILLS
-
-    created_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at  DATETIMEOFFSET   NULL
+    CONSTRAINT UQ_dev_uuid   UNIQUE (uuid),
+    CONSTRAINT UQ_dev_serial UNIQUE (serial_number)
 );
 
-CREATE UNIQUE INDEX UX_members_place_user ON place.members (place_id, user_id) WHERE deleted_at IS NULL;
+CREATE INDEX IX_dev_place ON devices.devices (place_id) WHERE place_id IS NOT NULL;
+```
+
+### Table: devices.device_link_history
+
+```sql
+CREATE TABLE devices.device_link_history (
+    id          BIGINT    IDENTITY(1,1) PRIMARY KEY,
+    device_id   BIGINT    NOT NULL REFERENCES devices.devices(id),
+    place_id    BIGINT    NOT NULL, -- FK cross → places.places.id
+    linked_by   BIGINT    NOT NULL, -- FK cross → security.users.id
+    linked_at   DATETIME2 NOT NULL,
+    unlinked_at DATETIME2 NULL,
+    unlinked_by BIGINT    NULL,     -- FK cross → security.users.id
+
+    INDEX IX_linkh_dev_time (device_id, linked_at)
+);
+-- Filtered unique: one active link per device
+-- CREATE UNIQUE INDEX UX_device_active_link ON devices.device_link_history(device_id) WHERE unlinked_at IS NULL;
 ```
 
 ---
 
-### Table: place.invitations *(Entrega 3)*
+## Schema: monitoring — BC-04 Consumption Monitoring (Core)
 
-**Purpose:** Pending invitations to join a place as Member.
+**Owner:** consumption-service (.NET 8)
+
+### Table: monitoring.readings
 
 ```sql
-CREATE TABLE place.invitations (
-    id             UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id       UNIQUEIDENTIFIER NOT NULL REFERENCES place.places(id),
-    invited_email  NVARCHAR(320)    NOT NULL,
-    invited_by     UNIQUEIDENTIFIER NOT NULL,   -- references iam.users via app-level
+CREATE TABLE monitoring.readings (
+    id                BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    device_id         BIGINT        NOT NULL, -- FK cross → devices.devices.id
+    place_id          BIGINT        NOT NULL, -- FK cross → places.places.id [D1]
+    flow_rate_lph     DECIMAL(18,3) NOT NULL CONSTRAINT CK_read_flow CHECK (flow_rate_lph >= 0),
+    cumulative_liters DECIMAL(18,3) NOT NULL CONSTRAINT CK_read_cumul CHECK (cumulative_liters >= 0),
+    recorded_at       DATETIME2     NOT NULL,
+    received_at       DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    -- Permissions the member will receive upon acceptance
-    permissions    NVARCHAR(500)    NOT NULL,
-    -- Valid values: VIEW_CONSUMPTION, VIEW_DEVICE_STATUS, CONTROL_VALVE, VIEW_ALERTS, VIEW_BILLS
-
-    status         NVARCHAR(10)     NOT NULL DEFAULT 'PENDING'
-                   CONSTRAINT CK_invitations_status CHECK (status IN ('PENDING', 'ACCEPTED', 'EXPIRED', 'REJECTED')),
-    expires_at     DATETIMEOFFSET   NOT NULL,
-    responded_at   DATETIMEOFFSET   NULL,
-
-    created_at     DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at     DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at     DATETIMEOFFSET   NULL
+    CONSTRAINT UQ_reading_dev_time UNIQUE (device_id, recorded_at)
 );
 
-CREATE INDEX IX_invitations_place_id ON place.invitations (place_id) WHERE deleted_at IS NULL;
-CREATE INDEX IX_invitations_email    ON place.invitations (invited_email) WHERE status = 'PENDING';
+CREATE INDEX IX_reading_place_time ON monitoring.readings (place_id, recorded_at);
+```
+
+**Performance:** Highest write-volume table. Partition by `recorded_at` when exceeding ~50M rows.
+
+### Table: monitoring.consumption_hourly
+
+```sql
+CREATE TABLE monitoring.consumption_hourly (
+    id            BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    place_id      BIGINT        NOT NULL, -- FK cross → places.places.id
+    hour_start    DATETIME2     NOT NULL,
+    total_liters  DECIMAL(18,3) NOT NULL CONSTRAINT CK_hourly_vol CHECK (total_liters >= 0),
+    reading_count INT           NOT NULL CONSTRAINT CK_hourly_cnt CHECK (reading_count >= 0),
+    created_at    DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_hourly_place_hour UNIQUE (place_id, hour_start)
+);
+```
+
+### Table: monitoring.consumption_daily
+
+```sql
+CREATE TABLE monitoring.consumption_daily (
+    id            BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    place_id      BIGINT        NOT NULL, -- FK cross → places.places.id
+    date          DATE          NOT NULL,
+    total_liters  DECIMAL(18,3) NOT NULL CONSTRAINT CK_daily_vol CHECK (total_liters >= 0),
+    avg_hourly    DECIMAL(18,3) NULL,
+    peak_hour     TINYINT       NULL CONSTRAINT CK_daily_peak CHECK (peak_hour BETWEEN 0 AND 23),
+    reading_count INT           NOT NULL CONSTRAINT CK_daily_cnt CHECK (reading_count >= 0),
+    created_at    DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_daily_place_date UNIQUE (place_id, date)
+);
+```
+
+### Table: monitoring.consumption_monthly
+
+```sql
+CREATE TABLE monitoring.consumption_monthly (
+    id             BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    place_id       BIGINT        NOT NULL, -- FK cross → places.places.id
+    month_start    DATE          NOT NULL CONSTRAINT CK_monthly_day CHECK (DAY(month_start) = 1),
+    total_liters   DECIMAL(18,3) NOT NULL CONSTRAINT CK_monthly_vol CHECK (total_liters >= 0),
+    avg_daily      DECIMAL(18,3) NULL,
+    peak_day       DATE          NULL,
+    reading_count  INT           NOT NULL CONSTRAINT CK_monthly_cnt CHECK (reading_count >= 0),
+    days_with_data INT           NOT NULL,
+    created_at     DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_monthly_place_month UNIQUE (place_id, month_start)
+);
 ```
 
 ---
 
-## Schema: device (device-service) — BC-03 Device Management
+## Schema: goals — BC-05 Consumption Goals (Supporting) *(Entrega 2)*
 
-**Owner:** device-service
-**Bounded Context:** BC-03 Device Management (Supporting)
+**Owner:** consumption-service (.NET 8)
 
-### Table: device.devices
-
-**Purpose:** Registered IoT units (ESP32 + sensor + electrovalve).
+### Table: goals.consumption_goals
 
 ```sql
-CREATE TABLE device.devices (
-    id                    UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+CREATE TABLE goals.consumption_goals (
+    id            BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    place_id      BIGINT        NOT NULL, -- FK cross → places.places.id
+    month_start   DATE          NOT NULL CONSTRAINT CK_goal_day CHECK (DAY(month_start) = 1),
+    target_liters DECIMAL(18,3) NOT NULL CONSTRAINT CK_goal_target CHECK (target_liters > 0),
+    source        NVARCHAR(15)  NOT NULL
+                  CONSTRAINT CK_goal_source CHECK (source IN ('MANUAL', 'SUGGESTED', 'CARRIED_OVER')),
+    created_at    DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at    DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    hardware_id           NVARCHAR(100)    NOT NULL,   -- physical serial number / QR code
-    linked_place_id       UNIQUEIDENTIFIER NULL,       -- references place.places via app-level
-    linked_by             UNIQUEIDENTIFIER NULL,       -- user who linked it
-
-    -- Status
-    status                NVARCHAR(20)     NOT NULL DEFAULT 'NEVER_REPORTED'
-                          CONSTRAINT CK_devices_status CHECK (status IN ('CONNECTED', 'DISCONNECTED', 'NEVER_REPORTED')),
-    last_report_at        DATETIMEOFFSET   NULL,
-    disconnect_threshold  INT              NOT NULL DEFAULT 15,  -- minutes
-
-    -- Link timestamps
-    linked_at             DATETIMEOFFSET   NULL,
-    unlinked_at           DATETIMEOFFSET   NULL,
-
-    -- Audit
-    created_at            DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at            DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at            DATETIMEOFFSET   NULL,
-
-    CONSTRAINT UQ_devices_hardware_id UNIQUE (hardware_id)
+    CONSTRAINT UQ_goal_place_month UNIQUE (place_id, month_start)
 );
+```
 
-CREATE INDEX IX_devices_linked_place ON device.devices (linked_place_id) WHERE linked_place_id IS NOT NULL;
-CREATE INDEX IX_devices_status       ON device.devices (status) WHERE deleted_at IS NULL;
+### Table: goals.goal_suggestions
+
+```sql
+CREATE TABLE goals.goal_suggestions (
+    id               BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    place_id         BIGINT        NOT NULL, -- FK cross → places.places.id
+    month_start      DATE          NOT NULL CONSTRAINT CK_suggest_day CHECK (DAY(month_start) = 1),
+    suggested_liters DECIMAL(18,3) NOT NULL CONSTRAINT CK_suggest_val CHECK (suggested_liters > 0),
+    based_on_months  INT           NOT NULL CONSTRAINT CK_suggest_months CHECK (based_on_months >= 1),
+    accepted         BIT           NULL,
+    created_at       DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_suggestion_place_month UNIQUE (place_id, month_start)
+);
 ```
 
 ---
 
-### Table: device.readings
+## Schema: billing — BC-06 Billing & Tariffs (Supporting) *(Entrega 3)*
 
-**Purpose:** Raw flow sensor measurements received via MQTT.
+**Owner:** consumption-service (.NET 8)
+
+### Table: billing.water_bills
 
 ```sql
-CREATE TABLE device.readings (
-    id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    device_id   UNIQUEIDENTIFIER NOT NULL REFERENCES device.devices(id),
-    place_id    UNIQUEIDENTIFIER NOT NULL,   -- denormalized from device link at ingestion time
+CREATE TABLE billing.water_bills (
+    id                 BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    place_id           BIGINT        NOT NULL, -- FK cross → places.places.id
+    billed_consumption DECIMAL(18,3) NOT NULL CONSTRAINT CK_bill_vol CHECK (billed_consumption >= 0),
+    billed_unit        NVARCHAR(20)  NOT NULL,
+    total_amount       DECIMAL(18,2) NOT NULL CONSTRAINT CK_bill_amt CHECK (total_amount >= 0),
+    currency           NVARCHAR(3)   NOT NULL,
+    period_start       DATE          NOT NULL,
+    period_end         DATE          NOT NULL,
+    due_date           DATE          NULL,
+    paid               BIT           NOT NULL DEFAULT 0,
+    paid_at            DATETIME2     NULL,
+    created_at         DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at         DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    -- Measurement
-    flow_rate   DECIMAL(10, 4)   NOT NULL,   -- liters per minute
-    volume      DECIMAL(10, 4)   NOT NULL,   -- liters in this interval
-    timestamp   DATETIMEOFFSET   NOT NULL,   -- device clock
-    received_at DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),  -- server clock
-
-    -- Audit (no updated_at — readings are immutable)
-    created_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at  DATETIMEOFFSET   NULL,
-
-    -- Deduplication
-    CONSTRAINT UQ_readings_device_timestamp UNIQUE (device_id, timestamp)
+    CONSTRAINT CK_bill_period CHECK (period_start < period_end)
 );
 
-CREATE INDEX IX_readings_place_timestamp ON device.readings (place_id, timestamp DESC);
-CREATE INDEX IX_readings_device_id       ON device.readings (device_id, timestamp DESC);
-
--- Constraint: flow_rate and volume must be non-negative
-ALTER TABLE device.readings ADD CONSTRAINT CK_readings_flow_rate CHECK (flow_rate >= 0);
-ALTER TABLE device.readings ADD CONSTRAINT CK_readings_volume    CHECK (volume >= 0);
+CREATE INDEX IX_bill_place_period ON billing.water_bills (place_id, period_start);
+CREATE INDEX IX_bill_place_due    ON billing.water_bills (place_id, due_date);
 ```
 
-**Performance note:** This table will have the highest write volume. If it grows beyond SQL Server's comfort zone, consider partitioning by month on `timestamp` or extracting to a time-series database.
-
----
-
-## Schema: consumption (consumption-service) — BC-04, BC-05, BC-06, BC-10
-
-**Owner:** consumption-service
-**Bounded Contexts:** BC-04 Consumption Monitoring (Core), BC-05 Consumption Goals (Supporting), BC-06 Billing & Tariffs (Supporting), BC-10 Reports & Export (Generic)
-
-### Table: consumption.consumption_records — BC-04 Consumption Monitoring
-
-**Purpose:** Aggregated consumption data by place and time interval.
+### Table: billing.tariffs
 
 ```sql
-CREATE TABLE consumption.consumption_records (
-    id            UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id      UNIQUEIDENTIFIER NOT NULL,   -- references place.places via app-level
+CREATE TABLE billing.tariffs (
+    id                   BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    place_id             BIGINT        NOT NULL, -- FK cross → places.places.id
+    price_per_unit       DECIMAL(18,2) NOT NULL CONSTRAINT CK_tariff_price CHECK (price_per_unit > 0),
+    unit                 NVARCHAR(20)  NOT NULL,
+    fixed_monthly_charge DECIMAL(18,2) NOT NULL DEFAULT 0
+                         CONSTRAINT CK_tariff_fixed CHECK (fixed_monthly_charge >= 0),
+    currency             NVARCHAR(3)   NOT NULL,
+    source               NVARCHAR(10)  NOT NULL DEFAULT 'MANUAL'
+                         CONSTRAINT CK_tariff_source CHECK (source IN ('MANUAL', 'CATALOG')),
+    catalog_tariff_id    BIGINT        NULL, -- FK → billing.tariff_catalog.id
+    effective_from       DATE          NOT NULL,
+    effective_to         DATE          NULL,
+    created_at           DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    -- Time window
-    period_type   NVARCHAR(10)     NOT NULL
-                  CONSTRAINT CK_consumption_period CHECK (period_type IN ('HOUR', 'DAY', 'WEEK', 'MONTH')),
-    period_start  DATETIMEOFFSET   NOT NULL,
-    period_end    DATETIMEOFFSET   NOT NULL,
-
-    -- Aggregated data
-    total_volume  DECIMAL(12, 4)   NOT NULL DEFAULT 0,   -- liters
-    reading_count INT              NOT NULL DEFAULT 0,
-
-    -- Audit
-    created_at    DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at    DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at    DATETIMEOFFSET   NULL
+    CONSTRAINT CK_tariff_period CHECK (effective_to IS NULL OR effective_from < effective_to)
 );
 
-CREATE UNIQUE INDEX UX_consumption_place_period ON consumption.consumption_records
-    (place_id, period_type, period_start) WHERE deleted_at IS NULL;
-CREATE INDEX IX_consumption_place_id ON consumption.consumption_records
-    (place_id, period_start DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IX_tariff_place_from ON billing.tariffs (place_id, effective_from);
 ```
 
----
-
-### Table: consumption.goals — BC-05 Consumption Goals *(Entrega 2)*
-
-**Purpose:** Monthly water consumption targets per place.
+### Table: billing.tariff_catalog *(Entrega 4 — Could)*
 
 ```sql
-CREATE TABLE consumption.goals (
-    id             UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id       UNIQUEIDENTIFIER NOT NULL,
-    set_by         UNIQUEIDENTIFIER NOT NULL,   -- user who set the goal
+CREATE TABLE billing.tariff_catalog (
+    id              BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    country_code    NVARCHAR(2)   NOT NULL,
+    region          NVARCHAR(200) NOT NULL,
+    category        NVARCHAR(100) NULL,
+    tier_name       NVARCHAR(100) NULL,
+    min_consumption DECIMAL(18,3) NULL CONSTRAINT CK_cat_min CHECK (min_consumption >= 0),
+    max_consumption DECIMAL(18,3) NULL,
+    price_per_unit  DECIMAL(18,2) NOT NULL CONSTRAINT CK_cat_price CHECK (price_per_unit > 0),
+    fixed_charge    DECIMAL(18,2) NOT NULL DEFAULT 0 CONSTRAINT CK_cat_fixed CHECK (fixed_charge >= 0),
+    currency        NVARCHAR(3)   NOT NULL,
+    unit            NVARCHAR(20)  NOT NULL,
+    last_updated    DATE          NOT NULL,
+    source_url      NVARCHAR(500) NULL,
+    created_at      DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    month          NVARCHAR(7)      NOT NULL,   -- format: '2026-09'
-    target_volume  DECIMAL(12, 4)   NOT NULL,   -- in the place's measurement unit
-    unit           NVARCHAR(15)     NOT NULL,
-    source         NVARCHAR(10)     NOT NULL DEFAULT 'MANUAL'
-                   CONSTRAINT CK_goals_source CHECK (source IN ('MANUAL', 'SUGGESTED')),
-
-    created_at     DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at     DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at     DATETIMEOFFSET   NULL
+    CONSTRAINT CK_cat_range CHECK (max_consumption IS NULL OR max_consumption > min_consumption),
+    INDEX IX_catalog_location (country_code, region, category)
 );
-
-CREATE UNIQUE INDEX UX_goals_place_month ON consumption.goals (place_id, month) WHERE deleted_at IS NULL;
 ```
 
 ---
 
-### Table: consumption.bills — BC-06 Billing & Tariffs *(Entrega 3)*
+## Schema: valve — BC-07 Valve Control (Core) *(Entrega 2)*
 
-**Purpose:** Utility bills registered by the user for comparison against sensor data.
+**Owner:** valve-service (.NET 8)
+
+### Table: valve.valve_states
 
 ```sql
-CREATE TABLE consumption.bills (
-    id                UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id          UNIQUEIDENTIFIER NOT NULL,
-    registered_by     UNIQUEIDENTIFIER NOT NULL,
+CREATE TABLE valve.valve_states (
+    id                BIGINT      IDENTITY(1,1) PRIMARY KEY,
+    device_id         BIGINT      NOT NULL, -- FK cross → devices.devices.id
+    place_id          BIGINT      NOT NULL, -- FK cross → places.places.id
+    state             NVARCHAR(10) NOT NULL DEFAULT 'UNKNOWN'
+                      CONSTRAINT CK_vstate CHECK (state IN ('OPEN', 'CLOSED', 'UNKNOWN')),
+    last_confirmed_at DATETIME2   NULL,
+    updated_at        DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    -- Bill data
-    billed_volume     DECIMAL(12, 4)   NOT NULL,   -- consumption billed by utility
-    total_amount      DECIMAL(12, 2)   NOT NULL,   -- total bill amount
-    currency          NVARCHAR(3)      NOT NULL,
-    period_start      DATE             NOT NULL,
-    period_end        DATE             NOT NULL,
-    payment_due_date  DATE             NOT NULL,
-    is_paid           BIT              NOT NULL DEFAULT 0,
+    CONSTRAINT UQ_vstate_device UNIQUE (device_id),
+    CONSTRAINT UQ_vstate_place  UNIQUE (place_id)
+);
+```
 
-    created_at        DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at        DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at        DATETIMEOFFSET   NULL,
+### Table: valve.valve_commands
 
-    CONSTRAINT CK_bills_period CHECK (period_start < period_end)
+```sql
+CREATE TABLE valve.valve_commands (
+    id                BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    device_id         BIGINT        NOT NULL, -- FK cross → devices.devices.id
+    place_id          BIGINT        NOT NULL, -- FK cross → places.places.id [D2]
+    commanded_by      BIGINT        NULL,     -- FK cross → security.users.id (NULL = auto)
+    command           NVARCHAR(10)  NOT NULL
+                      CONSTRAINT CK_vcmd_cmd CHECK (command IN ('OPEN', 'CLOSE')),
+    origin            NVARCHAR(15)  NOT NULL
+                      CONSTRAINT CK_vcmd_origin CHECK (origin IN ('MANUAL', 'AUTO_LEAK', 'AUTO_GOAL')),
+    status            NVARCHAR(25)  NOT NULL DEFAULT 'PENDING_CONFIRMATION'
+                      CONSTRAINT CK_vcmd_status CHECK (status IN (
+                          'PENDING_CONFIRMATION', 'CONFIRMED', 'SENT', 'ACK_SUCCESS', 'ACK_TIMEOUT', 'FAILED'
+                      )),
+    confirmation_code NVARCHAR(10)  NULL,
+    confirmed_at      DATETIME2     NULL,
+    sent_at           DATETIME2     NULL,
+    device_ack_at     DATETIME2     NULL,
+    timeout_at        DATETIME2     NULL,
+    failure_reason    NVARCHAR(500) NULL,
+    created_at        DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
-CREATE INDEX IX_bills_place_id ON consumption.bills (place_id, period_start DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IX_vcmd_place_time ON valve.valve_commands (place_id, created_at);
+```
+
+**Command lifecycle:** `PENDING_CONFIRMATION → CONFIRMED → SENT → ACK_SUCCESS | ACK_TIMEOUT`. Reopening is always `MANUAL`. 30s without device ACK → `ACK_TIMEOUT`.
+
+### Table: valve.valve_rules *(Entrega 3)*
+
+```sql
+CREATE TABLE valve.valve_rules (
+    id                       BIGINT      IDENTITY(1,1) PRIMARY KEY,
+    place_id                 BIGINT      NOT NULL, -- FK cross → places.places.id
+    rule_type                NVARCHAR(20) NOT NULL
+                             CONSTRAINT CK_vrule_type CHECK (rule_type IN ('LEAK_DETECTION', 'GOAL_EXCEEDED')),
+    enabled                  BIT         NOT NULL DEFAULT 0,
+    requires_confirmation    BIT         NOT NULL DEFAULT 1,
+    confirmation_timeout_min INT         NOT NULL DEFAULT 10
+                             CONSTRAINT CK_vrule_timeout CHECK (confirmation_timeout_min > 0),
+    created_by               BIGINT      NOT NULL, -- FK cross → security.users.id
+    created_at               DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at               DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_vrule_place_type UNIQUE (place_id, rule_type)
+);
 ```
 
 ---
 
-### Table: consumption.tariffs — BC-06 Billing & Tariffs *(Entrega 3)*
+## Schema: alerts — BC-08 Alerts & Detection (Core) *(Entrega 2)*
 
-**Purpose:** Price per unit of water, used to estimate monetary cost of consumption.
+**Owner:** notification-service (.NET 8)
+
+### Table: alerts.alert_type_config
 
 ```sql
-CREATE TABLE consumption.tariffs (
-    id              UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id        UNIQUEIDENTIFIER NOT NULL,
+CREATE TABLE alerts.alert_type_config (
+    id              BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    alert_type      NVARCHAR(30)  NOT NULL
+                    CONSTRAINT CK_atc_type CHECK (alert_type IN (
+                        'SUSPECTED_LEAK', 'GOAL_80_PERCENT', 'GOAL_EXCEEDED',
+                        'SENSOR_DISCONNECTED', 'VALVE_CLOSED',
+                        'BILL_MISALIGNED', 'BILL_REGISTER_REMINDER', 'BILL_PAYMENT_REMINDER'
+                    )),
+    severity        NVARCHAR(15)  NOT NULL
+                    CONSTRAINT CK_atc_sev CHECK (severity IN ('CRITICAL', 'IMPORTANT', 'INFORMATIVE')),
+    description     NVARCHAR(500) NOT NULL,
+    default_enabled BIT           NOT NULL DEFAULT 1,
+    max_per_period  INT           NULL,
+    period_unit     NVARCHAR(10)  NULL,
 
-    price_per_unit  DECIMAL(10, 4)   NOT NULL,   -- price per measurement unit
-    unit            NVARCHAR(15)     NOT NULL,
-    currency        NVARCHAR(3)      NOT NULL,
-    fixed_charge    DECIMAL(10, 2)   NOT NULL DEFAULT 0,   -- optional monthly fixed charge
-    effective_from  DATE             NOT NULL,
-    effective_until DATE             NULL,       -- NULL = current tariff
+    CONSTRAINT UQ_atc_type UNIQUE (alert_type)
+);
+```
 
-    created_at      DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at      DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at      DATETIMEOFFSET   NULL
+**Seed data:**
+
+| alert_type | severity | max_per_period | period_unit |
+|-----------|----------|---------------|-------------|
+| SUSPECTED_LEAK | CRITICAL | 1 | HOUR |
+| VALVE_CLOSED | CRITICAL | — | — |
+| GOAL_EXCEEDED | IMPORTANT | 1 | MONTH |
+| SENSOR_DISCONNECTED | IMPORTANT | 1 | (until reconnect) |
+| GOAL_80_PERCENT | INFORMATIVE | 1 | MONTH |
+
+### Table: alerts.alert_events
+
+```sql
+CREATE TABLE alerts.alert_events (
+    id           BIGINT         IDENTITY(1,1) PRIMARY KEY,
+    place_id     BIGINT         NOT NULL, -- FK cross → places.places.id
+    alert_type   NVARCHAR(30)   NOT NULL,
+    severity     NVARCHAR(15)   NOT NULL, -- [D3] snapshot at creation time
+    title        NVARCHAR(200)  NOT NULL,
+    message      NVARCHAR(2000) NOT NULL,
+    metadata     NVARCHAR(4000) NULL,
+    triggered_at DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(),
+    read_at      DATETIME2      NULL,
+    deleted_at   DATETIME2      NULL,
+
+    CONSTRAINT CK_alertev_json CHECK (metadata IS NULL OR ISJSON(metadata) = 1)
 );
 
-CREATE INDEX IX_tariffs_place_id ON consumption.tariffs (place_id, effective_from DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IX_alert_place_time ON alerts.alert_events (place_id, triggered_at);
+CREATE INDEX IX_alert_dedup      ON alerts.alert_events (place_id, alert_type, triggered_at);
+```
+
+### Table: alerts.notification_preferences
+
+```sql
+CREATE TABLE alerts.notification_preferences (
+    id             BIGINT      IDENTITY(1,1) PRIMARY KEY,
+    user_id        BIGINT      NOT NULL, -- FK cross → security.users.id
+    alert_severity NVARCHAR(15) NOT NULL
+                   CONSTRAINT CK_notpref_sev CHECK (alert_severity IN ('CRITICAL', 'IMPORTANT', 'INFORMATIVE')),
+    channel_app    BIT         NOT NULL DEFAULT 1,
+    channel_push   BIT         NOT NULL DEFAULT 1,
+    channel_email  BIT         NOT NULL DEFAULT 0,
+    channel_sms    BIT         NOT NULL DEFAULT 0,
+    updated_at     DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_notpref_user_sev UNIQUE (user_id, alert_severity),
+    CONSTRAINT CK_notpref_critical CHECK (alert_severity <> 'CRITICAL' OR channel_app = 1)
+);
 ```
 
 ---
 
-## Schema: valve (valve-service) — BC-07 Valve Control *(Entrega 2)*
+## Schema: notifications — BC-09 Notification Delivery (Generic) *(Entrega 2)*
 
-**Owner:** valve-service
-**Bounded Context:** BC-07 Valve Control (Core)
+**Owner:** notification-service (.NET 8)
 
-### Table: valve.valves
-
-**Purpose:** Logical representation of the electrovalve at each place.
+### Table: notifications.notification_log
 
 ```sql
-CREATE TABLE valve.valves (
-    id                    UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id              UNIQUEIDENTIFIER NOT NULL,
-    device_id             UNIQUEIDENTIFIER NOT NULL,
+CREATE TABLE notifications.notification_log (
+    id             BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    alert_event_id BIGINT        NOT NULL, -- FK cross → alerts.alert_events.id
+    user_id        BIGINT        NOT NULL, -- FK cross → security.users.id
+    channel        NVARCHAR(10)  NOT NULL
+                   CONSTRAINT CK_nlog_channel CHECK (channel IN ('APP', 'PUSH', 'EMAIL', 'SMS', 'WHATSAPP')),
+    status         NVARCHAR(15)  NOT NULL DEFAULT 'PENDING'
+                   CONSTRAINT CK_nlog_status CHECK (status IN ('PENDING', 'SENT', 'DELIVERED', 'FAILED')),
+    provider_ref   NVARCHAR(200) NULL,
+    sent_at        DATETIME2     NULL,
+    delivered_at   DATETIME2     NULL,
+    failed_at      DATETIME2     NULL,
+    error_message  NVARCHAR(1000) NULL,
+    created_at     DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    state                 NVARCHAR(20)     NOT NULL DEFAULT 'OPEN'
-                          CONSTRAINT CK_valves_state CHECK (state IN ('OPEN', 'CLOSED', 'NO_COMMUNICATION')),
-    last_confirmed_at     DATETIMEOFFSET   NULL,
-    auto_shutoff_enabled  BIT              NOT NULL DEFAULT 0,
-
-    created_at            DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at            DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at            DATETIMEOFFSET   NULL
+    CONSTRAINT UQ_nlog_event_user_channel UNIQUE (alert_event_id, user_id, channel)
 );
 
-CREATE UNIQUE INDEX UX_valves_place ON valve.valves (place_id) WHERE deleted_at IS NULL;
+CREATE INDEX IX_nlog_user_time ON notifications.notification_log (user_id, created_at);
+```
+
+### Table: notifications.push_subscriptions
+
+```sql
+CREATE TABLE notifications.push_subscriptions (
+    id           BIGINT        IDENTITY(1,1) PRIMARY KEY,
+    user_id      BIGINT        NOT NULL, -- FK cross → security.users.id
+    device_token NVARCHAR(500) NOT NULL,
+    platform     NVARCHAR(10)  NOT NULL,
+    active       BIT           NOT NULL DEFAULT 1,
+    created_at   DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at   DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT UQ_push_user_token UNIQUE (user_id, device_token)
+);
 ```
 
 ---
 
-### Table: valve.valve_actions
+## Schema: content — BC-11 Savings Tips (Generic) *(Entrega 4)*
 
-**Purpose:** Audit log of every open/close action on a valve.
+**Owner:** notification-service (.NET 8)
+
+### Table: content.savings_tips
 
 ```sql
-CREATE TABLE valve.valve_actions (
-    id            UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    valve_id      UNIQUEIDENTIFIER NOT NULL REFERENCES valve.valves(id),
-    user_id       UNIQUEIDENTIFIER NOT NULL,
-
-    action        NVARCHAR(10)     NOT NULL
-                  CONSTRAINT CK_vactions_action CHECK (action IN ('OPEN', 'CLOSE')),
-    origin        NVARCHAR(15)     NOT NULL
-                  CONSTRAINT CK_vactions_origin CHECK (origin IN ('MANUAL', 'AUTO_LEAK', 'AUTO_GOAL')),
-    result        NVARCHAR(10)     NOT NULL
-                  CONSTRAINT CK_vactions_result CHECK (result IN ('SUCCESS', 'FAILED', 'TIMEOUT')),
-    requested_at  DATETIMEOFFSET   NOT NULL,
-    confirmed_at  DATETIMEOFFSET   NULL,
-
-    created_at    DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at    DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at    DATETIMEOFFSET   NULL
+CREATE TABLE content.savings_tips (
+    id         BIGINT         IDENTITY(1,1) PRIMARY KEY,
+    category   NVARCHAR(15)   NOT NULL
+               CONSTRAINT CK_tip_cat CHECK (category IN ('RESIDENTIAL', 'COMMERCIAL', 'GENERAL')),
+    title      NVARCHAR(200)  NOT NULL,
+    body       NVARCHAR(2000) NOT NULL,
+    sort_order INT            NOT NULL DEFAULT 0,
+    active     BIT            NOT NULL DEFAULT 1,
+    created_at DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME()
 );
-
-CREATE INDEX IX_vactions_valve_id ON valve.valve_actions (valve_id, requested_at DESC);
 ```
 
----
-
-### Table: valve.shutoff_rules *(Entrega 3)*
-
-**Purpose:** Auto-shutoff rule configuration per valve.
+### Table: content.tip_favorites
 
 ```sql
-CREATE TABLE valve.shutoff_rules (
-    id            UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    valve_id      UNIQUEIDENTIFIER NOT NULL REFERENCES valve.valves(id),
+CREATE TABLE content.tip_favorites (
+    id         BIGINT    IDENTITY(1,1) PRIMARY KEY,
+    user_id    BIGINT    NOT NULL, -- FK cross → security.users.id
+    tip_id     BIGINT    NOT NULL REFERENCES content.savings_tips(id),
+    created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    trigger_type  NVARCHAR(10)     NOT NULL
-                  CONSTRAINT CK_srules_trigger CHECK (trigger_type IN ('LEAK', 'GOAL')),
-    is_enabled    BIT              NOT NULL DEFAULT 0,
-
-    created_at    DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at    DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at    DATETIMEOFFSET   NULL
+    CONSTRAINT UQ_fav_user_tip UNIQUE (user_id, tip_id)
 );
-
-CREATE UNIQUE INDEX UX_srules_valve_trigger ON valve.shutoff_rules (valve_id, trigger_type) WHERE deleted_at IS NULL;
-```
-
----
-
-## Schema: notification (notification-service) — BC-08, BC-09, BC-11 *(Entrega 2)*
-
-**Owner:** notification-service
-**Bounded Contexts:** BC-08 Alerts & Detection (Core), BC-09 Notification Delivery (Generic), BC-11 Savings Tips (Generic)
-
-### Table: notification.alerts — BC-08 Alerts & Detection
-
-**Purpose:** System-generated alerts triggered by domain events.
-
-```sql
-CREATE TABLE notification.alerts (
-    id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    place_id    UNIQUEIDENTIFIER NOT NULL,
-    user_id     UNIQUEIDENTIFIER NOT NULL,   -- alert recipient
-
-    type        NVARCHAR(30)     NOT NULL
-                CONSTRAINT CK_alerts_type CHECK (type IN (
-                    'LEAK_SUSPECTED', 'VALVE_CLOSED', 'GOAL_EXCEEDED', 'GOAL_WARNING',
-                    'SENSOR_DISCONNECTED', 'BILL_MISMATCH', 'BILL_REMINDER', 'PAYMENT_REMINDER'
-                )),
-    urgency     NVARCHAR(15)     NOT NULL
-                CONSTRAINT CK_alerts_urgency CHECK (urgency IN ('CRITICAL', 'IMPORTANT', 'INFORMATIVE')),
-    title       NVARCHAR(200)    NOT NULL,
-    body        NVARCHAR(2000)   NOT NULL,
-    is_read     BIT              NOT NULL DEFAULT 0,
-    channels    NVARCHAR(200)    NOT NULL,   -- comma-separated: 'IN_APP,PUSH,EMAIL,SMS'
-
-    created_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at  DATETIMEOFFSET   NULL
-);
-
-CREATE INDEX IX_alerts_user_id   ON notification.alerts (user_id, created_at DESC) WHERE deleted_at IS NULL;
-CREATE INDEX IX_alerts_place_id  ON notification.alerts (place_id, created_at DESC) WHERE deleted_at IS NULL;
-CREATE INDEX IX_alerts_unread    ON notification.alerts (user_id) WHERE is_read = 0 AND deleted_at IS NULL;
-```
-
----
-
-### Table: notification.notification_preferences — BC-09 Notification Delivery
-
-**Purpose:** User's channel preferences per urgency level.
-
-```sql
-CREATE TABLE notification.notification_preferences (
-    id              UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    user_id         UNIQUEIDENTIFIER NOT NULL,
-
-    urgency_level   NVARCHAR(15)     NOT NULL
-                    CONSTRAINT CK_nprefs_urgency CHECK (urgency_level IN ('CRITICAL', 'IMPORTANT', 'INFORMATIVE')),
-    in_app_enabled  BIT              NOT NULL DEFAULT 1,
-    push_enabled    BIT              NOT NULL DEFAULT 1,
-    email_enabled   BIT              NOT NULL DEFAULT 0,
-    sms_enabled     BIT              NOT NULL DEFAULT 0,
-
-    created_at      DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at      DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at      DATETIMEOFFSET   NULL
-);
-
-CREATE UNIQUE INDEX UX_nprefs_user_urgency ON notification.notification_preferences
-    (user_id, urgency_level) WHERE deleted_at IS NULL;
-```
-
----
-
-### Table: notification.recommendations — BC-11 Savings Tips *(Entrega 4)*
-
-**Purpose:** Generic water-saving tips and recommendations created by Admins. Displayed to all users.
-
-```sql
-CREATE TABLE notification.recommendations (
-    id          UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    created_by  UNIQUEIDENTIFIER NOT NULL,   -- references iam.users via app-level (Admin)
-
-    title       NVARCHAR(200)    NOT NULL,
-    body        NVARCHAR(2000)   NOT NULL,
-    category    NVARCHAR(20)     NOT NULL
-                CONSTRAINT CK_recommendations_category CHECK (category IN ('SAVING_TIP', 'MAINTENANCE', 'SEASONAL', 'GENERAL')),
-    is_active   BIT              NOT NULL DEFAULT 1,
-
-    created_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    updated_at  DATETIMEOFFSET   NOT NULL DEFAULT SYSDATETIMEOFFSET(),
-    deleted_at  DATETIMEOFFSET   NULL
-);
-
-CREATE INDEX IX_recommendations_active   ON notification.recommendations (is_active) WHERE deleted_at IS NULL;
-CREATE INDEX IX_recommendations_category ON notification.recommendations (category) WHERE is_active = 1 AND deleted_at IS NULL;
 ```
 
 ---
 
 ## Data ownership matrix
 
-| Entity / Data | Owner schema | Owner BC | How other services access |
-|---------------|-------------|---------|--------------------------|
-| User identity | `iam` | BC-01 IAM | REST API (`GET /users/:id`) or JWT claims |
-| Place info | `place` | BC-02 Place Mgmt | REST API (`GET /places/:id`) |
-| Members & invitations | `place` | BC-02 Place Mgmt | REST API (`GET /places/:id/members`) |
-| Device registry | `device` | BC-03 Device Mgmt | REST API + `DeviceLinked` / `DeviceUnlinked` events |
-| Raw readings | `device` | BC-03 Device Mgmt | `ReadingReceived` events via RabbitMQ |
-| Aggregated consumption | `consumption` | BC-04 Monitoring | REST API (`GET /consumption/:placeId`) |
-| Goals | `consumption` | BC-05 Goals | REST API |
-| Bills & tariffs | `consumption` | BC-06 Billing | REST API |
-| Reports | `consumption` | BC-10 Reports | REST API (read-only projections) |
-| Valve state | `valve` | BC-07 Valve Control | REST API + `ValveClosed` / `ValveOpened` events |
-| Valve action log | `valve` | BC-07 Valve Control | REST API |
-| Alerts | `notification` | BC-08 Alerts | REST API (`GET /alerts`) |
-| Notification preferences | `notification` | BC-09 Delivery | REST API |
-| Recommendations | `notification` | BC-11 Tips | REST API (`GET /recommendations`) |
+| Entity / Data | Owner schema | Owner BC | Service | How other services access |
+|---------------|-------------|---------|---------|--------------------------|
+| User identity | `security` | BC-01 IAM | auth-service | REST API + JWT claims |
+| User credentials | `security` | BC-01 IAM | auth-service | Internal only |
+| Place info | `places` | BC-02 Place Mgmt | place-service | REST API |
+| Members & invitations | `places` | BC-02 Place Mgmt | place-service | REST API |
+| Device registry | `devices` | BC-03 Device Mgmt | device-service | REST API + events |
+| Device link history | `devices` | BC-03 Device Mgmt | device-service | REST API |
+| Raw readings | `monitoring` | BC-04 Monitoring | consumption-service | `ReadingReceived` events |
+| Consumption aggregates | `monitoring` | BC-04 Monitoring | consumption-service | REST API |
+| Goals & suggestions | `goals` | BC-05 Goals | consumption-service | REST API |
+| Bills & tariffs | `billing` | BC-06 Billing | consumption-service | REST API |
+| Tariff catalog | `billing` | BC-06 Billing | consumption-service | REST API (read-only) |
+| Valve state | `valve` | BC-07 Valve Control | valve-service | REST API + events |
+| Valve commands | `valve` | BC-07 Valve Control | valve-service | REST API |
+| Valve rules | `valve` | BC-07 Valve Control | valve-service | REST API |
+| Alert type config | `alerts` | BC-08 Alerts | notification-service | Internal (seed data) |
+| Alert events | `alerts` | BC-08 Alerts | notification-service | REST API |
+| Notification preferences | `alerts` | BC-08 Alerts | notification-service | REST API |
+| Notification log | `notifications` | BC-09 Delivery | notification-service | REST API |
+| Push subscriptions | `notifications` | BC-09 Delivery | notification-service | Internal |
+| Savings tips | `content` | BC-11 Tips | notification-service | REST API |
+| Tip favorites | `content` | BC-11 Tips | notification-service | REST API |
 
 ---
 
-## Migration strategy
+## Cross-schema FK summary
 
-**Tool:** TBD — Flyway (Spring Boot services), EF Core Migrations (.NET services), or a unified tool.
+All cross-schema foreign keys are real constraints enforced by SQL Server.
 
-**File naming convention:**
+### → security.users
 
-```
-V{version}__{snake_case_description}.sql
+| Source table | Column |
+|-------------|--------|
+| places.places | owner_id |
+| places.place_members | user_id |
+| places.invitations | invited_by |
+| devices.device_link_history | linked_by, unlinked_by |
+| valve.valve_commands | commanded_by |
+| valve.valve_rules | created_by |
+| alerts.notification_preferences | user_id |
+| notifications.notification_log | user_id |
+| notifications.push_subscriptions | user_id |
+| content.tip_favorites | user_id |
 
-Examples:
-  V001__create_iam_schema.sql
-  V002__create_users_table.sql
-  V003__create_verification_tokens_table.sql
-```
+### → places.places
 
-**Migration rules:**
+| Source table | Column |
+|-------------|--------|
+| devices.devices | place_id |
+| devices.device_link_history | place_id |
+| monitoring.readings | place_id |
+| monitoring.consumption_hourly | place_id |
+| monitoring.consumption_daily | place_id |
+| monitoring.consumption_monthly | place_id |
+| goals.consumption_goals | place_id |
+| goals.goal_suggestions | place_id |
+| valve.valve_states | place_id |
+| valve.valve_commands | place_id |
+| valve.valve_rules | place_id |
+| alerts.alert_events | place_id |
+| billing.water_bills | place_id |
+| billing.tariffs | place_id |
 
-- Migrations are ALWAYS forward-only
-- One migration per logical change
-- Seed data goes in separate migrations with prefix `S`: `S001__seed_...`
-- Never modify a migration already executed in any environment
-- Incompatible changes (rename, drop) use a 2-phase approach across releases
+### → devices.devices
+
+| Source table | Column |
+|-------------|--------|
+| monitoring.readings | device_id |
+| valve.valve_states | device_id |
+| valve.valve_commands | device_id |
+
+### → alerts.alert_events
+
+| Source table | Column |
+|-------------|--------|
+| notifications.notification_log | alert_event_id |
 
 ---
 
 ## ER Diagrams
 
-### iam schema
+### security schema (BC-01)
 
 ```
 ┌──────────────────────┐
-│      iam.users       │
-├──────────────────────┤       ┌─────────────────────────────┐
-│ id (PK)              │──┐    │  iam.verification_tokens    │
-│ full_name            │  │    ├─────────────────────────────┤
-│ email (UQ)           │  ├───▶│ user_id (FK)                │
-│ identity_document(UQ)│  │    │ token, token_type           │
-│ phone                │  │    │ expires_at, used_at         │
-│ password_hash        │  │    └─────────────────────────────┘
-│ auth_provider        │  │
-│ is_verified          │  │    ┌─────────────────────────────┐
-│ is_blocked           │  │    │      iam.sessions           │
-│ failed_login_attempts│  │    ├─────────────────────────────┤
-│ created_at           │  ├───▶│ user_id (FK)                │
-│ deleted_at           │  │    │ refresh_token               │
-└──────────────────────┘  │    │ expires_at, revoked_at      │
-                          │    └─────────────────────────────┘
+│   security.users     │
+├──────────────────────┤       ┌──────────────────────────────┐
+│ id (PK, BIGINT)      │──┐    │ security.user_credentials    │
+│ uuid (UQ)            │  │    ├──────────────────────────────┤
+│ name, email (UQ)     │  ├───▶│ user_id (FK)                 │
+│ phone                │  │    │ credential_type (LOCAL|GOOGLE)│
+│ email_verified       │  │    │ password_hash, google_id     │
+│ account_locked_until │  │    └──────────────────────────────┘
+│ created_at           │  │
+└──────────────────────┘  │    ┌──────────────────────────────┐
+                          │    │ security.email_verifications  │
+                          ├───▶│ user_id (FK)                 │
+                          │    │ token_hash, expires_at        │
+                          │    └──────────────────────────────┘
                           │
-                          │    ┌─────────────────────────────┐
-                          │    │    iam.login_attempts        │
-                          │    ├─────────────────────────────┤
-                          └───▶│ user_id (FK)                │
-                               │ ip_address, attempted_at    │
-                               └─────────────────────────────┘
+                          │    ┌──────────────────────────────┐
+                          │    │ security.password_resets      │
+                          ├───▶│ user_id (FK)                 │
+                          │    │ token_hash, expires_at        │
+                          │    └──────────────────────────────┘
+                          │
+                          │    ┌──────────────────────────────┐
+                          ├───▶│ security.refresh_tokens      │
+                          │    │ user_id (FK), token_hash     │
+                          │    │ device_info, revoked_at      │
+                          │    └──────────────────────────────┘
+                          │
+                          │    ┌──────────────────────────────┐
+                          ├───▶│ security.login_attempts      │
+                          │    │ user_id (FK, nullable)       │
+                          │    │ email, ip, success           │
+                          │    └──────────────────────────────┘
+                          │
+                          │    ┌──────────────────────────────┐
+                          └───▶│ security.activity_log        │
+                               │ user_id (FK), action         │
+                               │ entity_type, metadata (JSON) │
+                               └──────────────────────────────┘
 ```
 
-### place schema
+### places schema (BC-02)
+
+```
+┌────────────────────────────┐
+│      places.places         │
+├────────────────────────────┤
+│ id (PK), uuid (UQ)        │──┐
+│ owner_id (FK → users)     │  │    ┌───────────────────────────┐
+│ name, place_type           │  │    │   places.place_members    │
+│ address, city, country_code│  │    │      *(Entrega 3)*        │
+│ currency, measurement_unit │  ├───▶│ place_id (FK)             │
+│ is_default                 │  │    │ user_id (FK → users)      │
+│ deleted_at (soft delete)   │  │    │ role (OWNER|GUEST)        │
+└────────────────────────────┘  │    │ joined_at, revoked_at     │
+                                │    └───────────────────────────┘
+                                │
+                                │    ┌───────────────────────────┐
+                                │    │   places.invitations      │
+                                │    │      *(Entrega 3)*        │
+                                └───▶│ place_id (FK)             │
+                                     │ invited_by (FK → users)   │
+                                     │ email, token_hash         │
+                                     │ status, expires_at        │
+                                     └───────────────────────────┘
+```
+
+### devices schema (BC-03)
 
 ```
 ┌──────────────────────────┐
-│      place.places        │
-├──────────────────────────┤
-│ id (PK)                  │──┐
-│ owner_id                 │  │    ┌──────────────────────────────┐
-│ name (UQ w/owner)        │  │    │      place.members           │
-│ street_address           │  │    │         *(Entrega 3)*        │
-│ country, department, city│  │    ├──────────────────────────────┤
-│ stratum, inhabitants     │  ├───▶│ place_id (FK)                │
-│ measurement_unit         │  │    │ user_id (UQ w/place)         │
-│ currency                 │  │    │ role (OWNER / MEMBER)        │
-│ linked_device_id         │  │    │ permissions                  │
-└──────────────────────────┘  │    └──────────────────────────────┘
-                              │
-                              │    ┌──────────────────────────────┐
-                              │    │    place.invitations         │
-                              │    │         *(Entrega 3)*        │
-                              │    ├──────────────────────────────┤
-                              └───▶│ place_id (FK)                │
-                                   │ invited_email, invited_by    │
-                                   │ permissions                  │
-                                   │ status, expires_at           │
-                                   └──────────────────────────────┘
+│    devices.devices       │
+├──────────────────────────┤       ┌────────────────────────────────┐
+│ id (PK), uuid (UQ)      │──────▶│ devices.device_link_history    │
+│ serial_number (UQ)       │       ├────────────────────────────────┤
+│ place_id (FK → places)   │       │ device_id (FK)                 │
+│ auth_token_hash          │       │ place_id (FK → places)         │
+│ status                   │       │ linked_by (FK → users)         │
+│ last_report_at           │       │ linked_at, unlinked_at         │
+│ inactivity_threshold_min │       │ unlinked_by (FK → users)       │
+└──────────────────────────┘       └────────────────────────────────┘
 ```
 
-### device schema
+### monitoring schema (BC-04)
 
 ```
-┌────────────────────────┐
-│    device.devices      │
-├────────────────────────┤       ┌─────────────────────────┐
-│ id (PK)                │──────▶│    device.readings      │
-│ hardware_id (UQ)       │       ├─────────────────────────┤
-│ linked_place_id        │       │ device_id (FK)          │
-│ status                 │       │ place_id                │
-│ last_report_at         │       │ flow_rate, volume       │
-│ disconnect_threshold   │       │ timestamp (UQ w/device) │
-└────────────────────────┘       │ received_at             │
-                                 └─────────────────────────┘
-```
-
-### consumption schema
-
-```
-┌────────────────────────────────┐
-│ consumption.consumption_records│
-├────────────────────────────────┤
-│ id (PK)                        │
-│ place_id                       │       ┌─────────────────────────┐
-│ period_type (UQ w/place+start) │       │   consumption.goals     │
-│ period_start, period_end       │       │      *(Entrega 2)*      │
-│ total_volume, reading_count    │       ├─────────────────────────┤
-└────────────────────────────────┘       │ id (PK)                 │
-                                         │ place_id (UQ w/month)   │
-       ┌─────────────────────────┐       │ set_by                  │
-       │  consumption.bills      │       │ month, target_volume    │
-       │     *(Entrega 3)*       │       │ unit, source            │
-       ├─────────────────────────┤       └─────────────────────────┘
-       │ id (PK)                 │
-       │ place_id                │       ┌─────────────────────────┐
-       │ registered_by           │       │ consumption.tariffs     │
-       │ billed_volume           │       │     *(Entrega 3)*       │
-       │ total_amount, currency  │       ├─────────────────────────┤
-       │ period_start, period_end│       │ id (PK)                 │
-       │ payment_due_date        │       │ place_id                │
-       │ is_paid                 │       │ price_per_unit, unit    │
-       └─────────────────────────┘       │ currency, fixed_charge  │
-                                         │ effective_from/until    │
-                                         └─────────────────────────┘
-
-All tables linked by place_id (app-level, no FK cross-schema)
-```
-
-### valve schema *(Entrega 2)*
-
-```
-┌────────────────────────┐
-│     valve.valves       │
-├────────────────────────┤       ┌───────────────────────────┐
-│ id (PK)                │──┬───▶│   valve.valve_actions     │
-│ place_id (UQ)          │  │    ├───────────────────────────┤
-│ device_id              │  │    │ valve_id (FK)             │
-│ state                  │  │    │ action, origin, result    │
-│ auto_shutoff_enabled   │  │    │ requested_at, confirmed_at│
-└────────────────────────┘  │    └───────────────────────────┘
-                            │
-                            │    ┌───────────────────────────┐
-                            │    │   valve.shutoff_rules     │
-                            │    │      *(Entrega 3)*        │
-                            │    ├───────────────────────────┤
-                            └───▶│ valve_id (FK)             │
-                                 │ trigger_type (UQ w/valve) │
-                                 │ is_enabled                │
-                                 └───────────────────────────┘
-```
-
-### notification schema *(Entrega 2)*
-
-```
-┌─────────────────────────────┐
-│     notification.alerts     │
-├─────────────────────────────┤
-│ id (PK)                     │
-│ place_id, user_id           │
-│ type, urgency               │       ┌─────────────────────────────────────┐
-│ title, body                 │       │ notification.notification_preferences│
-│ is_read, channels           │       ├─────────────────────────────────────┤
-└─────────────────────────────┘       │ id (PK)                             │
-                                      │ user_id (UQ w/urgency)              │
-┌─────────────────────────────┐       │ urgency_level                       │
-│notification.recommendations│       │ in_app, push, email, sms _enabled   │
-│      *(Entrega 4)*         │       └─────────────────────────────────────┘
-├─────────────────────────────┤
-│ id (PK)                     │
-│ created_by (Admin)          │
-│ title, body                 │
-│ category, is_active         │
+┌─────────────────────────┐    ┌─────────────────────────────┐
+│  monitoring.readings    │    │ monitoring.consumption_hourly│
+├─────────────────────────┤    ├─────────────────────────────┤
+│ device_id (FK → devices)│    │ place_id (FK → places)      │
+│ place_id (FK → places)  │    │ hour_start (UQ w/place)     │
+│ flow_rate_lph           │    │ total_liters, reading_count │
+│ cumulative_liters       │    └─────────────────────────────┘
+│ recorded_at (UQ w/dev)  │
+│ received_at             │    ┌─────────────────────────────┐
+└─────────────────────────┘    │ monitoring.consumption_daily│
+                               ├─────────────────────────────┤
+┌─────────────────────────────┐│ place_id, date (UQ w/place) │
+│monitoring.consumption_monthly│ total_liters, avg_hourly   │
+├─────────────────────────────┤│ peak_hour, reading_count   │
+│ place_id, month_start (UQ)  │└─────────────────────────────┘
+│ total_liters, avg_daily     │
+│ peak_day, days_with_data    │
 └─────────────────────────────┘
+
+All tables linked by place_id (FK cross → places.places)
 ```
+
+### valve schema (BC-07)
+
+```
+┌─────────────────────────┐
+│   valve.valve_states    │
+├─────────────────────────┤
+│ device_id (UQ, FK)      │
+│ place_id (UQ, FK)       │
+│ state (OPEN|CLOSED|     │
+│        UNKNOWN)         │
+│ last_confirmed_at       │
+└─────────────────────────┘
+
+┌──────────────────────────────┐    ┌────────────────────────────┐
+│    valve.valve_commands      │    │    valve.valve_rules        │
+├──────────────────────────────┤    │       *(Entrega 3)*        │
+│ device_id (FK → devices)     │    ├────────────────────────────┤
+│ place_id (FK → places)       │    │ place_id (UQ w/rule_type)  │
+│ commanded_by (FK → users)    │    │ rule_type                  │
+│ command (OPEN|CLOSE)         │    │ enabled, requires_confirm  │
+│ origin (MANUAL|AUTO_*)       │    │ confirmation_timeout_min   │
+│ status (lifecycle)           │    │ created_by (FK → users)    │
+│ confirmation_code            │    └────────────────────────────┘
+│ confirmed_at → sent_at →    │
+│   device_ack_at / timeout_at │
+└──────────────────────────────┘
+```
+
+### alerts + notifications + content schemas (BC-08, BC-09, BC-11)
+
+```
+┌───────────────────────────────┐
+│  alerts.alert_type_config     │
+│  (seed — 8 types)             │
+├───────────────────────────────┤
+│ alert_type (UQ)               │
+│ severity, description         │
+│ max_per_period, period_unit   │
+└───────────────────────────────┘
+
+┌───────────────────────────────┐       ┌──────────────────────────────────┐
+│    alerts.alert_events        │──────▶│ notifications.notification_log   │
+├───────────────────────────────┤       ├──────────────────────────────────┤
+│ place_id (FK → places)        │       │ alert_event_id (FK)              │
+│ alert_type, severity [D3]     │       │ user_id (FK → users)             │
+│ title, message                │       │ channel (APP|PUSH|EMAIL|SMS|WA)  │
+│ metadata (JSON)               │       │ status (PENDING→DELIVERED|FAILED)│
+│ triggered_at, read_at         │       │ provider_ref, sent_at            │
+└───────────────────────────────┘       └──────────────────────────────────┘
+
+┌──────────────────────────────────┐    ┌───────────────────────────┐
+│ alerts.notification_preferences  │    │ notifications.push_subs   │
+├──────────────────────────────────┤    ├───────────────────────────┤
+│ user_id (FK → users)             │    │ user_id (FK → users)      │
+│ alert_severity (UQ w/user)       │    │ device_token (UQ w/user)  │
+│ channel_app, _push, _email, _sms │    │ platform, active          │
+└──────────────────────────────────┘    └───────────────────────────┘
+
+┌────────────────────────────┐       ┌────────────────────────────┐
+│   content.savings_tips     │──────▶│   content.tip_favorites    │
+│      *(Entrega 4)*         │       │      *(Entrega 4)*         │
+├────────────────────────────┤       ├────────────────────────────┤
+│ category, title, body      │       │ user_id (FK → users)       │
+│ sort_order, active         │       │ tip_id (FK)                │
+└────────────────────────────┘       └────────────────────────────┘
+```
+
+---
+
+## Migration strategy
+
+**Tool:** Flyway (Spring Boot — auth-service), EF Core Migrations (.NET — other services).
+
+**File naming:**
+```
+V{version}__{snake_case_description}.sql
+
+Examples:
+  V001__create_security_schema.sql
+  V002__create_users_table.sql
+  V003__create_user_credentials_table.sql
+```
+
+**Rules:**
+- Migrations are ALWAYS forward-only
+- One migration per logical change
+- Seed data uses prefix `S`: `S001__seed_alert_type_config.sql`
+- Never modify a migration already executed in any environment
+- Incompatible changes use a 2-phase approach across releases
 
 ---
 
 ## Correlations
 
+- Authoritative data model (DBML) → `sy-water-db/cuida-tu-agua-model-v5.dbml`
 - Bounded contexts and domain map → `02-domain/domain-map.md`
 - Domain entities and aggregates → `02-domain/entities-and-rules.md`
 - Domain events → `02-domain/domain-events.md`
 - BC-to-service mapping → `05-architecture/overview.md` § 4
 - Schema-per-service decision → `05-architecture/decisions/records/ADR-002-shared-database-schema-per-service.md`
-- API contracts exposing this data → `07-api/contracts/openapi/`
+- API contracts → `07-api/contracts/openapi/`

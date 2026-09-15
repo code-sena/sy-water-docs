@@ -16,7 +16,7 @@ The standard microservices recommendation is "database per service" — each ser
 
 Save Your Water is built by a team of 3 developers, deployed on a single VPS with Docker. The project has 11 bounded contexts deployed across 6 microservices (see `05-architecture/overview.md` § 4 for the mapping), and maintaining 6+ SQL Server instances (or even containers) is impractical given the team size and infrastructure budget (university project, no cloud budget).
 
-At the same time, we need to preserve the logical independence of each service's data to avoid tight coupling and to allow a future migration to separate databases if scale demands it.
+At the same time, we need to preserve the logical independence of each service's data to avoid tight coupling. Schemas are separated for logical organization, NOT as a preparation for future migration to separate databases.
 
 ---
 
@@ -40,24 +40,32 @@ At the same time, we need to preserve the logical independence of each service's
 
 **Alternative B:** Use a single SQL Server instance (`sy_water_db`) with one schema per service.
 
-### Schemas
+### Schemas (10 schemas for 11 BCs)
 
-| Schema | Owner service |
-|--------|-------------|
-| `iam` | auth-service |
-| `place` | place-service |
-| `device` | device-service |
-| `consumption` | consumption-service |
-| `valve` | valve-service |
-| `notification` | notification-service |
+| Schema | Owner service | BCs |
+|--------|-------------|-----|
+| `security` | auth-service | BC-01 IAM |
+| `places` | place-service | BC-02 Place Management |
+| `devices` | device-service | BC-03 Device Management |
+| `monitoring` | consumption-service | BC-04 Consumption Monitoring |
+| `goals` | consumption-service | BC-05 Consumption Goals |
+| `billing` | consumption-service | BC-06 Billing & Tariffs |
+| `valve` | valve-service | BC-07 Valve Control |
+| `alerts` | notification-service | BC-08 Alerts & Detection |
+| `notifications` | notification-service | BC-09 Notification Delivery |
+| `content` | notification-service | BC-11 Savings Tips |
+
+BC-10 Reports & Export has no tables — it reads from `monitoring`.
 
 ### Rules
 
-1. A service may only read/write tables in its own schema
-2. Cross-service data access is exclusively via REST API or RabbitMQ events
-3. Foreign keys across schemas are NOT allowed — use application-level UUID references
-4. Each service manages its own migrations, scoped to its schema
-5. Database users/roles per service (with permissions limited to their schema) are recommended but optional for the MVP
+1. A service may only read/write tables in its own schemas
+2. Cross-service data access at the application layer is exclusively via REST API or RabbitMQ events
+3. Cross-schema foreign keys ARE used — SQL Server enforces referential integrity across schemas
+4. Application-layer cross-schema JOINs are NOT allowed — use the owning service's API
+5. Each service manages its own migrations, scoped to its schemas
+6. All tables use `BIGINT IDENTITY` as internal PK + separate `UNIQUEIDENTIFIER` column for public API exposure
+7. Database users/roles per service (with permissions limited to their schemas) are recommended but optional for the MVP
 
 ---
 
@@ -66,17 +74,19 @@ At the same time, we need to preserve the logical independence of each service's
 **Positive:**
 - Single instance reduces operational overhead (backup, monitoring, deployment)
 - Schema names make ownership explicit in every SQL query
-- Migration to separate databases is straightforward: extract a schema into its own instance and update the connection string
+- Cross-schema FKs enforce referential integrity at the database level
+- 10 schemas provide fine-grained logical separation per BC
 
 **Negative:**
-- Shared compute: a heavy query in `device.readings` could slow down `iam.users`
-- Requires team discipline: no cross-schema JOINs, even when the data is "right there"
+- Shared compute: a heavy query in `monitoring.readings` could slow down `security.users`
+- Cross-schema FKs create physical coupling — removing a schema requires careful FK cleanup
+- Requires team discipline: no application-level cross-schema JOINs
 - Single point of failure for the database
 
 **Mitigation:**
 - Monitor query performance per schema
-- Code reviews explicitly check for cross-schema access
-- If contention becomes a problem, the first candidate to extract is `device` (highest write volume due to telemetry)
+- Code reviews explicitly check for cross-schema access at the application layer
+- If contention becomes a problem, the first candidate to extract is `monitoring` (highest write volume due to telemetry readings)
 
 ---
 
