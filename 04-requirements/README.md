@@ -21,7 +21,7 @@
 |--------|-------|
 | Functional requirements | 19 (FR-001 to FR-019) |
 | Non-functional requirements | 8 (NFR-001 to NFR-008) |
-| User stories | 56 (HU-01 to HU-56) |
+| User stories | 56 (HU-001 to HU-056) |
 | Epics | 14 (E1 to E14) |
 | Planned test files | 32 |
 | Services involved | 7 (api-gateway + 6 domain services hosting 11 bounded contexts) |

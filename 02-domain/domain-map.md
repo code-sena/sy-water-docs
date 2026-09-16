@@ -59,7 +59,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Role | Permission level: User, Owner, Member, or Admin. User is the default authenticated role; Owner and Member are place-scoped | No |
 | Session | An authenticated period with a JWT token (1h expiry, 7d refresh) | No |
 
-**User Stories:** HU-01 to HU-06 (Auth), HU-45 to HU-48 (Admin panel)
+**User Stories:** HU-001 to HU-006 (Auth), HU-045 to HU-048 (Admin panel)
 
 ---
 
@@ -82,7 +82,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Member | A user linked to a place with role (Owner/Member) and permissions defined by the Owner | No |
 | Invitation | A pending request for a user to join a place as Member with predefined permissions | No |
 
-**User Stories:** HU-07 to HU-09 (Place CRUD), HU-30 to HU-33 (Members), HU-53 to HU-56 (Multi-place)
+**User Stories:** HU-007 to HU-009 (Place CRUD), HU-030 to HU-033 (Members), HU-053 to HU-056 (Multi-place)
 
 ---
 
@@ -106,7 +106,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Link | The association between a device and a place (one-to-one) | No |
 | Status | Connectivity state: Connected / Disconnected / Never Reported | No |
 
-**User Stories:** HU-10 to HU-12
+**User Stories:** HU-010 to HU-012
 
 ---
 
@@ -129,7 +129,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Period | A time window (HOUR, DAY, WEEK, MONTH) over which readings are aggregated | In Billing & Tariffs, period is the billing cycle defined by the utility company |
 | Aggregation | The process of combining raw readings into hourly/daily/monthly totals | No |
 
-**User Stories:** HU-13 to HU-17
+**User Stories:** HU-013 to HU-017
 
 ---
 
@@ -152,7 +152,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Threshold | The 80% mark of a goal that triggers a warning event | In Alerts & Detection, threshold is a generic condition evaluation concept |
 | Suggestion | An automatically proposed goal based on historical consumption (3-month average) | No |
 
-**User Stories:** HU-18 to HU-21
+**User Stories:** HU-018 to HU-021
 
 ---
 
@@ -176,7 +176,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Comparison | The difference (absolute and %) between sensor-measured and billed consumption | No |
 | Mismatch | A comparison where the difference exceeds 15% — triggers an alert | No |
 
-**User Stories:** HU-34 to HU-40
+**User Stories:** HU-034 to HU-040
 
 ---
 
@@ -200,7 +200,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Confirmation | A security code sent to the Owner before executing a close command | No |
 | ShutoffRule | An automatic rule that triggers closure on specific conditions (leak, goal exceeded) | No |
 
-**User Stories:** HU-26 to HU-29 (Manual control + audit), HU-41 to HU-44 (Auto-shutoff)
+**User Stories:** HU-026 to HU-029 (Manual control + audit), HU-041 to HU-044 (Auto-shutoff)
 
 ---
 
@@ -224,7 +224,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Urgency | Classification that determines delivery channels: Critical (all), Important (push+in-app), Informative (in-app) | No |
 | Deduplication | Preventing repeated alerts for the same ongoing condition (e.g., one leak alert per hour max) | No |
 
-**User Stories:** HU-22 (Leak detection), HU-23 to HU-25 (Alert management)
+**User Stories:** HU-022 (Leak detection), HU-023 to HU-025 (Alert management)
 
 ---
 
@@ -246,7 +246,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | Channel | A delivery medium: In-App, Push, Email, SMS/WhatsApp | No |
 | Preference | The user's choice of which channels to receive for each urgency level | No |
 
-**User Stories:** (Cross-cutting — implicit in HU-23 to HU-25, HU-27 to HU-29)
+**User Stories:** (Cross-cutting — implicit in HU-023 to HU-025, HU-027 to HU-029)
 
 ---
 
@@ -261,7 +261,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Technology** | .NET |
 | **Ubiquitous Language** | Report, Export, PDF, CSV, Summary |
 
-**User Stories:** HU-49 to HU-52
+**User Stories:** HU-049 to HU-052
 
 ---
 
@@ -276,7 +276,7 @@ The domain is decomposed into **11 bounded contexts** organized in 4 strategic l
 | **Technology** | .NET |
 | **Ubiquitous Language** | Recommendation, Tip, Category (Saving, Maintenance, Seasonal, General) |
 
-**User Stories:** HU-57, HU-58
+**User Stories:** HU-057, HU-058
 
 ---
 
