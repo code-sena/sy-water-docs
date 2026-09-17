@@ -12,9 +12,9 @@
 
 | # | Feature | Description | Epic |
 |---|---------|-------------|------|
-| 1 | User registration and login | Sign up with email/ID/password, email verification, login, Google OAuth, password recovery, logout | E1 |
+| 1 | User registration and login | Sign up with full name, email, identity document, phone, and password; email verification, login, Google OAuth, password recovery (email or phone), logout | E1 |
 | 2 | Profile management | View and edit name, photo, phone number; change password | E1 |
-| 3 | Place registration | Create a place (home/business) with name, address, country, city, stratum, inhabitants | E2 |
+| 3 | Place registration | Create a place (home/business) with reference name, address, country, department/state, city, stratum, and number of inhabitants; unique name per user | E2 |
 | 4 | Place management | List, switch between, edit, and delete places | E2 |
 | 5 | Device linking | Link an ESP32 device to a place via ID or QR code; authenticate device | E3 |
 | 6 | Telemetry ingestion | Receive and store flow readings from ESP32 via MQTT; validate and deduplicate | E3 |

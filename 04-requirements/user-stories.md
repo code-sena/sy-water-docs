@@ -47,18 +47,23 @@
 
 ## E1 — Accounts & Access
 
-### HU-001 — Register with email and password
+### HU-001 — Register with email, identity document, and password
 
 > **As** an unregistered user
-> **I want** to create an account with my email and password
+> **I want** to create an account with my full name, email, identity document, phone number, and password
 > **so that** I can access the platform and start monitoring my water consumption
 
 ```gherkin
 Scenario: successful registration
-  Given a user provides a valid email, password, and personal data
+  Given a user provides full name, email, identity document, phone number, and a valid password
   When they submit the registration form
   Then the system creates the account
   And sends a verification email
+
+Scenario: password validation
+  Given the password has fewer than 8 characters or lacks an uppercase letter, number, or special character
+  When they submit the registration form
+  Then the system rejects with a password policy error
 
 Scenario: duplicate email
   Given the email is already registered
@@ -132,18 +137,23 @@ Scenario: Google sign-in (existing user)
 ### HU-004 — Recover password
 
 > **As** a registered user
-> **I want** to reset my password via email
+> **I want** to reset my password via email or phone number
 > **so that** I can regain access if I forget my credentials
 
 ```gherkin
-Scenario: password reset request
+Scenario: password reset request via email
   Given the user provides a registered email
   When they request a password reset
-  Then the system sends a reset link with a time-limited token
+  Then the system sends a reset link with a single-use, 30-minute token
+
+Scenario: password reset request via phone
+  Given the user provides a registered phone number
+  When they request a password reset
+  Then the system sends a reset code via SMS
 
 Scenario: password reset with valid token
   Given the user clicks a valid, non-expired reset link
-  When they submit a new password
+  When they submit a new password that meets the policy (HU-001)
   Then the system updates the password and invalidates all existing sessions
 ```
 
@@ -206,17 +216,27 @@ Scenario: account deletion
 ### HU-007 — Register a place
 
 > **As** an Owner
-> **I want** to register a place (home or business)
+> **I want** to register a place (home or business) with its location details
 > **so that** I can link a device to it and start monitoring water consumption
 
 ```gherkin
 Scenario: create place
-  Given the user provides a name, address, and stratum
+  Given the user provides a reference name, address, country, department/state, city, stratum, and number of inhabitants
   When they submit the place registration
   Then the system creates the place linked to the user as owner
 
+Scenario: duplicate place name
+  Given the user already has a place with the same reference name
+  When they submit the place registration
+  Then the system rejects with "place name already exists for this user"
+
+Scenario: invalid address
+  Given the address is not valid for the selected country
+  When they submit the form
+  Then the system rejects with a validation error
+
 Scenario: missing required fields
-  Given the user omits the address
+  Given the user omits a required field (name, address, or country)
   When they submit the form
   Then the system rejects with a validation error
 ```
