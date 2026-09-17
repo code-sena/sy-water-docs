@@ -12,7 +12,7 @@
 
 | # | Feature | Description | Epic |
 |---|---------|-------------|------|
-| 1 | User registration and login | Sign up with full name, email, identity document, phone, and password; email verification, login, Google OAuth, password recovery (email or phone), logout | E1 |
+| 1 | User registration and login | Sign up with first name, last name, email, phone, and password; email verification, login, Google OAuth, password recovery (email or phone), logout | E1 |
 | 2 | Profile management | View and edit name, photo, phone number; change password | E1 |
 | 3 | Place registration | Create a place (home/business) with reference name, address, country, department/state, city, stratum, and number of inhabitants; unique name per user | E2 |
 | 4 | Place management | List, switch between, edit, and delete places | E2 |

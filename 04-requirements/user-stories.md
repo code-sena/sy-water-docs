@@ -47,15 +47,15 @@
 
 ## E1 — Accounts & Access
 
-### HU-001 — Register with email, identity document, and password
+### HU-001 — Register with email and password
 
 > **As** an unregistered user
-> **I want** to create an account with my full name, email, identity document, phone number, and password
+> **I want** to create an account with my first name, last name, email, phone number, and password
 > **so that** I can access the platform and start monitoring my water consumption
 
 ```gherkin
 Scenario: successful registration
-  Given a user provides full name, email, identity document, phone number, and a valid password
+  Given a user provides first name, last name, email, phone number, and a valid password
   When they submit the registration form
   Then the system creates the account
   And sends a verification email

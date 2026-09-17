@@ -76,7 +76,7 @@ CREATE TABLE security.users (
     uuid                 UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     name                 NVARCHAR(200) NOT NULL,
     email                NVARCHAR(320) NOT NULL,
-    phone                NVARCHAR(20)  NULL,
+    phone                NVARCHAR(20)  NOT NULL,
     phone_verified       BIT           NOT NULL DEFAULT 0,
     avatar_url           NVARCHAR(500) NULL,
     email_verified       BIT           NOT NULL DEFAULT 0,

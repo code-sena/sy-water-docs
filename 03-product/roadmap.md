@@ -30,7 +30,7 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
-| HU-001 | Register with email, identity document, and password | 5 | Full name, email, identity document, phone, password; verification email sent |
+| HU-001 | Register with email and password | 5 | First name, last name, email, phone, password; verification email sent |
 | HU-002 | Login with email and password | 3 | JWT issued, session created |
 | HU-003 | Login with Google OAuth | 5 | Google sign-in, auto-creates account if new |
 | HU-004 | Recover password | 5 | Reset token via email or SMS, password updated |

@@ -116,6 +116,7 @@ const user = await userRepository.findOne({ where: { id: userId } });
 const CreateUserSchema = z.object({
   email: z.string().email().max(255),
   name: z.string().min(1).max(100).trim(),
+  phone: z.string().min(7).max(20).trim(),
   role: z.enum(['ADMIN', 'USER', 'VIEWER']),
 });
 

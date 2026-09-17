@@ -105,7 +105,7 @@ If code exists without an HU → unplanned work (gold plating)
 
 | HU | Title | FR(s) | Entrega |
 |----|-------|-------|---------|
-| HU-001 | Register with email, identity document, and password | FR-001 | 1 |
+| HU-001 | Register with email and password | FR-001 | 1 |
 | HU-002 | Login with email and password | FR-001 | 1 |
 | HU-003 | Login with Google OAuth | FR-001 | 1 |
 | HU-004 | Recover password | FR-001 | 1 |

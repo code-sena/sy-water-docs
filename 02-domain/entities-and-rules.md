@@ -23,7 +23,7 @@
 | firstName | string | First name | Yes | Min 2 chars |
 | lastName | string | Last name | Yes | Min 2 chars |
 | email | Email (VO) | Account email | Yes | Unique across system, immutable |
-| phone | Phone (VO) | Mobile number | No | Valid format per country |
+| phone | Phone (VO) | Mobile number | Yes | Valid format per country |
 | phoneVerified | boolean | Phone verification status | Yes | Default: false |
 | avatarUrl | string | Profile picture URL | No | — |
 | emailVerified | boolean | Email verification status | Yes | Default: false (true for Google accounts) |
