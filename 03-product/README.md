@@ -36,9 +36,9 @@
 | Entrega | Theme | Epics | HUs | SP |
 |---------|-------|-------|-----|-----|
 | 1 — MVP | Auth + Device + Dashboard | E1–E4 | 17 | ~80 |
-| 2 — Smart | Goals + Alerts + Valve | E5–E7 | 12 | ~56 |
-| 3 — Social | Members + Bills + Auto-shutoff | E8–E11 | 15 | ~65 |
-| 4 — Admin | Admin panel + Recommendations + Reports + Multi-place | E12–E14 | 14 | ~56 |
+| 2 — Smart | Valve + Goals + Alerts | E5–E7 | 12 | ~56 |
+| 3 — Social | Bills + Tariffs + Auto-shutoff + Members + Collaborator | E8–E12 | 15 | ~65 |
+| 4 — Admin | Reports + Savings Tips + Tariff Catalogs + Admin Panel | E13–E16 | 14 | ~56 |
 
 ---
 

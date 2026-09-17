@@ -10,13 +10,14 @@
 ```
 Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entrega 4 (Admin)
 ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│ E1: Auth         │      │ E5: Goals        │      │ E8: Members      │      │ E12: Admin Panel │
-│ E2: Place Mgmt   │      │ E6: Alerts       │      │ E9: Bill Mgmt    │      │ E13: Reports     │
-│ E3: Device Link  │      │ E7: Valve Ctrl   │      │ E10: Tariffs     │      │ E14: Multi-place │
-│ E4: Dashboard    │      │                  │      │ E11: Auto-shutoff│      │                  │
+│ E1: Auth         │      │ E5: Valve Ctrl   │      │ E8: Bill Mgmt    │      │ E13: Reports     │
+│ E2: Place Mgmt   │      │ E6: Goals        │      │ E9: Tariffs      │      │ E14: Savings Tips│
+│ E3: Device Link  │      │ E7: Alerts       │      │ E10: Auto-shutoff│      │ E15: Tariff Cat. │
+│ E4: Dashboard    │      │                  │      │ E11: Members     │      │ E16: Admin Panel │
+│                  │      │                  │      │ E12: Collaborator│      │                  │
 └─────────────────┘      └─────────────────┘      └─────────────────┘      └─────────────────┘
-        ~80 SP                   ~70 SP                   ~66 SP                   ~50 SP
-                                                                          Total: ~266 SP
+        ~80 SP                   ~56 SP                   ~65 SP                   ~56 SP
+                                                                          Total: ~257 SP
 ```
 
 ---
@@ -25,7 +26,7 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 
 > **Goal:** A user registers, creates a place, links a device, and sees real-time consumption on a dashboard.
 
-### E1 — Authentication & Account Management
+### E1 — Accounts & Access
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -37,7 +38,6 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-006 | Delete my account | 3 | Soft-delete, device unlinked, sessions revoked |
 
 **Epic total: 24 SP**
-
 ### E2 — Place Management
 
 | ID | User story | SP | Acceptance criteria summary |
@@ -47,8 +47,7 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-009 | Delete a place | 3 | Soft-delete, devices unlinked |
 
 **Epic total: 11 SP**
-
-### E3 — Device Linking
+### E3 — IoT Device Linking
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -57,8 +56,7 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-012 | Unlink a device | 3 | Device deactivated, readings stop, can be re-linked |
 
 **Epic total: 14 SP**
-
-### E4 — Consumption Dashboard
+### E4 — Real-time Consumption Monitoring
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -69,7 +67,6 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-017 | View consumption summary on home screen | 5 | Quick glance: today, this week, this month |
 
 **Epic total: 31 SP**
-
 ### Entrega 1 summary
 
 | Metric | Value |
@@ -78,37 +75,15 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | User stories | 17 |
 | Story points | ~80 SP |
 | Services involved | api-gateway, auth-service, place-service, device-service, consumption-service |
-| Schemas activated | iam, place, device, consumption (partial) |
+| Schemas activated | security, places, devices, monitoring (partial) |
 
 ---
 
 ## Entrega 2 — Smart Monitoring
 
-> **Goal:** Users set consumption goals, receive alerts for anomalies and leaks, and can manually open/close the valve.
+> **Goal:** Users control the valve remotely, set consumption goals, and receive alerts for anomalies and leaks.
 
-### E5 — Consumption Goals
-
-| ID | User story | SP | Acceptance criteria summary |
-|----|-----------|----|-----------------------------|
-| HU-018 | Set a monthly consumption goal | 5 | Goal in liters, per place |
-| HU-019 | View goal progress | 5 | Progress bar, percentage consumed vs. goal |
-| HU-020 | Receive alert when approaching goal | 3 | Notification at configurable threshold (e.g., 80%) |
-| HU-021 | Receive alert when goal is exceeded | 3 | Notification when 100% reached |
-
-**Epic total: 16 SP**
-
-### E6 — Alerts & Notifications
-
-| ID | User story | SP | Acceptance criteria summary |
-|----|-----------|----|-----------------------------|
-| HU-022 | Receive leak detection alert | 8 | Alert when continuous flow detected during inactivity hours |
-| HU-023 | View alert history | 3 | List of all alerts with timestamp, type, status |
-| HU-024 | Configure notification preferences | 5 | Push, email, WhatsApp toggle per alert type |
-| HU-025 | Mark alert as resolved | 2 | Manual acknowledgment |
-
-**Epic total: 18 SP**
-
-### E7 — Valve Control
+### E5 — Manual Valve Control
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -118,7 +93,26 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-029 | View valve action history | 3 | List of all open/close actions with actor and reason |
 
 **Epic total: 22 SP**
+### E6 — Consumption Goals
 
+| ID | User story | SP | Acceptance criteria summary |
+|----|-----------|----|-----------------------------|
+| HU-018 | Set a monthly consumption goal | 5 | Goal in liters, per place |
+| HU-019 | View goal progress | 5 | Progress bar, percentage consumed vs. goal |
+| HU-020 | Receive alert when approaching goal | 3 | Notification at configurable threshold (e.g., 80%) |
+| HU-021 | Receive alert when goal is exceeded | 3 | Notification when 100% reached |
+
+**Epic total: 16 SP**
+### E7 — Alerts & Notifications
+
+| ID | User story | SP | Acceptance criteria summary |
+|----|-----------|----|-----------------------------|
+| HU-022 | Receive leak detection alert | 8 | Alert when continuous flow detected during inactivity hours |
+| HU-023 | View alert history | 3 | List of all alerts with timestamp, type, status |
+| HU-024 | Configure notification preferences | 5 | Push, email, WhatsApp toggle per alert type |
+| HU-025 | Mark alert as resolved | 2 | Manual acknowledgment |
+
+**Epic total: 18 SP**
 ### Entrega 2 summary
 
 | Metric | Value |
@@ -127,26 +121,15 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | User stories | 12 |
 | Story points | ~56 SP |
 | New services involved | valve-service, notification-service |
-| Schemas activated | consumption (goals), valve, notification |
+| Schemas activated | valve, goals, alerts, notifications |
 
 ---
 
 ## Entrega 3 — Social & Billing
 
-> **Goal:** Owners invite members, manage bills and tariffs, and configure automatic shutoff rules.
+> **Goal:** Owners manage utility bills and tariffs, configure automatic shutoff rules, and invite members or collaborators.
 
-### E8 — Member Management
-
-| ID | User story | SP | Acceptance criteria summary |
-|----|-----------|----|-----------------------------|
-| HU-030 | Invite a member to a place | 5 | Email invitation, permissions assigned by owner |
-| HU-031 | Member views consumption dashboard | 3 | Access to place consumption per owner-defined permissions |
-| HU-032 | Revoke member access | 3 | Immediate access removal |
-| HU-033 | Member receives alerts for the place | 3 | Alert types based on owner-defined permissions |
-
-**Epic total: 14 SP**
-
-### E9 — Bill Management
+### E8 — Utility Bill Management
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -156,8 +139,7 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-037 | Receive alert for bill discrepancy | 5 | Alert when sensor vs. bill difference exceeds threshold |
 
 **Epic total: 21 SP**
-
-### E10 — Tariff Configuration
+### E9 — Tariffs & Measurement Units
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -166,8 +148,7 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-040 | Tariff updates apply to future estimates | 2 | Historical estimates unchanged |
 
 **Epic total: 12 SP**
-
-### E11 — Automatic Shutoff
+### E10 — Automatic Valve Shutoff
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -177,23 +158,57 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-044 | Reopen valve after auto-shutoff (manual only) | 3 | Safety: never auto-reopens |
 
 **Epic total: 18 SP**
+### E11 — Shared Users (Owner / Guest)
+
+| ID | User story | SP | Acceptance criteria summary |
+|----|-----------|----|-----------------------------|
+| HU-030 | Invite a member to a place | 5 | Email invitation, permissions assigned by owner |
+| HU-031 | Member views consumption dashboard | 3 | Access to place consumption per owner-defined permissions |
+| HU-032 | Revoke member access | 3 | Immediate access removal |
+| HU-033 | Member receives alerts for the place | 3 | Alert types based on owner-defined permissions |
+
+**Epic total: 14 SP**
+### E12 — Shared Users (Owner / Collaborator)
+
+> User stories for this epic will be defined during sprint planning for Entrega 3.
+> Covers inviting collaborators with extended permissions (beyond read-only guest access) to a place.
 
 ### Entrega 3 summary
 
 | Metric | Value |
 |--------|-------|
-| Epics | 4 (E8–E11) |
-| User stories | 15 |
-| Story points | ~65 SP |
-| Schema changes | place (members, invitations), consumption (bills, tariffs), valve (shutoff_rules) |
+| Epics | 5 (E8–E12) |
+| User stories | 15 + E12 TBD |
+| Story points | ~65 SP + E12 TBD |
+| Schema changes | billing (bills, tariffs), valve (shutoff_rules), places (members, invitations) |
 
 ---
 
 ## Entrega 4 — Administration & Analytics
 
-> **Goal:** An admin panel for the platform, analytics reports, and support for multiple places per user.
+> **Goal:** Downloadable reports, savings tips, pre-loaded tariff catalogs, an admin panel, and multi-place support.
 
-### E12 — Admin Panel
+### E13 — Downloadable Reports
+
+| ID | User story | SP | Acceptance criteria summary |
+|----|-----------|----|-----------------------------|
+| HU-049 | View monthly consumption report | 5 | Summary with charts, comparison to previous months |
+| HU-050 | View water savings report | 5 | Savings vs. goal, trend over time |
+| HU-051 | Download report as PDF | 5 | Formatted report with charts and data |
+| HU-052 | View consumption ranking across places | 3 | Leaderboard for multi-place users |
+
+**Epic total: 18 SP**
+### E14 — Savings Tips
+
+> User stories for this epic will be defined during sprint planning for Entrega 4.
+> Covers generic water-saving recommendations displayed to users, differentiated by place type (residential / commercial).
+
+### E15 — Preloaded Tariffs by Country
+
+> User stories for this epic will be defined during sprint planning for Entrega 4.
+> Covers pre-loaded tariff catalogs for Colombia (by city and stratum), Ecuador (by city and service category), and the United States (by state and water district).
+
+### E16 — Admin Panel
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -205,19 +220,7 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-058 | Admin edits or deactivates a recommendation | 3 | Deactivated recommendations hidden from users but not deleted |
 
 **Epic total: 22 SP**
-
-### E13 — Reports & Analytics
-
-| ID | User story | SP | Acceptance criteria summary |
-|----|-----------|----|-----------------------------|
-| HU-049 | View monthly consumption report | 5 | Summary with charts, comparison to previous months |
-| HU-050 | View water savings report | 5 | Savings vs. goal, trend over time |
-| HU-051 | Download report as PDF | 5 | Formatted report with charts and data |
-| HU-052 | View consumption ranking across places | 3 | Leaderboard for multi-place users |
-
-**Epic total: 18 SP**
-
-### E14 — Multi-place
+### Multi-place Extensions (extends E2 / E3)
 
 | ID | User story | SP | Acceptance criteria summary |
 |----|-----------|----|-----------------------------|
@@ -227,14 +230,13 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 | HU-056 | Manage devices per place | 3 | Link/unlink per place |
 
 **Epic total: 16 SP**
-
 ### Entrega 4 summary
 
 | Metric | Value |
 |--------|-------|
-| Epics | 3 (E12–E14) |
-| User stories | 14 |
-| Story points | ~56 SP |
+| Epics | 4 (E13–E16) + multi-place extensions |
+| User stories | 14 + E14/E15 TBD |
+| Story points | ~56 SP + E14/E15 TBD |
 | New role | Admin (Administrador) |
 
 ---
@@ -245,11 +247,11 @@ Entrega 1 (MVP)          Entrega 2 (Smart)        Entrega 3 (Social)       Entre
 |---------|-------|-------------|-------------|---------------|
 | Entrega 1 (MVP) | E1–E4 | 17 | ~80 | ~80 |
 | Entrega 2 (Smart) | E5–E7 | 12 | ~56 | ~136 |
-| Entrega 3 (Social) | E8–E11 | 15 | ~65 | ~201 |
-| Entrega 4 (Admin) | E12–E14 | 14 | ~56 | ~257 |
-| **Total** | **14 epics** | **58 HUs** | **~257 SP** | |
+| Entrega 3 (Social) | E8–E12 | 15 | ~65 | ~201 |
+| Entrega 4 (Admin) | E13–E16 | 14 | ~56 | ~257 |
+| **Total** | **16 epics** | **58 HUs** | **~257 SP** | |
 
-> **Note:** Story point totals are approximate. Some stories may be split or merged during sprint planning. The original backlog references 61 HUs / 266 SP — the difference accounts for stories that may be consolidated or re-estimated during detailed planning.
+> **Note:** Story point totals are approximate. Some stories may be split or merged during sprint planning. The original backlog references 61 HUs / 266 SP — the difference accounts for stories that may be consolidated or re-estimated during detailed planning. Epics E12, E14, and E15 do not yet have user stories and will add to these totals.
 
 ---
 
@@ -266,10 +268,10 @@ Entrega 1 (MVP)
 | Dependency | From | To | Reason |
 |-----------|------|-----|--------|
 | Auth & Place | E1 | All others | Every feature requires authenticated users and registered places |
-| Device + Dashboard | E1 | E2 | Goals and alerts need consumption data flowing |
-| Alerts | E2 (E6) | E3 (E11) | Auto-shutoff rules trigger alerts |
-| Valve control | E2 (E7) | E3 (E11) | Auto-shutoff sends valve commands |
-| All data | E1+E2 | E4 (E12–E13) | Admin and reports need all domain data |
+| Device + Dashboard | E3, E4 | E5–E7 | Goals and alerts need consumption data flowing |
+| Alerts | E7 | E10 | Auto-shutoff rules trigger alerts |
+| Valve control | E5 | E10 | Auto-shutoff sends valve commands |
+| All data | E1–E7 | E13, E16 | Admin and reports need all domain data |
 
 ---
 

@@ -59,10 +59,10 @@ Entrega 1 ──── Entrega 2 ──── Entrega 3 ──── Entrega 4
 
 | Entrega | Objective | Epics | Story points |
 |---------|----------|-------|-------------|
-| **Entrega 1 (MVP)** | A user registers, links a device, and sees consumption in real time | E1 (Auth), E2 (Place), E3 (Device), E4 (Consumption Dashboard) | ~80 SP |
-| **Entrega 2** | Smart monitoring with goals, alerts, and manual valve control | E5 (Goals), E6 (Alerts), E7 (Valve Control) | ~70 SP |
-| **Entrega 3** | Social features and bill management | E8 (Members), E9 (Bill Management), E10 (Tariffs), E11 (Auto-shutoff) | ~66 SP |
-| **Entrega 4** | Administration, recommendations, analytics, and multi-place | E12 (Admin Panel + Recommendations), E13 (Reports), E14 (Multi-place) | ~56 SP |
+| **Entrega 1 (MVP)** | A user registers, links a device, and sees consumption in real time | E1 (Auth), E2 (Place), E3 (Device), E4 (Monitoring) | ~80 SP |
+| **Entrega 2** | Smart monitoring with valve control, goals, and alerts | E5 (Valve Control), E6 (Goals), E7 (Alerts) | ~56 SP |
+| **Entrega 3** | Billing, tariffs, auto-shutoff, and shared access | E8 (Bills), E9 (Tariffs), E10 (Auto-shutoff), E11 (Members), E12 (Collaborator) | ~65 SP |
+| **Entrega 4** | Reports, savings tips, preloaded tariffs, admin panel, and multi-place | E13 (Reports), E14 (Savings Tips), E15 (Tariff Catalogs), E16 (Admin Panel) | ~56 SP |
 
 > **Note:** No fixed dates. Deliveries are ordered by priority. This is a university project; the team advances through each Entrega sequentially.
 

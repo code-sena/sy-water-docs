@@ -11,9 +11,9 @@
 |---------|-------|-------------|-------------|--------|
 | Entrega 1 (MVP) | E1–E4 | HU-001 to HU-017 (17) | ~80 SP | Planned |
 | Entrega 2 (Smart) | E5–E7 | HU-018 to HU-029 (12) | ~56 SP | Planned |
-| Entrega 3 (Social) | E8–E11 | HU-030 to HU-044 (15) | ~65 SP | Planned |
-| Entrega 4 (Admin) | E12–E14 | HU-045 to HU-056 (12) | ~48 SP | Planned |
-| **Total** | **14** | **56** | **~249 SP** | |
+| Entrega 3 (Social) | E8–E12 | HU-030 to HU-044 (15) | ~65 SP | Planned |
+| Entrega 4 (Admin) | E13–E16 | HU-045 to HU-058 (14) | ~56 SP | Planned |
+| **Total** | **16** | **58** | **~257 SP** | |
 
 ---
 
@@ -21,28 +21,31 @@
 
 | ID | Epic | Entrega | Description |
 |----|------|---------|-------------|
-| E1 | Authentication & Account Management | 1 | Register, login, password recovery, profile, account deletion |
+| E1 | Accounts & Access | 1 | Register, login, password recovery, profile, account deletion |
 | E2 | Place Management | 1 | Create, edit, and delete places (homes/businesses) |
-| E3 | Device Linking | 1 | Link/unlink ESP32 devices to places via MQTT |
-| E4 | Consumption Dashboard | 1 | Real-time and historical consumption visualization |
-| E5 | Consumption Goals | 2 | Set monthly goals and receive progress alerts |
-| E6 | Alerts & Notifications | 2 | Leak detection, alert history, notification preferences |
-| E7 | Valve Control | 2 | Manual remote open/close of the electrovalve |
-| E8 | Member Management | 3 | Invite members with owner-defined permissions to a place |
-| E9 | Bill Management | 3 | Register bills and compare against sensor data |
-| E10 | Tariff Configuration | 3 | Configure tariffs for cost estimation |
-| E11 | Automatic Shutoff | 3 | Rule-based automatic valve closure |
-| E12 | Admin Panel | 4 | Platform-wide user/device management (no sensitive data) and generic recommendations |
-| E13 | Reports & Analytics | 4 | Monthly reports, savings analysis, PDF export |
-| E14 | Multi-place | 4 | Manage multiple places from one account |
+| E3 | IoT Device Linking | 1 | Link/unlink ESP32 devices to places via MQTT |
+| E4 | Real-time Consumption Monitoring | 1 | Real-time and historical consumption visualization |
+| E5 | Manual Valve Control | 2 | Manual remote open/close of the electrovalve |
+| E6 | Consumption Goals | 2 | Set monthly goals and receive progress alerts |
+| E7 | Alerts & Notifications | 2 | Leak detection, alert history, notification preferences |
+| E8 | Utility Bill Management | 3 | Register bills and compare against sensor data |
+| E9 | Tariffs & Measurement Units | 3 | Configure tariffs for cost estimation |
+| E10 | Automatic Valve Shutoff | 3 | Rule-based automatic valve closure |
+| E11 | Shared Users (Owner / Guest) | 3 | Invite guests to view place consumption data |
+| E12 | Shared Users (Owner / Collaborator) | 3 | Invite collaborators with extended permissions to a place |
+| E13 | Downloadable Reports | 4 | Monthly reports, savings analysis, PDF/CSV export |
+| E14 | Savings Tips | 4 | Generic water-saving recommendations for users |
+| E15 | Preloaded Tariffs by Country | 4 | Pre-loaded tariff catalogs for Colombia, Ecuador, and USA |
+| E16 | Admin Panel | 4 | Platform-wide user/device management and generic recommendations |
 
 ---
+
 
 # Entrega 1 — MVP
 
 ---
 
-## E1 — Authentication & Account Management
+## E1 — Accounts & Access
 
 ### HU-001 — Register with email and password
 
@@ -272,7 +275,7 @@ Scenario: delete place
 
 ---
 
-## E3 — Device Linking
+## E3 — IoT Device Linking
 
 ### HU-010 — Link a device to a place
 
@@ -352,7 +355,7 @@ Scenario: unlink device
 
 ---
 
-## E4 — Consumption Dashboard
+## E4 — Real-time Consumption Monitoring
 
 ### HU-013 — View current consumption (today)
 
@@ -473,192 +476,7 @@ Scenario: home screen summary
 
 ---
 
-## E5 — Consumption Goals
-
-### HU-018 — Set a monthly consumption goal
-
-> **As** an Owner
-> **I want** to set a monthly water consumption goal in liters
-> **so that** I can track my usage against a target and save water
-
-```gherkin
-Scenario: set goal
-  Given the user selects a place
-  When they set a monthly goal (e.g., 15,000 liters)
-  Then the system saves the goal for the current billing period
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Must Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-013 |
-
----
-
-### HU-019 — View goal progress
-
-> **As** an Owner
-> **I want** to see how much of my monthly goal I have consumed
-> **so that** I know if I need to reduce my usage
-
-```gherkin
-Scenario: goal progress
-  Given the user has an active goal
-  When they view the goal widget
-  Then the system shows a progress bar with percentage consumed vs. goal
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Must Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-018 |
-
----
-
-### HU-020 — Receive alert when approaching goal
-
-> **As** an Owner
-> **I want** to be notified when I reach a configurable percentage of my goal
-> **so that** I can adjust my habits before exceeding it
-
-```gherkin
-Scenario: threshold alert
-  Given the user has a goal with a threshold of 80%
-  When consumption reaches 80% of the goal
-  Then the system sends a GoalThresholdReached alert
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 3 |
-| Priority | Must Have |
-| Service(s) | consumption-service, notification-service |
-| Dependencies | HU-018 |
-
----
-
-### HU-021 — Receive alert when goal is exceeded
-
-> **As** an Owner
-> **I want** to be notified when I exceed my monthly goal
-> **so that** I am aware I have passed my target
-
-```gherkin
-Scenario: goal exceeded
-  Given the user has an active goal
-  When consumption exceeds 100% of the goal
-  Then the system sends a GoalExceeded alert
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 3 |
-| Priority | Must Have |
-| Service(s) | consumption-service, notification-service |
-| Dependencies | HU-018 |
-
----
-
-## E6 — Alerts & Notifications
-
-### HU-022 — Receive leak detection alert
-
-> **As** an Owner
-> **I want** to be alerted when a possible water leak is detected
-> **so that** I can act before the leak causes significant damage or waste
-
-```gherkin
-Scenario: leak suspected
-  Given continuous flow is detected for more than 30 minutes during inactivity hours
-  When the leak detector evaluates the readings
-  Then the system creates a LeakSuspected alert and notifies the user
-
-Scenario: normal continuous flow
-  Given continuous flow during daytime active hours
-  When the leak detector evaluates the readings
-  Then no alert is created
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 8 |
-| Priority | Must Have |
-| Service(s) | consumption-service, notification-service |
-| Dependencies | HU-013 |
-
----
-
-### HU-023 — View alert history
-
-> **As** an Owner
-> **I want** to see a list of all alerts I have received
-> **so that** I can review past events and their resolution
-
-```gherkin
-Scenario: alert list
-  Given the user has received alerts
-  When they open the alert history
-  Then the system shows a chronological list with type, timestamp, and status
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 3 |
-| Priority | Should Have |
-| Service(s) | notification-service |
-| Dependencies | HU-022 |
-
----
-
-### HU-024 — Configure notification preferences
-
-> **As** an Owner
-> **I want** to choose how I receive notifications (push, email, WhatsApp)
-> **so that** I am alerted through my preferred channel
-
-```gherkin
-Scenario: configure preferences
-  Given the user opens notification settings
-  When they toggle push/email/WhatsApp per alert type
-  Then the system saves the preferences and applies them to future alerts
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Should Have |
-| Service(s) | notification-service |
-| Dependencies | HU-022 |
-
----
-
-### HU-025 — Mark alert as resolved
-
-> **As** an Owner
-> **I want** to mark an alert as resolved
-> **so that** I can acknowledge I have addressed the issue
-
-```gherkin
-Scenario: resolve alert
-  Given the user views an active alert
-  When they mark it as resolved
-  Then the system updates the alert status to "resolved"
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 2 |
-| Priority | Should Have |
-| Service(s) | notification-service |
-| Dependencies | HU-023 |
-
----
-
-## E7 — Valve Control
+## E5 — Manual Valve Control
 
 ### HU-026 — Close the valve remotely
 
@@ -754,11 +572,449 @@ Scenario: action history
 
 ---
 
+## E6 — Consumption Goals
+
+### HU-018 — Set a monthly consumption goal
+
+> **As** an Owner
+> **I want** to set a monthly water consumption goal in liters
+> **so that** I can track my usage against a target and save water
+
+```gherkin
+Scenario: set goal
+  Given the user selects a place
+  When they set a monthly goal (e.g., 15,000 liters)
+  Then the system saves the goal for the current billing period
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Must Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-013 |
+
+---
+
+### HU-019 — View goal progress
+
+> **As** an Owner
+> **I want** to see how much of my monthly goal I have consumed
+> **so that** I know if I need to reduce my usage
+
+```gherkin
+Scenario: goal progress
+  Given the user has an active goal
+  When they view the goal widget
+  Then the system shows a progress bar with percentage consumed vs. goal
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Must Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-018 |
+
+---
+
+### HU-020 — Receive alert when approaching goal
+
+> **As** an Owner
+> **I want** to be notified when I reach a configurable percentage of my goal
+> **so that** I can adjust my habits before exceeding it
+
+```gherkin
+Scenario: threshold alert
+  Given the user has a goal with a threshold of 80%
+  When consumption reaches 80% of the goal
+  Then the system sends a GoalThresholdReached alert
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 3 |
+| Priority | Must Have |
+| Service(s) | consumption-service, notification-service |
+| Dependencies | HU-018 |
+
+---
+
+### HU-021 — Receive alert when goal is exceeded
+
+> **As** an Owner
+> **I want** to be notified when I exceed my monthly goal
+> **so that** I am aware I have passed my target
+
+```gherkin
+Scenario: goal exceeded
+  Given the user has an active goal
+  When consumption exceeds 100% of the goal
+  Then the system sends a GoalExceeded alert
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 3 |
+| Priority | Must Have |
+| Service(s) | consumption-service, notification-service |
+| Dependencies | HU-018 |
+
+---
+
+## E7 — Alerts & Notifications
+
+### HU-022 — Receive leak detection alert
+
+> **As** an Owner
+> **I want** to be alerted when a possible water leak is detected
+> **so that** I can act before the leak causes significant damage or waste
+
+```gherkin
+Scenario: leak suspected
+  Given continuous flow is detected for more than 30 minutes during inactivity hours
+  When the leak detector evaluates the readings
+  Then the system creates a LeakSuspected alert and notifies the user
+
+Scenario: normal continuous flow
+  Given continuous flow during daytime active hours
+  When the leak detector evaluates the readings
+  Then no alert is created
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 8 |
+| Priority | Must Have |
+| Service(s) | consumption-service, notification-service |
+| Dependencies | HU-013 |
+
+---
+
+### HU-023 — View alert history
+
+> **As** an Owner
+> **I want** to see a list of all alerts I have received
+> **so that** I can review past events and their resolution
+
+```gherkin
+Scenario: alert list
+  Given the user has received alerts
+  When they open the alert history
+  Then the system shows a chronological list with type, timestamp, and status
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 3 |
+| Priority | Should Have |
+| Service(s) | notification-service |
+| Dependencies | HU-022 |
+
+---
+
+### HU-024 — Configure notification preferences
+
+> **As** an Owner
+> **I want** to choose how I receive notifications (push, email, WhatsApp)
+> **so that** I am alerted through my preferred channel
+
+```gherkin
+Scenario: configure preferences
+  Given the user opens notification settings
+  When they toggle push/email/WhatsApp per alert type
+  Then the system saves the preferences and applies them to future alerts
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Should Have |
+| Service(s) | notification-service |
+| Dependencies | HU-022 |
+
+---
+
+### HU-025 — Mark alert as resolved
+
+> **As** an Owner
+> **I want** to mark an alert as resolved
+> **so that** I can acknowledge I have addressed the issue
+
+```gherkin
+Scenario: resolve alert
+  Given the user views an active alert
+  When they mark it as resolved
+  Then the system updates the alert status to "resolved"
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 2 |
+| Priority | Should Have |
+| Service(s) | notification-service |
+| Dependencies | HU-023 |
+
+---
+
 # Entrega 3 — Social & Billing
 
 ---
 
-## E8 — Member Management
+## E8 — Utility Bill Management
+
+### HU-034 — Register a water bill
+
+> **As** an Owner
+> **I want** to register the data from my water bill
+> **so that** I can compare what the utility charged vs. what my sensor measured
+
+```gherkin
+Scenario: register bill
+  Given the user enters amount, billing period, liters billed, and provider
+  When they submit the bill
+  Then the system stores the bill record linked to the place
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Must Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-007 |
+
+---
+
+### HU-035 — Compare bill vs. sensor measurement
+
+> **As** an Owner
+> **I want** to see a side-by-side comparison of my bill and sensor data
+> **so that** I can determine if I am being overcharged
+
+```gherkin
+Scenario: bill comparison
+  Given the user has a bill and sensor data for the same period
+  When they open the comparison view
+  Then the system shows billed liters vs. sensor liters, with difference highlighted
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 8 |
+| Priority | Must Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-034, HU-014 |
+
+---
+
+### HU-036 — View bill history
+
+> **As** an Owner
+> **I want** to see a list of all bills I have registered
+> **so that** I can track my water expenses over time
+
+```gherkin
+Scenario: bill list
+  Given the user has registered bills
+  When they open the bill history
+  Then the system shows a chronological list with amount, period, and comparison status
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 3 |
+| Priority | Should Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-034 |
+
+---
+
+### HU-037 — Receive alert for bill discrepancy
+
+> **As** an Owner
+> **I want** to be alerted when there is a significant difference between my bill and sensor
+> **so that** I can file a complaint with the utility company
+
+```gherkin
+Scenario: discrepancy alert
+  Given the difference between billed and measured liters exceeds the threshold
+  When the comparison is calculated
+  Then the system creates a discrepancy alert and notifies the user
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Should Have |
+| Service(s) | consumption-service, notification-service |
+| Dependencies | HU-035 |
+
+---
+
+## E9 — Tariffs & Measurement Units
+
+### HU-038 — Configure water tariff for a place
+
+> **As** an Owner
+> **I want** to configure the water tariff (rate per m³) for my place
+> **so that** the system can estimate my cost from sensor data
+
+```gherkin
+Scenario: set tariff
+  Given the user enters rate per m³, stratum, and provider
+  When they save the tariff
+  Then the system stores it linked to the place
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Should Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-007 |
+
+---
+
+### HU-039 — View estimated cost from sensor data
+
+> **As** an Owner
+> **I want** to see an estimated cost for my current consumption
+> **so that** I can predict what my next bill will be
+
+```gherkin
+Scenario: cost estimate
+  Given the place has a configured tariff and consumption data
+  When the user views the cost estimate widget
+  Then the system shows: liters consumed × tariff rate = estimated cost
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Should Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-038 |
+
+---
+
+### HU-040 — Tariff updates apply to future estimates only
+
+> **As** an Owner
+> **I want** tariff changes to only affect future estimates
+> **so that** historical cost calculations remain accurate
+
+```gherkin
+Scenario: tariff update
+  Given the user updates the tariff
+  When they save the new rate
+  Then future estimates use the new rate
+  And historical estimates keep the old rate
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 2 |
+| Priority | Could Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-038 |
+
+---
+
+## E10 — Automatic Valve Shutoff
+
+### HU-041 — Configure automatic shutoff rule
+
+> **As** an Owner
+> **I want** to define rules that automatically close the valve
+> **so that** the system can shut off water when a leak is detected or a goal is exceeded
+
+```gherkin
+Scenario: create rule
+  Given the user selects a trigger (e.g., LeakSuspected, GoalExceeded)
+  When they enable the rule
+  Then the system saves the shutoff rule for the place
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 8 |
+| Priority | Must Have |
+| Service(s) | valve-service |
+| Dependencies | HU-026, HU-022 |
+
+---
+
+### HU-042 — Automatic shutoff activates on rule trigger
+
+> **As** an Owner
+> **I want** the valve to close automatically when a rule is triggered
+> **so that** water damage is minimized without manual intervention
+
+```gherkin
+Scenario: auto-shutoff triggered
+  Given a shutoff rule is active for LeakSuspected
+  When a LeakSuspected event is published
+  Then the system closes the valve, sends an alert, and logs the action as "automatic"
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Must Have |
+| Service(s) | valve-service, notification-service |
+| Dependencies | HU-041 |
+
+---
+
+### HU-043 — Disable automatic shutoff
+
+> **As** an Owner
+> **I want** to deactivate automatic shutoff rules
+> **so that** I can return to manual-only valve control
+
+```gherkin
+Scenario: disable rule
+  Given the user has an active shutoff rule
+  When they disable it
+  Then the rule is deactivated and the valve stays in its current state
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 2 |
+| Priority | Should Have |
+| Service(s) | valve-service |
+| Dependencies | HU-041 |
+
+---
+
+### HU-044 — Reopen valve after auto-shutoff (manual only)
+
+> **As** an Owner
+> **I want** the valve to never auto-reopen after an automatic shutoff
+> **so that** I must consciously verify the situation before restoring water
+
+```gherkin
+Scenario: manual reopen after auto-shutoff
+  Given the valve was closed by an automatic rule
+  When the owner sends a manual open command
+  Then the valve reopens and the action is logged as "manual override"
+
+Scenario: no auto-reopen
+  Given the valve was closed by an automatic rule
+  Then the valve remains closed until a manual open command is issued
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 3 |
+| Priority | Must Have |
+| Service(s) | valve-service |
+| Dependencies | HU-042, HU-027 |
+
+---
+
+## E11 — Shared Users (Owner / Guest)
 
 ### HU-030 — Invite a member to a place
 
@@ -854,264 +1110,125 @@ Scenario: member alert
 
 ---
 
-## E9 — Bill Management
+## E12 — Shared Users (Owner / Collaborator)
 
-### HU-034 — Register a water bill
-
-> **As** an Owner
-> **I want** to register the data from my water bill
-> **so that** I can compare what the utility charged vs. what my sensor measured
-
-```gherkin
-Scenario: register bill
-  Given the user enters amount, billing period, liters billed, and provider
-  When they submit the bill
-  Then the system stores the bill record linked to the place
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Must Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-007 |
+> User stories for this epic will be defined during sprint planning for Entrega 3.
+> This epic covers inviting collaborators with extended permissions (beyond read-only guest access) to a place.
 
 ---
 
-### HU-035 — Compare bill vs. sensor measurement
-
-> **As** an Owner
-> **I want** to see a side-by-side comparison of my bill and sensor data
-> **so that** I can determine if I am being overcharged
-
-```gherkin
-Scenario: bill comparison
-  Given the user has a bill and sensor data for the same period
-  When they open the comparison view
-  Then the system shows billed liters vs. sensor liters, with difference highlighted
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 8 |
-| Priority | Must Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-034, HU-014 |
-
----
-
-### HU-036 — View bill history
-
-> **As** an Owner
-> **I want** to see a list of all bills I have registered
-> **so that** I can track my water expenses over time
-
-```gherkin
-Scenario: bill list
-  Given the user has registered bills
-  When they open the bill history
-  Then the system shows a chronological list with amount, period, and comparison status
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 3 |
-| Priority | Should Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-034 |
-
----
-
-### HU-037 — Receive alert for bill discrepancy
-
-> **As** an Owner
-> **I want** to be alerted when there is a significant difference between my bill and sensor
-> **so that** I can file a complaint with the utility company
-
-```gherkin
-Scenario: discrepancy alert
-  Given the difference between billed and measured liters exceeds the threshold
-  When the comparison is calculated
-  Then the system creates a discrepancy alert and notifies the user
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Should Have |
-| Service(s) | consumption-service, notification-service |
-| Dependencies | HU-035 |
-
----
-
-## E10 — Tariff Configuration
-
-### HU-038 — Configure water tariff for a place
-
-> **As** an Owner
-> **I want** to configure the water tariff (rate per m³) for my place
-> **so that** the system can estimate my cost from sensor data
-
-```gherkin
-Scenario: set tariff
-  Given the user enters rate per m³, stratum, and provider
-  When they save the tariff
-  Then the system stores it linked to the place
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Should Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-007 |
-
----
-
-### HU-039 — View estimated cost from sensor data
-
-> **As** an Owner
-> **I want** to see an estimated cost for my current consumption
-> **so that** I can predict what my next bill will be
-
-```gherkin
-Scenario: cost estimate
-  Given the place has a configured tariff and consumption data
-  When the user views the cost estimate widget
-  Then the system shows: liters consumed × tariff rate = estimated cost
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Should Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-038 |
-
----
-
-### HU-040 — Tariff updates apply to future estimates only
-
-> **As** an Owner
-> **I want** tariff changes to only affect future estimates
-> **so that** historical cost calculations remain accurate
-
-```gherkin
-Scenario: tariff update
-  Given the user updates the tariff
-  When they save the new rate
-  Then future estimates use the new rate
-  And historical estimates keep the old rate
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 2 |
-| Priority | Could Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-038 |
-
----
-
-## E11 — Automatic Shutoff
-
-### HU-041 — Configure automatic shutoff rule
-
-> **As** an Owner
-> **I want** to define rules that automatically close the valve
-> **so that** the system can shut off water when a leak is detected or a goal is exceeded
-
-```gherkin
-Scenario: create rule
-  Given the user selects a trigger (e.g., LeakSuspected, GoalExceeded)
-  When they enable the rule
-  Then the system saves the shutoff rule for the place
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 8 |
-| Priority | Must Have |
-| Service(s) | valve-service |
-| Dependencies | HU-026, HU-022 |
-
----
-
-### HU-042 — Automatic shutoff activates on rule trigger
-
-> **As** an Owner
-> **I want** the valve to close automatically when a rule is triggered
-> **so that** water damage is minimized without manual intervention
-
-```gherkin
-Scenario: auto-shutoff triggered
-  Given a shutoff rule is active for LeakSuspected
-  When a LeakSuspected event is published
-  Then the system closes the valve, sends an alert, and logs the action as "automatic"
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Must Have |
-| Service(s) | valve-service, notification-service |
-| Dependencies | HU-041 |
-
----
-
-### HU-043 — Disable automatic shutoff
-
-> **As** an Owner
-> **I want** to deactivate automatic shutoff rules
-> **so that** I can return to manual-only valve control
-
-```gherkin
-Scenario: disable rule
-  Given the user has an active shutoff rule
-  When they disable it
-  Then the rule is deactivated and the valve stays in its current state
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 2 |
-| Priority | Should Have |
-| Service(s) | valve-service |
-| Dependencies | HU-041 |
-
----
-
-### HU-044 — Reopen valve after auto-shutoff (manual only)
-
-> **As** an Owner
-> **I want** the valve to never auto-reopen after an automatic shutoff
-> **so that** I must consciously verify the situation before restoring water
-
-```gherkin
-Scenario: manual reopen after auto-shutoff
-  Given the valve was closed by an automatic rule
-  When the owner sends a manual open command
-  Then the valve reopens and the action is logged as "manual override"
-
-Scenario: no auto-reopen
-  Given the valve was closed by an automatic rule
-  Then the valve remains closed until a manual open command is issued
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 3 |
-| Priority | Must Have |
-| Service(s) | valve-service |
-| Dependencies | HU-042, HU-027 |
-
----
 
 # Entrega 4 — Administration & Analytics
 
 ---
 
-## E12 — Admin Panel
+## E13 — Downloadable Reports
+
+### HU-049 — View monthly consumption report
+
+> **As** an Owner
+> **I want** to see a detailed monthly consumption report
+> **so that** I can analyze my usage with charts and comparisons to previous months
+
+```gherkin
+Scenario: monthly report
+  Given the user has at least 2 months of data
+  When they open the monthly report
+  Then the system shows consumption summary, charts, and month-over-month comparison
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Should Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-014 |
+
+---
+
+### HU-050 — View water savings report
+
+> **As** an Owner
+> **I want** to see a savings report showing how I compare to my goals over time
+> **so that** I can track my conservation progress
+
+```gherkin
+Scenario: savings report
+  Given the user has active goals and historical consumption
+  When they open the savings report
+  Then the system shows savings vs. goal trend over the last 6 months
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Could Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-018, HU-014 |
+
+---
+
+### HU-051 — Download report as PDF
+
+> **As** an Owner
+> **I want** to download my consumption report as a PDF
+> **so that** I can share it or keep a physical record
+
+```gherkin
+Scenario: PDF export
+  Given the user is viewing a monthly or savings report
+  When they click "Download PDF"
+  Then the system generates and downloads a formatted PDF
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Could Have |
+| Service(s) | consumption-service |
+| Dependencies | HU-049 |
+
+---
+
+### HU-052 — View consumption ranking across places
+
+> **As** an Owner with multiple places
+> **I want** to see a ranking of consumption across all my places
+> **so that** I know which location consumes the most
+
+```gherkin
+Scenario: consumption ranking
+  Given the user has 2+ places with active devices
+  When they open the ranking view
+  Then the system shows places sorted by consumption (highest first)
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 3 |
+| Priority | Could Have |
+| Service(s) | consumption-service, place-service |
+| Dependencies | HU-053 |
+
+---
+
+## E14 — Savings Tips
+
+> User stories for this epic will be defined during sprint planning for Entrega 4.
+> This epic covers generic water-saving recommendations displayed to users, differentiated by place type (residential / commercial).
+
+---
+
+
+## E15 — Preloaded Tariffs by Country
+
+> User stories for this epic will be defined during sprint planning for Entrega 4.
+> This epic covers pre-loaded tariff catalogs for Colombia (by city and stratum), Ecuador (by city and service category), and the United States (by state and water district).
+
+---
+
+
+## E16 — Admin Panel
 
 ### HU-045 — Admin views all registered users
 
@@ -1255,97 +1372,7 @@ Scenario: deactivate recommendation
 
 ---
 
-## E13 — Reports & Analytics
-
-### HU-049 — View monthly consumption report
-
-> **As** an Owner
-> **I want** to see a detailed monthly consumption report
-> **so that** I can analyze my usage with charts and comparisons to previous months
-
-```gherkin
-Scenario: monthly report
-  Given the user has at least 2 months of data
-  When they open the monthly report
-  Then the system shows consumption summary, charts, and month-over-month comparison
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Should Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-014 |
-
----
-
-### HU-050 — View water savings report
-
-> **As** an Owner
-> **I want** to see a savings report showing how I compare to my goals over time
-> **so that** I can track my conservation progress
-
-```gherkin
-Scenario: savings report
-  Given the user has active goals and historical consumption
-  When they open the savings report
-  Then the system shows savings vs. goal trend over the last 6 months
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Could Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-018, HU-014 |
-
----
-
-### HU-051 — Download report as PDF
-
-> **As** an Owner
-> **I want** to download my consumption report as a PDF
-> **so that** I can share it or keep a physical record
-
-```gherkin
-Scenario: PDF export
-  Given the user is viewing a monthly or savings report
-  When they click "Download PDF"
-  Then the system generates and downloads a formatted PDF
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Could Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-049 |
-
----
-
-### HU-052 — View consumption ranking across places
-
-> **As** an Owner with multiple places
-> **I want** to see a ranking of consumption across all my places
-> **so that** I know which location consumes the most
-
-```gherkin
-Scenario: consumption ranking
-  Given the user has 2+ places with active devices
-  When they open the ranking view
-  Then the system shows places sorted by consumption (highest first)
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 3 |
-| Priority | Could Have |
-| Service(s) | consumption-service, place-service |
-| Dependencies | HU-053 |
-
----
-
-## E14 — Multi-place
+## Multi-place Extensions (extends E2 / E3)
 
 ### HU-053 — Register multiple places
 

@@ -9,7 +9,7 @@
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [user-stories.md](./user-stories.md) | Complete backlog: 56 user stories across 14 epics and 4 Entregas, with Gherkin acceptance criteria | Complete |
+| [user-stories.md](./user-stories.md) | Complete backlog: 58 user stories across 16 epics and 4 Entregas, with Gherkin acceptance criteria | Complete |
 | [non-functional.md](./non-functional.md) | 8 NFRs: performance, availability, scalability, security, IoT reliability, observability, maintainability, deployment | Complete |
 | [traceability-matrix.md](./traceability-matrix.md) | 19 functional requirements mapped to 56 HUs, services, test files, and delivery | Complete |
 
@@ -21,8 +21,8 @@
 |--------|-------|
 | Functional requirements | 19 (FR-001 to FR-019) |
 | Non-functional requirements | 8 (NFR-001 to NFR-008) |
-| User stories | 56 (HU-001 to HU-056) |
-| Epics | 14 (E1 to E14) |
+| User stories | 58 (HU-001 to HU-058) |
+| Epics | 16 (E1 to E16) |
 | Planned test files | 32 |
 | Services involved | 7 (api-gateway + 6 domain services hosting 11 bounded contexts) |
 

@@ -25,8 +25,8 @@ All services use a single SQL Server instance (`sy_water_db`). Each service owns
 | `iam` | auth-service | users, verification_tokens, sessions, login_attempts | MVP |
 | `place` | place-service | places, members, invitations | MVP (members/invitations: Entrega 3) |
 | `device` | device-service | devices, readings | MVP |
-| `consumption` | consumption-service | consumption_records, goals, bills, tariffs | MVP (goals: E2, bills/tariffs: E3) |
-| `valve` | valve-service | valves, valve_actions, shutoff_rules | Entrega 2 (shutoff_rules: E3) |
+| `consumption` | consumption-service | consumption_records, goals, bills, tariffs | MVP (goals: E6, bills/tariffs: E8–E9) |
+| `valve` | valve-service | valves, valve_actions, shutoff_rules | Entrega 2 (shutoff_rules: E10) |
 | `notification` | notification-service | alerts, notification_preferences | Entrega 2 |
 
 ---
