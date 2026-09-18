@@ -9,11 +9,11 @@
 
 | Entrega | Epics | User stories | Story points | Status |
 |---------|-------|-------------|-------------|--------|
-| Entrega 1 (MVP) | E1–E4 | HU-001 to HU-017 (17) | ~80 SP | Planned |
-| Entrega 2 (Smart) | E5–E7 | HU-018 to HU-029 (12) | ~56 SP | Planned |
-| Entrega 3 (Social) | E8–E12 | HU-030 to HU-044 (15) | ~65 SP | Planned |
-| Entrega 4 (Admin) | E13–E16 | HU-045 to HU-058 (14) | ~56 SP | Planned |
-| **Total** | **16** | **58** | **~257 SP** | |
+| Entrega 1 (MVP) | E1–E4 | HU-001 to HU-018 (18) | ~85 SP | Planned |
+| Entrega 2 (Smart) | E5–E7 | HU-019 to HU-030 (12) | ~56 SP | Planned |
+| Entrega 3 (Social) | E8–E12 | HU-031 to HU-045 (15) | ~65 SP | Planned |
+| Entrega 4 (Admin) | E13–E16 | HU-046 to HU-059 (14) | ~56 SP | Planned |
+| **Total** | **16** | **59** | **~262 SP** | |
 
 ---
 
@@ -80,7 +80,44 @@ Scenario: duplicate email
 
 ---
 
-### HU-002 — Login with email and password
+### HU-002 — Register a home/place
+
+> **As** an unregistered user who just created an account
+> **I want** to register my first home or place with its location details
+> **so that** I can link a device to it and start monitoring water consumption
+
+```gherkin
+Scenario: create home/place
+  Given the user provides a reference name, address, country, department/state, city, stratum, and number of inhabitants
+  When they submit the place registration
+  Then the system creates the place linked to the user as owner
+
+Scenario: duplicate home name
+  Given the user already has a place with the same reference name
+  When they submit the place registration
+  Then the system rejects with "place name already exists for this user"
+
+Scenario: invalid address
+  Given the address is not valid for the selected country
+  When they submit the form
+  Then the system rejects with a validation error
+
+Scenario: missing required fields
+  Given the user omits a required field (name, address, or country)
+  When they submit the form
+  Then the system rejects with a validation error
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Must Have |
+| Service(s) | place-service |
+| Dependencies | HU-001 |
+
+---
+
+### HU-003 — Login with email and password
 
 > **As** a registered user
 > **I want** to log in with my email and password
@@ -107,7 +144,7 @@ Scenario: invalid credentials
 
 ---
 
-### HU-003 — Login with Google OAuth
+### HU-004 — Login with Google OAuth
 
 > **As** a user
 > **I want** to log in using my Google account
@@ -134,17 +171,17 @@ Scenario: Google sign-in (existing user)
 
 ---
 
-### HU-004 — Recover password
+### HU-005 — Recover password
 
 > **As** a registered user
 > **I want** to reset my password via email or phone number
 > **so that** I can regain access if I forget my credentials
 
 ```gherkin
-Scenario: password reset request via email
-  Given the user provides a registered email
+Scenario: password reset request via email or phone
+  Given the user provides a registered email or phone number
   When they request a password reset
-  Then the system sends a reset link with a single-use, 30-minute token
+  Then the system sends a reset link (email) or reset code (SMS) with a single-use, 15-minute token
 
 Scenario: password reset request via phone
   Given the user provides a registered phone number
@@ -155,6 +192,11 @@ Scenario: password reset with valid token
   Given the user clicks a valid, non-expired reset link
   When they submit a new password that meets the policy (HU-001)
   Then the system updates the password and invalidates all existing sessions
+
+Scenario: token expiration
+  Given the reset link or code was issued more than 15 minutes ago
+  When the user attempts to use it
+  Then the system rejects the request and requires a new password reset
 ```
 
 | Field | Value |
@@ -166,7 +208,7 @@ Scenario: password reset with valid token
 
 ---
 
-### HU-005 — View and edit my profile
+### HU-006 — View and edit my profile
 
 > **As** a registered user
 > **I want** to view and update my profile information
@@ -184,11 +226,11 @@ Scenario: edit profile
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | auth-service |
-| Dependencies | HU-002 |
+| Dependencies | HU-003 |
 
 ---
 
-### HU-006 — Delete my account
+### HU-007 — Delete my account
 
 > **As** a registered user
 > **I want** to delete my account
@@ -207,13 +249,13 @@ Scenario: account deletion
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | auth-service, device-service |
-| Dependencies | HU-002 |
+| Dependencies | HU-003 |
 
 ---
 
 ## E2 — Place Management
 
-### HU-007 — Register a place
+### HU-008 — Register a place
 
 > **As** an Owner
 > **I want** to register a place (home or business) with its location details
@@ -246,11 +288,11 @@ Scenario: missing required fields
 | Story Points | 5 |
 | Priority | Must Have |
 | Service(s) | place-service |
-| Dependencies | HU-002 |
+| Dependencies | HU-003 |
 
 ---
 
-### HU-008 — Edit place information
+### HU-009 — Edit place information
 
 > **As** an Owner
 > **I want** to edit my place's information
@@ -268,11 +310,11 @@ Scenario: update place
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | place-service |
-| Dependencies | HU-007 |
+| Dependencies | HU-008 |
 
 ---
 
-### HU-009 — Delete a place
+### HU-010 — Delete a place
 
 > **As** an Owner
 > **I want** to delete a place
@@ -291,13 +333,13 @@ Scenario: delete place
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | place-service, device-service |
-| Dependencies | HU-007 |
+| Dependencies | HU-008 |
 
 ---
 
 ## E3 — IoT Device Linking
 
-### HU-010 — Link a device to a place
+### HU-011 — Link a device to a place
 
 > **As** an Owner
 > **I want** to link my ESP32 device to a place using its serial number
@@ -321,11 +363,11 @@ Scenario: device already linked
 | Story Points | 8 |
 | Priority | Must Have |
 | Service(s) | device-service |
-| Dependencies | HU-007 |
+| Dependencies | HU-008 |
 
 ---
 
-### HU-011 — View device status
+### HU-012 — View device status
 
 > **As** an Owner
 > **I want** to see the current status of my device
@@ -333,12 +375,12 @@ Scenario: device already linked
 
 ```gherkin
 Scenario: device online
-  Given the device has sent a reading in the last 5 minutes
+  Given the device has sent a reading in the last 10 minutes
   When the user views the device status
   Then the system shows "Online" with the last reading timestamp
 
 Scenario: device offline
-  Given no reading has been received in the last 5 minutes
+  Given no reading has been received in the last 10 minutes
   When the user views the device status
   Then the system shows "Offline" with the last known reading timestamp
 ```
@@ -348,11 +390,11 @@ Scenario: device offline
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | device-service |
-| Dependencies | HU-010 |
+| Dependencies | HU-011 |
 
 ---
 
-### HU-012 — Unlink a device
+### HU-013 — Unlink a device
 
 > **As** an Owner
 > **I want** to unlink a device from a place
@@ -371,13 +413,13 @@ Scenario: unlink device
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | device-service |
-| Dependencies | HU-010 |
+| Dependencies | HU-011 |
 
 ---
 
 ## E4 — Real-time Consumption Monitoring
 
-### HU-013 — View current consumption (today)
+### HU-014 — View current consumption (today)
 
 > **As** an Owner
 > **I want** to see how much water I have consumed today in real time
@@ -400,11 +442,11 @@ Scenario: no device linked
 | Story Points | 8 |
 | Priority | Must Have |
 | Service(s) | consumption-service, device-service |
-| Dependencies | HU-010 |
+| Dependencies | HU-011 |
 
 ---
 
-### HU-014 — View consumption history
+### HU-015 — View consumption history
 
 > **As** an Owner
 > **I want** to see my consumption history by day, week, and month
@@ -422,11 +464,11 @@ Scenario: historical view
 | Story Points | 8 |
 | Priority | Must Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-013 |
+| Dependencies | HU-014 |
 
 ---
 
-### HU-015 — View current flow rate
+### HU-016 — View current flow rate
 
 > **As** an Owner
 > **I want** to see the current flow rate in liters per minute
@@ -444,11 +486,11 @@ Scenario: active flow
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | consumption-service, device-service |
-| Dependencies | HU-010 |
+| Dependencies | HU-011 |
 
 ---
 
-### HU-016 — Export consumption data
+### HU-017 — Export consumption data
 
 > **As** an Owner
 > **I want** to download my consumption data as a CSV file
@@ -466,11 +508,11 @@ Scenario: export CSV
 | Story Points | 5 |
 | Priority | Could Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-014 |
+| Dependencies | HU-015 |
 
 ---
 
-### HU-017 — View consumption summary on home screen
+### HU-018 — View consumption summary on home screen
 
 > **As** an Owner
 > **I want** to see a quick consumption summary when I open the app
@@ -488,7 +530,7 @@ Scenario: home screen summary
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-013 |
+| Dependencies | HU-014 |
 
 ---
 
@@ -498,18 +540,29 @@ Scenario: home screen summary
 
 ## E5 — Manual Valve Control
 
-### HU-026 — Close the valve remotely
+### HU-027 — Close the valve remotely
 
 > **As** an Owner
 > **I want** to close the water valve from my phone
 > **so that** I can shut off the water supply in an emergency or when leaving home
 
 ```gherkin
-Scenario: close valve
+Scenario: request confirmation code
   Given the device is online and the valve is open
-  When the user sends a close command
+  When the user initiates a close command
+  Then the system sends a confirmation code to the user via their preferred channel (email or SMS)
+  And displays a prompt for the user to enter the code
+
+Scenario: close valve with confirmation
+  Given the user has received and enters a valid confirmation code
+  When they confirm the close action
   Then the system sends a MQTT command to the device
   And the valve closes and the status updates to "closed"
+
+Scenario: show water shutoff warning
+  Given the user initiates a valve closure
+  When the confirmation prompt appears
+  Then the system displays an explicit warning: "This location will be left without water"
 
 Scenario: device offline
   Given the device is offline
@@ -521,12 +574,12 @@ Scenario: device offline
 |-------|-------|
 | Story Points | 8 |
 | Priority | Must Have |
-| Service(s) | valve-service, device-service |
-| Dependencies | HU-010 |
+| Service(s) | valve-service, device-service, notification-service |
+| Dependencies | HU-011 |
 
 ---
 
-### HU-027 — Open the valve remotely
+### HU-028 — Open the valve remotely
 
 > **As** an Owner
 > **I want** to open the water valve from my phone
@@ -544,11 +597,11 @@ Scenario: open valve
 | Story Points | 8 |
 | Priority | Must Have |
 | Service(s) | valve-service, device-service |
-| Dependencies | HU-026 |
+| Dependencies | HU-027 |
 
 ---
 
-### HU-028 — View valve status
+### HU-029 — View valve status
 
 > **As** an Owner
 > **I want** to see whether my valve is currently open or closed
@@ -566,11 +619,11 @@ Scenario: valve status
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | valve-service |
-| Dependencies | HU-026 |
+| Dependencies | HU-027 |
 
 ---
 
-### HU-029 — View valve action history
+### HU-030 — View valve action history
 
 > **As** an Owner
 > **I want** to see a log of all valve open/close actions
@@ -588,13 +641,13 @@ Scenario: action history
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | valve-service |
-| Dependencies | HU-026 |
+| Dependencies | HU-027 |
 
 ---
 
 ## E6 — Consumption Goals
 
-### HU-018 — Set a monthly consumption goal
+### HU-019 — Set a monthly consumption goal
 
 > **As** an Owner
 > **I want** to set a monthly water consumption goal in liters
@@ -612,11 +665,11 @@ Scenario: set goal
 | Story Points | 5 |
 | Priority | Must Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-013 |
+| Dependencies | HU-014 |
 
 ---
 
-### HU-019 — View goal progress
+### HU-020 — View goal progress
 
 > **As** an Owner
 > **I want** to see how much of my monthly goal I have consumed
@@ -634,11 +687,11 @@ Scenario: goal progress
 | Story Points | 5 |
 | Priority | Must Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-018 |
+| Dependencies | HU-019 |
 
 ---
 
-### HU-020 — Receive alert when approaching goal
+### HU-021 — Receive alert when approaching goal
 
 > **As** an Owner
 > **I want** to be notified when I reach a configurable percentage of my goal
@@ -656,11 +709,11 @@ Scenario: threshold alert
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | consumption-service, notification-service |
-| Dependencies | HU-018 |
+| Dependencies | HU-019 |
 
 ---
 
-### HU-021 — Receive alert when goal is exceeded
+### HU-022 — Receive alert when goal is exceeded
 
 > **As** an Owner
 > **I want** to be notified when I exceed my monthly goal
@@ -678,13 +731,13 @@ Scenario: goal exceeded
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | consumption-service, notification-service |
-| Dependencies | HU-018 |
+| Dependencies | HU-019 |
 
 ---
 
 ## E7 — Alerts & Notifications
 
-### HU-022 — Receive leak detection alert
+### HU-023 — Receive leak detection alert
 
 > **As** an Owner
 > **I want** to be alerted when a possible water leak is detected
@@ -707,11 +760,11 @@ Scenario: normal continuous flow
 | Story Points | 8 |
 | Priority | Must Have |
 | Service(s) | consumption-service, notification-service |
-| Dependencies | HU-013 |
+| Dependencies | HU-014 |
 
 ---
 
-### HU-023 — View alert history
+### HU-024 — View alert history
 
 > **As** an Owner
 > **I want** to see a list of all alerts I have received
@@ -729,11 +782,11 @@ Scenario: alert list
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | notification-service |
-| Dependencies | HU-022 |
+| Dependencies | HU-023 |
 
 ---
 
-### HU-024 — Configure notification preferences
+### HU-025 — Configure notification preferences
 
 > **As** an Owner
 > **I want** to choose how I receive notifications (push, email, WhatsApp)
@@ -751,11 +804,11 @@ Scenario: configure preferences
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | notification-service |
-| Dependencies | HU-022 |
+| Dependencies | HU-023 |
 
 ---
 
-### HU-025 — Mark alert as resolved
+### HU-026 — Mark alert as resolved
 
 > **As** an Owner
 > **I want** to mark an alert as resolved
@@ -773,7 +826,7 @@ Scenario: resolve alert
 | Story Points | 2 |
 | Priority | Should Have |
 | Service(s) | notification-service |
-| Dependencies | HU-023 |
+| Dependencies | HU-024 |
 
 ---
 
@@ -783,7 +836,7 @@ Scenario: resolve alert
 
 ## E8 — Utility Bill Management
 
-### HU-034 — Register a water bill
+### HU-035 — Register a water bill
 
 > **As** an Owner
 > **I want** to register the data from my water bill
@@ -801,11 +854,11 @@ Scenario: register bill
 | Story Points | 5 |
 | Priority | Must Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-007 |
+| Dependencies | HU-008 |
 
 ---
 
-### HU-035 — Compare bill vs. sensor measurement
+### HU-036 — Compare bill vs. sensor measurement
 
 > **As** an Owner
 > **I want** to see a side-by-side comparison of my bill and sensor data
@@ -823,11 +876,11 @@ Scenario: bill comparison
 | Story Points | 8 |
 | Priority | Must Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-034, HU-014 |
+| Dependencies | HU-035, HU-015 |
 
 ---
 
-### HU-036 — View bill history
+### HU-037 — View bill history
 
 > **As** an Owner
 > **I want** to see a list of all bills I have registered
@@ -845,11 +898,11 @@ Scenario: bill list
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-034 |
+| Dependencies | HU-035 |
 
 ---
 
-### HU-037 — Receive alert for bill discrepancy
+### HU-038 — Receive alert for bill discrepancy
 
 > **As** an Owner
 > **I want** to be alerted when there is a significant difference between my bill and sensor
@@ -867,13 +920,13 @@ Scenario: discrepancy alert
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | consumption-service, notification-service |
-| Dependencies | HU-035 |
+| Dependencies | HU-036 |
 
 ---
 
 ## E9 — Tariffs & Measurement Units
 
-### HU-038 — Configure water tariff for a place
+### HU-039 — Configure water tariff for a place
 
 > **As** an Owner
 > **I want** to configure the water tariff (rate per m³) for my place
@@ -891,11 +944,11 @@ Scenario: set tariff
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-007 |
+| Dependencies | HU-008 |
 
 ---
 
-### HU-039 — View estimated cost from sensor data
+### HU-040 — View estimated cost from sensor data
 
 > **As** an Owner
 > **I want** to see an estimated cost for my current consumption
@@ -913,11 +966,11 @@ Scenario: cost estimate
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-038 |
+| Dependencies | HU-039 |
 
 ---
 
-### HU-040 — Tariff updates apply to future estimates only
+### HU-041 — Tariff updates apply to future estimates only
 
 > **As** an Owner
 > **I want** tariff changes to only affect future estimates
@@ -936,13 +989,13 @@ Scenario: tariff update
 | Story Points | 2 |
 | Priority | Could Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-038 |
+| Dependencies | HU-039 |
 
 ---
 
 ## E10 — Automatic Valve Shutoff
 
-### HU-041 — Configure automatic shutoff rule
+### HU-042 — Configure automatic shutoff rule
 
 > **As** an Owner
 > **I want** to define rules that automatically close the valve
@@ -960,33 +1013,51 @@ Scenario: create rule
 | Story Points | 8 |
 | Priority | Must Have |
 | Service(s) | valve-service |
-| Dependencies | HU-026, HU-022 |
+| Dependencies | HU-027, HU-023 |
 
 ---
 
-### HU-042 — Automatic shutoff activates on rule trigger
+### HU-043 — Automatic shutoff activates on rule trigger
 
 > **As** an Owner
 > **I want** the valve to close automatically when a rule is triggered
 > **so that** water damage is minimized without manual intervention
 
 ```gherkin
-Scenario: auto-shutoff triggered
+Scenario: confirmation request sent
   Given a shutoff rule is active for LeakSuspected
   When a LeakSuspected event is published
-  Then the system closes the valve, sends an alert, and logs the action as "automatic"
+  Then the system sends a confirmation request to the user via critical notification channels
+  And waits for the user to confirm (configurable timeout window)
+
+Scenario: auto-shutoff confirmed
+  Given the user receives and confirms the shutoff request
+  When the confirmation is received
+  Then the system closes the valve, sends an alert, and logs the action
+
+Scenario: auto-shutoff not confirmed (timeout)
+  Given a confirmation request was sent
+  When the configurable timeout window expires without user confirmation
+  Then the system does NOT close the valve
+  And keeps the alert active to remind the user
+  And logs the timeout event
+
+Scenario: all process recorded
+  Given any shutoff confirmation flow is triggered
+  When the process completes
+  Then the entire transaction is recorded in the audit log
 ```
 
 | Field | Value |
 |-------|-------|
-| Story Points | 5 |
+| Story Points | 8 |
 | Priority | Must Have |
 | Service(s) | valve-service, notification-service |
-| Dependencies | HU-041 |
+| Dependencies | HU-042 |
 
 ---
 
-### HU-043 — Disable automatic shutoff
+### HU-044 — Disable automatic shutoff
 
 > **As** an Owner
 > **I want** to deactivate automatic shutoff rules
@@ -1004,11 +1075,11 @@ Scenario: disable rule
 | Story Points | 2 |
 | Priority | Should Have |
 | Service(s) | valve-service |
-| Dependencies | HU-041 |
+| Dependencies | HU-042 |
 
 ---
 
-### HU-044 — Reopen valve after auto-shutoff (manual only)
+### HU-045 — Reopen valve after auto-shutoff (manual only)
 
 > **As** an Owner
 > **I want** the valve to never auto-reopen after an automatic shutoff
@@ -1030,13 +1101,13 @@ Scenario: no auto-reopen
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | valve-service |
-| Dependencies | HU-042, HU-027 |
+| Dependencies | HU-043, HU-028 |
 
 ---
 
 ## E11 — Shared Users (Owner / Guest)
 
-### HU-030 — Invite a member to a place
+### HU-031 — Invite a member to a place
 
 > **As** an Owner
 > **I want** to invite someone to my place as a member
@@ -1059,11 +1130,11 @@ Scenario: member already invited
 | Story Points | 5 |
 | Priority | Must Have |
 | Service(s) | place-service, notification-service |
-| Dependencies | HU-007 |
+| Dependencies | HU-008 |
 
 ---
 
-### HU-031 — Member views consumption dashboard
+### HU-032 — Member views consumption dashboard
 
 > **As** a Member
 > **I want** to view the consumption dashboard for a place I was invited to
@@ -1081,11 +1152,11 @@ Scenario: member dashboard
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | consumption-service, place-service |
-| Dependencies | HU-030, HU-013 |
+| Dependencies | HU-031, HU-014 |
 
 ---
 
-### HU-032 — Revoke member access
+### HU-033 — Revoke member access
 
 > **As** an Owner
 > **I want** to remove a member's access to my place
@@ -1104,11 +1175,11 @@ Scenario: revoke access
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | place-service |
-| Dependencies | HU-030 |
+| Dependencies | HU-031 |
 
 ---
 
-### HU-033 — Member receives alerts for the place
+### HU-034 — Member receives alerts for the place
 
 > **As** a Member
 > **I want** to receive alerts for the place I have access to
@@ -1126,7 +1197,7 @@ Scenario: member alert
 | Story Points | 3 |
 | Priority | Could Have |
 | Service(s) | notification-service |
-| Dependencies | HU-030, HU-022 |
+| Dependencies | HU-031, HU-023 |
 
 ---
 
@@ -1144,7 +1215,7 @@ Scenario: member alert
 
 ## E13 — Downloadable Reports
 
-### HU-049 — View monthly consumption report
+### HU-050 — View monthly consumption report
 
 > **As** an Owner
 > **I want** to see a detailed monthly consumption report
@@ -1162,11 +1233,11 @@ Scenario: monthly report
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-014 |
+| Dependencies | HU-015 |
 
 ---
 
-### HU-050 — View water savings report
+### HU-051 — View water savings report
 
 > **As** an Owner
 > **I want** to see a savings report showing how I compare to my goals over time
@@ -1184,11 +1255,11 @@ Scenario: savings report
 | Story Points | 5 |
 | Priority | Could Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-018, HU-014 |
+| Dependencies | HU-019, HU-015 |
 
 ---
 
-### HU-051 — Download report as PDF
+### HU-052 — Download report as PDF
 
 > **As** an Owner
 > **I want** to download my consumption report as a PDF
@@ -1206,11 +1277,11 @@ Scenario: PDF export
 | Story Points | 5 |
 | Priority | Could Have |
 | Service(s) | consumption-service |
-| Dependencies | HU-049 |
+| Dependencies | HU-050 |
 
 ---
 
-### HU-052 — View consumption ranking across places
+### HU-053 — View consumption ranking across places
 
 > **As** an Owner with multiple places
 > **I want** to see a ranking of consumption across all my places
@@ -1228,7 +1299,7 @@ Scenario: consumption ranking
 | Story Points | 3 |
 | Priority | Could Have |
 | Service(s) | consumption-service, place-service |
-| Dependencies | HU-053 |
+| Dependencies | HU-054 |
 
 ---
 
@@ -1250,7 +1321,7 @@ Scenario: consumption ranking
 
 ## E16 — Admin Panel
 
-### HU-045 — Admin views all registered users
+### HU-046 — Admin views all registered users
 
 > **As** an Admin
 > **I want** to see a list of all registered users
@@ -1268,11 +1339,11 @@ Scenario: user list
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | auth-service |
-| Dependencies | HU-002 |
+| Dependencies | HU-003 |
 
 ---
 
-### HU-046 — Admin blocks/unblocks a user
+### HU-047 — Admin blocks/unblocks a user
 
 > **As** an Admin
 > **I want** to block or unblock a user account
@@ -1290,11 +1361,11 @@ Scenario: block user
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | auth-service |
-| Dependencies | HU-045 |
+| Dependencies | HU-046 |
 
 ---
 
-### HU-047 — Admin views all devices
+### HU-048 — Admin views all devices
 
 > **As** an Admin
 > **I want** to see a list of all devices on the platform
@@ -1312,11 +1383,11 @@ Scenario: device list
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | device-service |
-| Dependencies | HU-010 |
+| Dependencies | HU-011 |
 
 ---
 
-### HU-048 — Admin views platform metrics
+### HU-049 — Admin views platform metrics
 
 > **As** an Admin
 > **I want** to see platform-wide metrics
@@ -1334,11 +1405,11 @@ Scenario: metrics dashboard
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | auth-service, device-service, place-service |
-| Dependencies | HU-045, HU-047 |
+| Dependencies | HU-046, HU-048 |
 
 ---
 
-### HU-057 — Admin creates a recommendation
+### HU-058 — Admin creates a recommendation
 
 > **As** an Admin
 > **I want** to create a generic water-saving recommendation
@@ -1365,7 +1436,7 @@ Scenario: invalid recommendation
 
 ---
 
-### HU-058 — Admin edits or deactivates a recommendation
+### HU-059 — Admin edits or deactivates a recommendation
 
 > **As** an Admin
 > **I want** to edit or deactivate an existing recommendation
@@ -1388,13 +1459,13 @@ Scenario: deactivate recommendation
 | Story Points | 3 |
 | Priority | Could Have |
 | Service(s) | notification-service |
-| Dependencies | HU-057 |
+| Dependencies | HU-058 |
 
 ---
 
 ## Multi-place Extensions (extends E2 / E3)
 
-### HU-053 — Register multiple places
+### HU-054 — Register multiple places
 
 > **As** an Owner
 > **I want** to register more than one place
@@ -1412,11 +1483,11 @@ Scenario: second place
 | Story Points | 5 |
 | Priority | Must Have |
 | Service(s) | place-service |
-| Dependencies | HU-007 |
+| Dependencies | HU-008 |
 
 ---
 
-### HU-054 — Switch between places in the app
+### HU-055 — Switch between places in the app
 
 > **As** an Owner with multiple places
 > **I want** to switch between places in the app
@@ -1434,11 +1505,11 @@ Scenario: place switcher
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | place-service |
-| Dependencies | HU-053 |
+| Dependencies | HU-054 |
 
 ---
 
-### HU-055 — View aggregated consumption across places
+### HU-056 — View aggregated consumption across places
 
 > **As** an Owner with multiple places
 > **I want** to see total consumption across all my places
@@ -1456,11 +1527,11 @@ Scenario: aggregated view
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | consumption-service, place-service |
-| Dependencies | HU-053 |
+| Dependencies | HU-054 |
 
 ---
 
-### HU-056 — Manage devices per place
+### HU-057 — Manage devices per place
 
 > **As** an Owner with multiple places
 > **I want** to manage devices independently for each place
@@ -1479,7 +1550,7 @@ Scenario: device per place
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | device-service, place-service |
-| Dependencies | HU-053, HU-010 |
+| Dependencies | HU-054, HU-011 |
 
 ---
 
