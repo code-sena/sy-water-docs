@@ -385,31 +385,6 @@ All events follow this structure:
 
 ---
 
-#### Event: GoalExceeded
-
-| Field | Value |
-|-------|-------|
-| **Bounded Context** | BC-05 Consumption Goals |
-| **Aggregate** | — (domain service: GoalEvaluator) |
-| **Trigger** | Monthly consumption reaches 100% of the defined goal |
-| **Consumers** | BC-08 Alerts & Detection (create GOAL_EXCEEDED alert), BC-07 Valve Control (evaluate auto-shutoff rule) |
-| **Topic** | `consumption.goal.exceeded` |
-| **Version** | v1 |
-
-**Payload:**
-```json
-{
-  "placeId": "uuid",
-  "month": "2026-09",
-  "goalAmount": 15000,
-  "currentAmount": 15200,
-  "percentage": 101,
-  "unit": "LITERS",
-  "daysRemaining": 22
-}
-```
-
----
 
 ### BC-06: Billing & Tariffs Context *(Entrega 3)*
 
@@ -561,7 +536,6 @@ All events follow this structure:
 | DeviceReconnected | BC-03 Device | `device.reconnected` | BC-08 Alerts | v1 | MVP |
 | ReadingReceived | BC-03 Device | `device.reading.received` | BC-04 Monitoring, BC-08 Alerts | v1 | MVP |
 | GoalThresholdReached | BC-05 Goals | `consumption.goal.threshold` | BC-08 Alerts | v1 | 2 |
-| GoalExceeded | BC-05 Goals | `consumption.goal.exceeded` | BC-08 Alerts, BC-07 Valve | v1 | 2 |
 | BillMismatchDetected | BC-06 Billing | `billing.bill.mismatch` | BC-08 Alerts | v1 | 3 |
 | LeakSuspected | BC-08 Alerts | `alerts.leak.suspected` | BC-07 Valve, BC-09 Delivery | v1 | 2 |
 | ValveClosed | BC-07 Valve | `valve.closed` | BC-08 Alerts | v1 | 2 |
@@ -578,7 +552,6 @@ All events follow this structure:
 | ReadingReceived | Check for continuous flow pattern | Evaluate leak detection rules | BC-08 Alerts |
 | DeviceDisconnected | If threshold exceeded, generate alert | CreateAlert (SENSOR_DISCONNECTED) | BC-08 Alerts |
 | GoalThresholdReached | Generate informative alert | CreateAlert (GOAL_WARNING) | BC-08 Alerts |
-| GoalExceeded | Generate important alert + evaluate auto-shutoff | CreateAlert (GOAL_EXCEEDED) + EvaluateShutoffRule | BC-08 Alerts + BC-07 Valve |
 | BillMismatchDetected | Generate important alert | CreateAlert (BILL_MISMATCH) | BC-08 Alerts |
 | LeakSuspected | Generate critical alert + evaluate auto-shutoff | CreateAlert (LEAK_SUSPECTED) + EvaluateShutoffRule | BC-08 Alerts + BC-07 Valve |
 | ValveClosed | Generate critical alert on all channels | CreateAlert (VALVE_CLOSED) | BC-08 Alerts |

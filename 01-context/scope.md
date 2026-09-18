@@ -23,7 +23,7 @@
 | 9 | Real-time consumption | Display current and accumulated consumption with < 1 min latency | E4 |
 | 10 | Period selector | Switch between day, week, and month views | E4 |
 | 11 | Consumption chart | Interactive chart adjusted to selected period (hours/days) | E4 |
-| 12 | Auto-refresh panel | Panel updates automatically every minute; manual refresh available | E4 |
+| 12 | Auto-refresh panel | Panel updates automatically ≥1 min; manual refresh button; last update timestamp | E4 |
 
 ### Included integrations (MVP)
 
@@ -51,15 +51,17 @@
 | 2 | Consumption goals and progress tracking | Depends on having at least one month of historical data | Entrega 2 |
 | 3 | Alerts and notifications (push, email, WhatsApp) | Complex multi-channel system; MVP focuses on real-time visibility | Entrega 2 |
 | 4 | Leak detection alerts | Requires threshold tuning and alert infrastructure | Entrega 2 |
-| 5 | Utility bill registration and comparison | Depends on stable consumption data to compare against | Entrega 3 |
-| 6 | Tariffs and currency configuration | Depends on bill comparison feature | Entrega 3 |
-| 7 | Automatic valve shutoff rules | High-risk feature; requires confirmed manual valve control first | Entrega 3 |
-| 8 | Member/shared user access | Core owner features must be stable before adding shared access | Entrega 3 |
-| 9 | Downloadable PDF/Excel reports | Nice-to-have; core value is real-time visibility | Entrega 4 |
-| 10 | Water saving tips | Generic content; low priority vs. measurement features | Entrega 4 |
-| 11 | Pre-loaded tariff catalogs (CO, EC, US) | Ongoing maintenance cost; manual tariff entry covers the need | Entrega 4 |
-| 12 | Per-fixture consumption breakdown | Hardware limitation: single sensor at main inlet cannot disaggregate | Won't — hardware constraint |
-| 13 | Staging environment | Team of 3; dev + prod is sufficient for now | Future |
+| 5 | Automatic valve shutoff rules | Complements manual valve control and leak detection | Entrega 2 |
+| 6 | Utility bill registration and comparison | Depends on stable consumption data to compare against | Entrega 3 |
+| 7 | Tariffs and currency configuration | Depends on bill comparison feature | Entrega 3 |
+| 8 | Guest access (anonymous via link) | Allows owners to share consumption dashboards | Entrega 3 |
+| 9 | Collaborator access (registered users with permissions) | Core owner features must be stable before adding shared access | Entrega 3 |
+| 10 | Bill payment reminders | Depends on bill registration feature | Entrega 3 |
+| 11 | Downloadable PDF reports | Nice-to-have; core value is real-time visibility | Entrega 4 |
+| 12 | Pre-loaded tariff catalogs (Colombia only) | Colombia covered; Ecuador and USA deferred (Won't for now) | Entrega 4 |
+| 13 | Water saving tips (Admin-managed) | Generic content; managed within Admin Panel | Entrega 4 |
+| 14 | Per-fixture consumption breakdown | Hardware limitation: single sensor at main inlet cannot disaggregate | Won't — hardware constraint |
+| 15 | Staging environment | Team of 3; dev + prod is sufficient for now | Future |
 
 ### What another system / team handles
 

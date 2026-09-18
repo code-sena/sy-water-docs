@@ -479,7 +479,7 @@ INV-VC004: Reopening is always MANUAL origin
 
 ---
 
-### Entity: ValveRule *(Entrega 3)*
+### Entity: ValveRule *(Entrega 2)*
 
 **Aggregate Root:** No (inside Valve aggregate)
 **Description:** An automatic rule that triggers valve closure when a specific condition is met.
@@ -490,7 +490,7 @@ INV-VC004: Reopening is always MANUAL origin
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
 | placeId | BIGINT | Place this rule applies to | Yes | FK cross → places.places |
-| ruleType | enum | LEAK_DETECTION, GOAL_EXCEEDED | Yes | — |
+| ruleType | enum | LEAK_DETECTION (only) | Yes | — |
 | enabled | boolean | Whether the rule is active | Yes | Default: false |
 | requiresConfirmation | boolean | Whether to require user confirmation | Yes | Default: true |
 | confirmationTimeoutMin | int | Minutes before auto-expiry of confirmation | Yes | Default: 10, must be > 0 |
@@ -501,7 +501,7 @@ INV-VC004: Reopening is always MANUAL origin
 **Invariants:**
 
 ```
-INV-VR001: Only one rule per (placeId + ruleType) — unique constraint
+INV-VR001: Only one rule per place (unique: placeId); only LEAK_DETECTION trigger
 INV-VR002: Only the Owner can enable/disable valve rules
 INV-VR003: When a rule triggers, the system sends a confirmation request to the Owner before closing
 ```
@@ -776,7 +776,7 @@ INV-TIP002: Deactivated tips are hidden from users but not deleted
 | TariffCatalog | Entity | BC-06 Billing & Tariffs | billing | No (reference) | 4 |
 | ValveState | Entity | BC-07 Valve Control | valve | Yes | 2 |
 | ValveCommand | Entity | BC-07 Valve Control | valve | No (command log) | 2 |
-| ValveRule | Entity | BC-07 Valve Control | valve | No (inside Valve) | 3 |
+| ValveRule | Entity | BC-07 Valve Control | valve | No (inside Valve) | 2 |
 | AlertTypeConfig | Entity | BC-08 Alerts & Detection | alerts | Yes (seed data) | 2 |
 | AlertEvent | Entity | BC-08 Alerts & Detection | alerts | Yes | 2 |
 | NotificationPreference | Entity | BC-08 Alerts & Detection | alerts | Yes (single-entity) | 2 |

@@ -39,10 +39,11 @@ We build an affordable and accessible tool that turns water consumption from an 
 
 | Role | Who they are | What they do | Entrega |
 |------|-------------|-------------|---------|
-| User (Usuario) | Default role upon accessing the application, before entering a home | Can see existing places or create a new one; can accept invitations to join a place | MVP |
-| Owner (Dueño) | The person who manages the place and pays the bill | Registers, links devices, monitors consumption, controls the valve, sets goals, compares bills, invites members | MVP |
-| Member (Miembro) | A family member, roommate, or employee invited by the Owner | Permissions defined by the Owner: from read-only consumption viewing to performing actions within the app | Entrega 3 |
-| Admin (Administrador) | Platform operator (the development team during university phase) | Views users (no sensitive data), blocks/unblocks users, monitors platform health, creates generic water-saving recommendations | Entrega 4 |
+| User (base) | Newly registered person | Can see places, create new ones, or accept invitations as collaborator. No access to consumption until linked to a place | MVP |
+| Owner (Dueño) | Manages a place; pays the bill | Complete control: consumption, valve, goals, bills, tariffs, alerts, invitations. All permissions. | MVP |
+| Guest (Invitado) | Anonymous visitor via shared link | Read-only consumption and charts. No registration required. No invitations or actions. | Entrega 3 |
+| Collaborator (Colaborador) | Registered user invited by Owner | Permissions defined by Owner per place: partial actions (view/control/alerts). Revocable. | Entrega 3 |
+| Admin (Administrador) | Platform operator (university team) | Views users (no sensitive data), blocks/unblocks accounts, monitors platform metrics, creates/edits recommendations | Entrega 4 |
 
 ---
 

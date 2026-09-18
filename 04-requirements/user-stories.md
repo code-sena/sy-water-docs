@@ -9,11 +9,11 @@
 
 | Entrega | Epics | User stories | Story points | Status |
 |---------|-------|-------------|-------------|--------|
-| Entrega 1 (MVP) | E1–E4 | HU-001 to HU-018 (18) | ~85 SP | Planned |
-| Entrega 2 (Smart) | E5–E7 | HU-019 to HU-030 (12) | ~56 SP | Planned |
-| Entrega 3 (Social) | E8–E12 | HU-031 to HU-045 (15) | ~65 SP | Planned |
-| Entrega 4 (Admin) | E13–E16 | HU-046 to HU-059 (14) | ~56 SP | Planned |
-| **Total** | **16** | **59** | **~262 SP** | |
+| Entrega 1 (MVP) | E1–E4 | HU-001 to HU-016 (16) | ~80 SP | Planned |
+| Entrega 2 (Smart) | E5–E8 | HU-017 to HU-033 (17) | ~74 SP | Planned |
+| Entrega 3 (Social) | E9–E12 | HU-034 to HU-050 (17) | ~73 SP | Planned |
+| Entrega 4 (Admin) | E13–E15 | HU-051 to HU-060 (10) | ~45 SP | Planned |
+| **Total** | **15** | **60** | **~272 SP** | |
 
 ---
 
@@ -28,15 +28,14 @@
 | E5 | Manual Valve Control | 2 | Manual remote open/close of the electrovalve |
 | E6 | Consumption Goals | 2 | Set monthly goals and receive progress alerts |
 | E7 | Alerts & Notifications | 2 | Leak detection, alert history, notification preferences |
-| E8 | Utility Bill Management | 3 | Register bills and compare against sensor data |
-| E9 | Tariffs & Measurement Units | 3 | Configure tariffs for cost estimation |
-| E10 | Automatic Valve Shutoff | 3 | Rule-based automatic valve closure |
-| E11 | Shared Users (Owner / Guest) | 3 | Invite guests to view place consumption data |
-| E12 | Shared Users (Owner / Collaborator) | 3 | Invite collaborators with extended permissions to a place |
-| E13 | Downloadable Reports | 4 | Monthly reports, savings analysis, PDF/CSV export |
-| E14 | Savings Tips | 4 | Generic water-saving recommendations for users |
-| E15 | Preloaded Tariffs by Country | 4 | Pre-loaded tariff catalogs for Colombia, Ecuador, and USA |
-| E16 | Admin Panel | 4 | Platform-wide user/device management and generic recommendations |
+| E8 | Automatic Valve Shutoff | 2 | Rule-based automatic valve closure (LeakSuspected trigger only) |
+| E9 | Guest (Anonymous access) | 3 | Shareable link with read-only consumption access |
+| E10 | Collaborator (Registered access) | 3 | Invited users with Owner-defined permissions per place |
+| E11 | Utility Bill Management | 3 | Register bills, compare against sensor data, payment reminders |
+| E12 | Tariffs & Measurement Units | 3 | Configure tariffs for cost estimation |
+| E13 | Downloadable Reports | 4 | Monthly reports, PDF export |
+| E14 | Admin Panel (includes Savings Tips) | 4 | User/device management, recommendations, platform metrics |
+| E15 | Preloaded Tariffs (Colombia only) | 4 | Pre-loaded tariff catalog for Colombian cities and strata |
 
 ---
 
@@ -426,10 +425,12 @@ Scenario: unlink device
 > **so that** I can make decisions about my usage throughout the day
 
 ```gherkin
-Scenario: consumption today
+Scenario: consumption today with auto-refresh
   Given the device is linked and online
   When the user opens the dashboard
-  Then the system shows total liters consumed today with auto-refresh
+  Then the system shows total liters consumed today with auto-refresh ≥1 min
+  And a manual refresh button is visible
+  And the last update timestamp is displayed
 
 Scenario: no device linked
   Given the user has no linked device
@@ -490,6 +491,12 @@ Scenario: active flow
 
 ---
 
+# Entrega 2 — Smart Monitoring
+
+---
+
+## E5 — Manual Valve Control
+
 ### HU-017 — Export consumption data
 
 > **As** an Owner
@@ -505,42 +512,14 @@ Scenario: export CSV
 
 | Field | Value |
 |-------|-------|
-| Story Points | 5 |
+| Story Points | 3 |
 | Priority | Could Have |
 | Service(s) | consumption-service |
 | Dependencies | HU-015 |
 
 ---
 
-### HU-018 — View consumption summary on home screen
-
-> **As** an Owner
-> **I want** to see a quick consumption summary when I open the app
-> **so that** I get a snapshot without navigating to the full dashboard
-
-```gherkin
-Scenario: home screen summary
-  Given the user has an active device
-  When they open the app
-  Then the system shows today's consumption, this week, and this month at a glance
-```
-
-| Field | Value |
-|-------|-------|
-| Story Points | 5 |
-| Priority | Should Have |
-| Service(s) | consumption-service |
-| Dependencies | HU-014 |
-
----
-
-# Entrega 2 — Smart Monitoring
-
----
-
-## E5 — Manual Valve Control
-
-### HU-027 — Close the valve remotely
+### HU-018 — Close the valve remotely
 
 > **As** an Owner
 > **I want** to close the water valve from my phone
@@ -572,14 +551,14 @@ Scenario: device offline
 
 | Field | Value |
 |-------|-------|
-| Story Points | 8 |
+| Story Points | 5 |
 | Priority | Must Have |
 | Service(s) | valve-service, device-service, notification-service |
 | Dependencies | HU-011 |
 
 ---
 
-### HU-028 — Open the valve remotely
+### HU-019 — Open the valve remotely
 
 > **As** an Owner
 > **I want** to open the water valve from my phone
@@ -594,14 +573,14 @@ Scenario: open valve
 
 | Field | Value |
 |-------|-------|
-| Story Points | 8 |
+| Story Points | 5 |
 | Priority | Must Have |
 | Service(s) | valve-service, device-service |
-| Dependencies | HU-027 |
+| Dependencies | HU-018 |
 
 ---
 
-### HU-029 — View valve status
+### HU-020 — View valve status
 
 > **As** an Owner
 > **I want** to see whether my valve is currently open or closed
@@ -619,11 +598,11 @@ Scenario: valve status
 | Story Points | 3 |
 | Priority | Must Have |
 | Service(s) | valve-service |
-| Dependencies | HU-027 |
+| Dependencies | HU-018 |
 
 ---
 
-### HU-030 — View valve action history
+### HU-021 — View valve action history
 
 > **As** an Owner
 > **I want** to see a log of all valve open/close actions
@@ -641,13 +620,13 @@ Scenario: action history
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | valve-service |
-| Dependencies | HU-027 |
+| Dependencies | HU-018 |
 
 ---
 
 ## E6 — Consumption Goals
 
-### HU-019 — Set a monthly consumption goal
+### HU-022 — Set a monthly consumption goal
 
 > **As** an Owner
 > **I want** to set a monthly water consumption goal in liters
@@ -737,7 +716,7 @@ Scenario: goal exceeded
 
 ## E7 — Alerts & Notifications
 
-### HU-023 — Receive leak detection alert
+### HU-026 — Receive leak detection alert
 
 > **As** an Owner
 > **I want** to be alerted when a possible water leak is detected
@@ -764,17 +743,18 @@ Scenario: normal continuous flow
 
 ---
 
-### HU-024 — View alert history
+### HU-027 — View alert history
 
 > **As** an Owner
 > **I want** to see a list of all alerts I have received
-> **so that** I can review past events and their resolution
+> **so that** I can review past events
 
 ```gherkin
-Scenario: alert list
+Scenario: alert list with read/unread status
   Given the user has received alerts
   When they open the alert history
-  Then the system shows a chronological list with type, timestamp, and status
+  Then the system shows a chronological list with type, timestamp, and read/unread status
+  And user can mark alerts as read
 ```
 
 | Field | Value |
@@ -782,11 +762,11 @@ Scenario: alert list
 | Story Points | 3 |
 | Priority | Should Have |
 | Service(s) | notification-service |
-| Dependencies | HU-023 |
+| Dependencies | HU-026 |
 
 ---
 
-### HU-025 — Configure notification preferences
+### HU-028 — Configure notification preferences
 
 > **As** an Owner
 > **I want** to choose how I receive notifications (push, email, WhatsApp)
@@ -804,29 +784,115 @@ Scenario: configure preferences
 | Story Points | 5 |
 | Priority | Should Have |
 | Service(s) | notification-service |
-| Dependencies | HU-023 |
+| Dependencies | HU-026 |
 
 ---
 
-### HU-026 — Mark alert as resolved
+## E8 — Automatic Valve Shutoff
+
+### HU-029 — Configure automatic shutoff rule
 
 > **As** an Owner
-> **I want** to mark an alert as resolved
-> **so that** I can acknowledge I have addressed the issue
+> **I want** to define a rule that automatically closes the valve when a leak is detected
+> **so that** the system can shut off water during a suspected leak without manual intervention
 
 ```gherkin
-Scenario: resolve alert
-  Given the user views an active alert
-  When they mark it as resolved
-  Then the system updates the alert status to "resolved"
+Scenario: create rule for leak detection only
+  Given the user navigates to valve settings
+  When they enable automatic shutoff and select "LeakSuspected" as the trigger
+  Then the system saves the shutoff rule for the place
+  And shows confirmation that only LeakSuspected will trigger auto-shutoff
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 5 |
+| Priority | Must Have |
+| Service(s) | valve-service |
+| Dependencies | HU-026 |
+
+---
+
+### HU-030 — Automatic shutoff activates on rule trigger
+
+> **As** an Owner
+> **I want** the valve to close automatically when a leak is suspected
+> **so that** water damage is minimized without manual intervention
+
+```gherkin
+Scenario: confirmation request sent
+  Given a shutoff rule is active for LeakSuspected
+  When a LeakSuspected event is published
+  Then the system sends a confirmation request to the user via critical notification channels
+  And waits for the user to confirm (configurable timeout window)
+
+Scenario: auto-shutoff confirmed
+  Given the user receives and confirms the shutoff request
+  When the confirmation is received
+  Then the system closes the valve, sends an alert, and logs the action
+
+Scenario: auto-shutoff not confirmed (timeout)
+  Given a confirmation request was sent
+  When the configurable timeout window expires without user confirmation
+  Then the system does NOT close the valve
+  And keeps the alert active to remind the user
+  And logs the timeout event
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 8 |
+| Priority | Must Have |
+| Service(s) | valve-service, notification-service |
+| Dependencies | HU-029 |
+
+---
+
+### HU-031 — Disable automatic shutoff
+
+> **As** an Owner
+> **I want** to deactivate automatic shutoff rules
+> **so that** I can return to manual-only valve control
+
+```gherkin
+Scenario: disable rule
+  Given the user has an active shutoff rule
+  When they disable it
+  Then the rule is deactivated and the valve stays in its current state
 ```
 
 | Field | Value |
 |-------|-------|
 | Story Points | 2 |
 | Priority | Should Have |
-| Service(s) | notification-service |
-| Dependencies | HU-024 |
+| Service(s) | valve-service |
+| Dependencies | HU-029 |
+
+---
+
+### HU-032 — Reopen valve after auto-shutoff (manual only)
+
+> **As** an Owner
+> **I want** the valve to never auto-reopen after an automatic shutoff
+> **so that** I must consciously verify the situation before restoring water
+
+```gherkin
+Scenario: manual reopen after auto-shutoff
+  Given the valve was closed by an automatic rule
+  When the owner sends a manual open command
+  Then the valve reopens and the action is logged as "manual override"
+
+Scenario: no auto-reopen
+  Given the valve was closed by an automatic rule
+  Then the valve remains closed until a manual open command is issued
+```
+
+| Field | Value |
+|-------|-------|
+| Story Points | 3 |
+| Priority | Must Have |
+| Service(s) | valve-service |
+| Dependencies | HU-030 |
 
 ---
 
