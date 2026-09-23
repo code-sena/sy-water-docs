@@ -118,7 +118,7 @@ INV-P004: Only places.places uses soft delete in the entire system
 ### Entity: Member *(Entrega 3)*
 
 **Aggregate Root:** No (inside Place aggregate)
-**Description:** A user linked to a place with a specific role (Owner or Member) and permissions defined by the Owner.
+**Description:** A user linked to a place with a specific role (Owner or Collaborator) and permissions defined by the Owner.
 **Identifier:** `memberId` (UUID)
 
 **Attributes:**
@@ -128,12 +128,12 @@ INV-P004: Only places.places uses soft delete in the entire system
 | memberId | UUID | Unique identifier | Yes | Auto-generated |
 | placeId | UUID | Place this membership belongs to | Yes | Must reference an active place |
 | userId | UUID | User who is a member | Yes | Unique per place |
-| role | enum | OWNER or GUEST | Yes | Exactly one OWNER per place |
+| role | enum | OWNER or COLLABORATOR | Yes | Exactly one OWNER per place |
 | revokedAt | DateTime | When the membership was revoked | No | Null while active |
 | createdAt | DateTime | When the membership was created | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
-> **Nota:** El valor `GUEST` en la BD corresponde al concepto de "Miembro" en el lenguaje ubicuo del dominio. Se eligió GUEST en el modelo físico para distinguirlo del concepto genérico de "member" (la tabla misma).
+> **Note:** The Guest (Invitado) role does not create a Member record — guests access via anonymous shared link without registration. The COLLABORATOR role represents registered users invited by the Owner with specific permissions.
 
 **Invariants:**
 
@@ -208,7 +208,7 @@ INV-I005: An expired invitation cannot be accepted — the Owner must send a new
 | authTokenHash | string | Hashed authentication token for MQTT | Yes | — |
 | status | enum | CONNECTED, DISCONNECTED, NEVER_REPORTED | Yes | Default: NEVER_REPORTED |
 | lastReportAt | DateTime | Timestamp of last received reading | No | Null until first reading |
-| inactivityThresholdMin | int | Minutes without reports before marking disconnected | Yes | Default: 15 |
+| inactivityThresholdMin | int | Minutes without reports before marking disconnected | Yes | Default: 10 |
 | linkedAt | DateTime | When the device was linked to current place | No | — |
 | createdAt | DateTime | First registration date | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
@@ -222,7 +222,7 @@ INV-I005: An expired invitation cannot be accepted — the Owner must send a new
                                         ▼
                                 [Linked / Connected] ◀──(reading received)──┐
                                         │                                    │
-                                  (no reading for 15 min)                    │
+                                  (no reading for 10 min)                    │
                                         ▼                                    │
                                 [Linked / Disconnected] ─────────────────────┘
                                         │
@@ -443,7 +443,7 @@ INV-V003: The system never reopens the valve automatically — reopening is alwa
 | placeId | BIGINT | Target place | Yes | FK cross → places.places (D2) |
 | commandedBy | BIGINT | User who initiated (null = auto) | No | FK cross → security.users |
 | command | enum | OPEN, CLOSE | Yes | — |
-| origin | enum | MANUAL, AUTO_LEAK, AUTO_GOAL | Yes | — |
+| origin | enum | MANUAL, AUTO_LEAK | Yes | — |
 | status | enum | (see lifecycle below) | Yes | Default: PENDING_CONFIRMATION |
 | confirmationCode | string | Security code for confirmation step | No | — |
 | confirmedAt | DateTime | When user confirmed | No | — |
@@ -452,6 +452,8 @@ INV-V003: The system never reopens the valve automatically — reopening is alwa
 | timeoutAt | DateTime | When 30s timeout expired | No | — |
 | failureReason | string | Failure details | No | — |
 | createdAt | DateTime | When command was created | Yes | Immutable |
+
+> **Note:** Only leak detection triggers automatic valve closure. Goal-based auto-shutoff was explicitly excluded.
 
 **Command lifecycle:**
 
@@ -578,7 +580,7 @@ INV-A003: Deduplication enforced via max_per_period from alert_type_config
 | channelApp | boolean | In-app notifications | Yes | Default: true |
 | channelPush | boolean | Push notifications | Yes | Default: true |
 | channelEmail | boolean | Email notifications | Yes | Default: false |
-| channelSms | boolean | SMS notifications | Yes | Default: false |
+| channelWhatsappSms | boolean | WhatsApp / SMS notifications | Yes | Default: false |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
 **Invariants:**

@@ -12,12 +12,13 @@ Save Your Water is a web and mobile platform that measures household or business
 
 ## Main users
 
-| Role                            | Description                                                                    | What they do in the system                                                                                                                             |
-| ------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Usuario (User)**        | Default user role upon accessing the application, well before entering a home. | Will be able to see if you have a home set up; if not, you can create one.                                                                             |
-| **Dueño (Owner)**        | Person who pays the water bill (head of household or business owner)           | Full access: view consumption, set goals, open/close the valve, register utility bills, configure alerts, invite members                                |
-| **Miembro (Member)**      | Family member, roommate, or administrator invited by the owner                 | It relies on permissions set by the owner of the location: It depends on whether you only want to read data or need to perform actions within the app. |
-| **Administrador (Admin)** | Platform operator                                                              | View registered users (no sensitive data), block/unblock users, validate device failures, monitor platform health, create generic water-saving recommendations |
+| Role                                  | Description                                                                                                                                                          | What they do in the system                                                                                                                                |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Usuario base (Base User)**          | Default role upon registration. Can view places, create a new one, or accept an invitation as collaborator. Cannot access consumption features until associated with a place. | Can view places, create new ones, or accept invitations as collaborator. Cannot access consumption features until associated with a place.                 |
+| **Dueño (Owner)**                    | Person who pays the water bill (head of household or business owner). Has full control over a place.                                                                  | Full access: view consumption, invite members, set goals, open/close valve, register utility bills, configure tariffs and alerts.                         |
+| **Invitado (Guest)**                  | Anonymous user who accesses the system via a shared link provided by the Owner. Does not require registration or login.                                               | Access via shared link without registration. View-only: consumption, charts, history. Cannot see control actions, bills, or configuration.                |
+| **Colaborador (Collaborator)**        | Registered user invited by the Owner with partial permissions defined by the Owner.                                                                                   | Partial access defined by the Owner. Can perform actions according to assigned permissions.                                                                |
+| **Administrador (Admin)**             | Platform operator responsible for user management, device validation, platform metrics, and water-saving recommendations.                                             | View registered users list (no sensitive data), block/unblock users, view device list, view platform metrics, manage water-saving recommendations.        |
 
 ## Technology stack
 
@@ -29,7 +30,7 @@ Save Your Water is a web and mobile platform that measures household or business
 | Database                 | SQL Server (single shared instance, schema-per-service) | Team familiarity; robust transactional support. One instance, logical separation by schema |
 | IoT controller           | ESP32                                                   | Low-cost Wi-Fi-enabled microcontroller; handles sensor reading and valve control           |
 | IoT protocol             | MQTT                                                    | Lightweight publish/subscribe protocol optimized for constrained devices                   |
-| MQTT Broker              | Eclipse Mosquitto 2                                      | Lightweight broker; receives telemetry from ESP32 devices and routes it to backend services |
+| MQTT Broker              | Mosquitto (under evaluation)                            | Lightweight broker; receives telemetry from ESP32 devices and routes it to backend services. Final selection pending |
 | Infrastructure           | Docker (local) / VPS                                    | Docker for development; VPS for initial deployment. Cloud provider TBD                     |
 
 ## Hardware context
@@ -46,7 +47,7 @@ Save Your Water is a web and mobile platform that measures household or business
 
 - **Phase:** Early development
 - **Current version:** v0.1.0
-- **Backlog version:** 1.0 (dated 2026-09-02)
+- **Backlog version:** 2.0 (dated 2026-09-23)
 - **Next milestone:** MVP — user account + place registration + device linking + real-time consumption chart
 
 ## Project contacts

@@ -53,17 +53,20 @@ We build an affordable and accessible tool that turns water consumption from an 
 Entrega 1 ──── Entrega 2 ──── Entrega 3 ──── Entrega 4
 (MVP)          (Smart)        (Social)       (Admin)
     │               │              │              │
- Auth +         Goals +       Members +      Admin panel +
- Device +       Alerts +      Bill mgmt +    Recommendations +
- Dashboard      Valve ctrl    Auto-shutoff   Reports + Multi-place
+ Auth +         Valve ctrl +  Guest +        Reports +
+ Places +       Goals +       Collaborator + Admin panel +
+ Device +       Alerts +      Bills +        Preloaded
+ Dashboard      Auto-shutoff  Tariffs        tariffs
 ```
 
-| Entrega | Objective | Epics | Story points |
-|---------|----------|-------|-------------|
-| **Entrega 1 (MVP)** | A user registers, links a device, and sees consumption in real time | E1 (Auth), E2 (Place), E3 (Device), E4 (Monitoring) | ~80 SP |
-| **Entrega 2** | Smart monitoring with valve control, goals, and alerts | E5 (Valve Control), E6 (Goals), E7 (Alerts) | ~56 SP |
-| **Entrega 3** | Billing, tariffs, auto-shutoff, and shared access | E8 (Bills), E9 (Tariffs), E10 (Auto-shutoff), E11 (Members), E12 (Collaborator) | ~65 SP |
-| **Entrega 4** | Reports, savings tips, preloaded tariffs, admin panel, and multi-place | E13 (Reports), E14 (Savings Tips), E15 (Tariff Catalogs), E16 (Admin Panel) | ~56 SP |
+| Entrega | Objective | Epics | HUs | Story points |
+|---------|----------|-------|-----|-------------|
+| **Entrega 1 (MVP)** | A user registers, links a device, and sees consumption in real time | E1 (Cuentas y acceso), E2 (Gestión de lugares), E3 (Vinculación IoT), E4 (Monitoreo) | 18 | 73 SP |
+| **Entrega 2** | Smart monitoring with valve control, goals, alerts, and auto-shutoff | E5 (Control válvula), E6 (Metas), E7 (Alertas), E8 (Cierre automático) + HU-038 | 20 | 88 SP |
+| **Entrega 3** | Shared access, billing, and tariffs | E9 (Invitado), E10 (Colaborador), E11 (Recibos), E12 (Tarifas) | 18 | 70 SP |
+| **Entrega 4** | Reports, admin panel with savings tips, and preloaded tariffs | E13 (Reportes), E14 (Admin Panel, includes savings tips), E15 (Tarifas precargadas) | 13 | 48 SP |
+
+> **Totals:** 15 epics (E1–E15), 69 HUs, 279 SP (266 active without Won't).
 
 > **Note:** No fixed dates. Deliveries are ordered by priority. This is a university project; the team advances through each Entrega sequentially.
 

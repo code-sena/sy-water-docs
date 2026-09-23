@@ -57,7 +57,7 @@
 - All protected endpoints require a valid JWT in `Authorization: Bearer <token>`
 - Access token expiration: **1 hour**
 - Refresh token expiration: **7 days**
-- Role-based access control (RBAC): User, Owner, Member, Admin
+- Role-based access control (RBAC): User (base), Owner, Guest (anonymous, link-based, read-only — no authentication required), Collaborator (registered, partial permissions set by Owner), Admin
 - Login attempt rate limiting: max 5 failed attempts per 15 minutes, then account is temporarily locked
 
 ### Data protection
@@ -124,7 +124,7 @@
 
 - All services packaged as Docker containers
 - Environment configuration via environment variables (no hardcoded config)
-- `docker-compose.yml` for local development (all services + SQL Server + RabbitMQ + Mosquitto)
+- `docker-compose.yml` for local development (all services + SQL Server + Mosquitto)
 - No dependency on host OS-specific behavior
 - Deployable to any Linux VPS with Docker installed
 

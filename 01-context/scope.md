@@ -12,18 +12,16 @@
 
 | # | Feature | Description | Epic |
 |---|---------|-------------|------|
-| 1 | User registration and login | Sign up with first name, last name, email, phone, and password; email verification, login, Google OAuth, password recovery (email or phone), logout | E1 |
-| 2 | Profile management | View and edit name, photo, phone number; change password | E1 |
-| 3 | Place registration | Create a place (home/business) with reference name, address, country, department/state, city, stratum, and number of inhabitants; unique name per user | E2 |
-| 4 | Place management | List, switch between, edit, and delete places | E2 |
-| 5 | Device linking | Link an ESP32 device to a place via ID or QR code; authenticate device | E3 |
-| 6 | Telemetry ingestion | Receive and store flow readings from ESP32 via MQTT; validate and deduplicate | E3 |
-| 7 | Device status | Show connected/disconnected/never reported status and last report timestamp | E3 |
-| 8 | Device unlinking | Unlink a device from a place while preserving consumption history | E3 |
-| 9 | Real-time consumption | Display current and accumulated consumption with < 1 min latency | E4 |
-| 10 | Period selector | Switch between day, week, and month views | E4 |
-| 11 | Consumption chart | Interactive chart adjusted to selected period (hours/days) | E4 |
-| 12 | Auto-refresh panel | Panel updates automatically ≥1 min; manual refresh button; last update timestamp | E4 |
+| 1 | User registration and login | Sign up (HU-001), email verification (HU-002), login (HU-003), Google OAuth (HU-004), password recovery (HU-005), logout (HU-006), profile management (HU-007), account deletion (HU-008) | E1 |
+| 2 | Place registration | Create a place (home/business) with reference name, address, country, department/state, city, stratum, and number of inhabitants; unique name per user | E2 |
+| 3 | Place management | List, switch between, edit, and delete places | E2 |
+| 4 | Device linking and telemetry ingestion | Link an ESP32 device to a place via ID or QR code; authenticate device; receive, validate and deduplicate flow readings via MQTT (HU-012, HU-013, HU-014) | E3 |
+| 5 | Device status | Show connected/disconnected/never reported status and last report timestamp | E3 |
+| 6 | Device unlinking | Unlink a device from a place while preserving consumption history | E3 |
+| 7 | Real-time consumption | Display current and accumulated consumption with < 1 min latency | E4 |
+| 8 | Period selector | Switch between day, week, and month views | E4 |
+| 9 | Consumption chart | Interactive chart adjusted to selected period (hours/days) | E4 |
+| 10 | Auto-refresh panel | Panel updates automatically >=1 min; manual refresh button; last update timestamp | E4 |
 
 ### Included integrations (MVP)
 
@@ -102,10 +100,10 @@
 
 | Dependency | Provider | Required for | Status |
 |-----------|---------|-------------|--------|
-| Google OAuth credentials | Google Cloud Console | HU-005 (Google login) | 🟡 To be configured |
-| MQTT Broker | TBD (Mosquitto / HiveMQ) | HU-012 (telemetry ingestion) | 🟡 To be selected |
-| Email service | TBD (SendGrid / AWS SES / SMTP) | HU-003 (email verification), HU-006 (password recovery) | 🟡 To be selected |
-| ESP32 firmware | Hardware team | HU-011, HU-012 (device linking + readings) | 🟡 In development |
+| Google OAuth credentials | Google Cloud Console | HU-004 (Google login) | 🟡 To be configured |
+| MQTT Broker | TBD (Mosquitto / HiveMQ) | HU-012 (device linking + telemetry ingestion) | 🟡 To be selected |
+| Email service | TBD (SendGrid / AWS SES / SMTP) | HU-002 (email verification), HU-005 (password recovery) | 🟡 To be selected |
+| ESP32 firmware | Hardware team | HU-012, HU-013 (device linking + readings) | 🟡 In development |
 | WhatsApp Business API / SMS provider | TBD | HU-029 (WhatsApp/SMS alerts — Entrega 2) | 🔴 Not started |
 
 ---
