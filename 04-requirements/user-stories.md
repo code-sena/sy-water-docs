@@ -1586,8 +1586,8 @@ Scenario: mark as paid
 ```gherkin
 Scenario: select country
   Given the user configures a place
-  When they select a country (Colombia, Ecuador, or United States)
-  Then the system sets the default currency (COP, USD, USD) and suggested unit
+  When they select a country (Colombia or Ecuador)
+  Then the system sets the default currency (COP, USD) and suggested unit (liters)
 
 Scenario: per-place setting
   Given the user has places in different countries
@@ -1998,6 +1998,8 @@ Scenario: select city and category
 ---
 
 ### HU-068 — Catalogo de tarifas de Estados Unidos
+
+> **Out of market scope:** ADR-004 limits the product to Colombia and Ecuador. This story stays *Won't* until that ADR is revisited.
 
 > **As** a user in the United States
 > **I want** to select my water district

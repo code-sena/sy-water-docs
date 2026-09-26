@@ -4,7 +4,7 @@
 |-------|-------|
 | **ID** | ADR-002 |
 | **Date** | 2026-09-08 |
-| **Status** | Accepted |
+| **Status** | Accepted — rule 6 superseded by [ADR-003](ADR-003-single-uuid-primary-key.md) |
 | **Authors** | Development team |
 | **Reviewers** | Juan Esteban Ome, Juan Manuel Gómez, Diego Alejandro Alvarado |
 
@@ -64,7 +64,7 @@ BC-10 Reports & Export has no tables — it reads from `monitoring`.
 3. Cross-schema foreign keys ARE used — SQL Server enforces referential integrity across schemas
 4. Application-layer cross-schema JOINs are NOT allowed — use the owning service's API
 5. Each service manages its own migrations, scoped to its schemas
-6. All tables use `BIGINT IDENTITY` as internal PK + separate `UNIQUEIDENTIFIER` column for public API exposure
+6. ~~All tables use `BIGINT IDENTITY` as internal PK + separate `UNIQUEIDENTIFIER` column for public API exposure~~ — **Superseded by [ADR-003](ADR-003-single-uuid-primary-key.md) (2026-09-26):** every table uses a single `id UNIQUEIDENTIFIER` as PK and public ID
 7. Database users/roles per service (with permissions limited to their schemas) are recommended but optional for the MVP
 
 ---

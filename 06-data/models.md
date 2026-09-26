@@ -1,7 +1,7 @@
 # Data Models per Service
 
 > Save Your Water — SQL Server (`sy_water_db`).
-> Authoritative source: `sy-water-db/cuida-tu-agua-model-v5.dbml`
+> Authoritative source: `sy-water-db/cuida-tu-agua-model-v5.dbml` and the per-service migration repos (`sy-water-db/ms-iam-db`, `sy-water-db/ms-places-db`).
 > All bounded contexts share one database, separated by schema for logical organization.
 > Cross-schema FK are real — SQL Server enforces referential integrity.
 
@@ -21,15 +21,19 @@ All bounded contexts share a single SQL Server instance (`sy_water_db`). Each BC
 
 Cross-schema foreign keys ARE used for referential integrity. Data access across services is still via REST or events at the application level, but the database enforces FK constraints.
 
-### 2. PK strategy: bigint + uuid
+### 2. PK strategy: single UUID (ADR-003)
 
-All tables use `BIGINT IDENTITY` as internal PK (efficient for JOINs and indexes). A separate `uuid` column (`UNIQUEIDENTIFIER`) serves as the public API identifier exposed in REST and JWT.
+Every table has **one** identifier, `id UNIQUEIDENTIFIER`. It is both the primary key and the public ID exposed in REST, JWT and events. There is no `BIGINT IDENTITY` column and no separate `uuid` column. All FKs, same-schema and cross-schema, are `UNIQUEIDENTIFIER`.
 
 ```sql
-id   BIGINT       IDENTITY(1,1) PRIMARY KEY,
-uuid UNIQUEIDENTIFIER NOT NULL  DEFAULT NEWID(),
--- UNIQUE constraint on uuid
+id UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_<table>_id DEFAULT (NEWID()),
+-- ...
+CONSTRAINT PK_<table> PRIMARY KEY (id)
 ```
+
+- The backend may supply the `id` (generated in the domain); otherwise SQL Server generates it.
+- High-volume append-only tables (`monitoring.readings`, `notifications.notification_log`) use `DEFAULT (NEWSEQUENTIALID())` to avoid page splits. The application does not supply their `id`.
+- The DDL in this document is abbreviated (inline `DEFAULT` / `PRIMARY KEY`). The migrations in `sy-water-db` name every constraint (`PK_`, `DF_`, `FK_`, `CK_`), and FKs are added in separate `ALTER TABLE` changesets.
 
 ### 3. Timestamps
 
@@ -50,7 +54,7 @@ Only `places.places` uses soft delete (`deleted_at`). Other tables use hard dele
 -- Unique:      UQ_[abbrev]_[columns]               → UQ_cred_user_type
 -- Filtered UQ: UX_[abbrev]_[columns]               → UX_inv_pending
 -- Timestamps:  DATETIME2 with SYSUTCDATETIME()
--- IDs:         BIGINT IDENTITY (internal), UNIQUEIDENTIFIER (public)
+-- IDs:         id UNIQUEIDENTIFIER (single PK, also public) — ADR-003
 ```
 
 ### 6. Documented denormalizations (3NF violations)
@@ -72,19 +76,17 @@ Only `places.places` uses soft delete (`deleted_at`). Other tables use hard dele
 
 ```sql
 CREATE TABLE security.users (
-    id                   BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    uuid                 UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    name                 NVARCHAR(200) NOT NULL,
-    email                NVARCHAR(320) NOT NULL,
-    phone                NVARCHAR(20)  NOT NULL,
-    phone_verified       BIT           NOT NULL DEFAULT 0,
-    avatar_url           NVARCHAR(500) NULL,
-    email_verified       BIT           NOT NULL DEFAULT 0,
-    account_locked_until DATETIME2     NULL,
-    created_at           DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
-    updated_at           DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id                   UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    name                 NVARCHAR(200)    NOT NULL,
+    email                NVARCHAR(320)    NOT NULL,
+    phone                NVARCHAR(20)     NOT NULL,
+    phone_verified       BIT              NOT NULL DEFAULT 0,
+    avatar_url           NVARCHAR(500)    NULL,
+    email_verified       BIT              NOT NULL DEFAULT 0,
+    account_locked_until DATETIME2        NULL,
+    created_at           DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at           DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    CONSTRAINT UQ_users_uuid  UNIQUE (uuid),
     CONSTRAINT UQ_users_email UNIQUE (email)
 );
 ```
@@ -93,13 +95,13 @@ CREATE TABLE security.users (
 
 ```sql
 CREATE TABLE security.user_credentials (
-    id              BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    user_id         BIGINT        NOT NULL REFERENCES security.users(id),
-    credential_type NVARCHAR(10)  NOT NULL
+    id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id         UNIQUEIDENTIFIER NOT NULL REFERENCES security.users(id),
+    credential_type NVARCHAR(10)     NOT NULL
                     CONSTRAINT CK_cred_type CHECK (credential_type IN ('LOCAL', 'GOOGLE')),
-    password_hash   NVARCHAR(256) NULL,
-    google_id       NVARCHAR(256) NULL,
-    created_at      DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    password_hash   NVARCHAR(256)    NULL,
+    google_id       NVARCHAR(256)    NULL,
+    created_at      DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_cred_user_type UNIQUE (user_id, credential_type)
 );
@@ -109,12 +111,12 @@ CREATE TABLE security.user_credentials (
 
 ```sql
 CREATE TABLE security.email_verifications (
-    id          BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    user_id     BIGINT        NOT NULL REFERENCES security.users(id),
-    token_hash  NVARCHAR(256) NOT NULL,
-    expires_at  DATETIME2     NOT NULL,
-    verified_at DATETIME2     NULL,
-    created_at  DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id     UNIQUEIDENTIFIER NOT NULL REFERENCES security.users(id),
+    token_hash  NVARCHAR(256)    NOT NULL,
+    expires_at  DATETIME2        NOT NULL,
+    verified_at DATETIME2        NULL,
+    created_at  DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_emailver_token UNIQUE (token_hash)
 );
@@ -124,12 +126,12 @@ CREATE TABLE security.email_verifications (
 
 ```sql
 CREATE TABLE security.password_resets (
-    id          BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    user_id     BIGINT        NOT NULL REFERENCES security.users(id),
-    token_hash  NVARCHAR(256) NOT NULL,
-    expires_at  DATETIME2     NOT NULL,
-    used_at     DATETIME2     NULL,
-    created_at  DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id    UNIQUEIDENTIFIER NOT NULL REFERENCES security.users(id),
+    token_hash NVARCHAR(256)    NOT NULL,
+    expires_at DATETIME2        NOT NULL,
+    used_at    DATETIME2        NULL,
+    created_at DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_pwdreset_token UNIQUE (token_hash)
 );
@@ -139,13 +141,13 @@ CREATE TABLE security.password_resets (
 
 ```sql
 CREATE TABLE security.refresh_tokens (
-    id          BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    user_id     BIGINT        NOT NULL REFERENCES security.users(id),
-    token_hash  NVARCHAR(256) NOT NULL,
-    device_info NVARCHAR(500) NULL,
-    expires_at  DATETIME2     NOT NULL,
-    revoked_at  DATETIME2     NULL,
-    created_at  DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id     UNIQUEIDENTIFIER NOT NULL REFERENCES security.users(id),
+    token_hash  NVARCHAR(256)    NOT NULL,
+    device_info NVARCHAR(500)    NULL,
+    expires_at  DATETIME2        NOT NULL,
+    revoked_at  DATETIME2        NULL,
+    created_at  DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_rtoken_hash UNIQUE (token_hash)
 );
@@ -157,13 +159,13 @@ CREATE INDEX IX_rtoken_user ON security.refresh_tokens (user_id);
 
 ```sql
 CREATE TABLE security.login_attempts (
-    id             BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    user_id        BIGINT        NULL REFERENCES security.users(id),
-    email          NVARCHAR(320) NOT NULL,
-    ip_address     NVARCHAR(45)  NOT NULL,
-    success        BIT           NOT NULL,
-    failure_reason NVARCHAR(50)  NULL,
-    attempted_at   DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id        UNIQUEIDENTIFIER NULL REFERENCES security.users(id),
+    email          NVARCHAR(320)    NOT NULL,
+    ip_address     NVARCHAR(45)     NOT NULL,
+    success        BIT              NOT NULL,
+    failure_reason NVARCHAR(50)     NULL,
+    attempted_at   DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     INDEX IX_login_user_time (user_id, attempted_at)
 );
@@ -173,14 +175,14 @@ CREATE TABLE security.login_attempts (
 
 ```sql
 CREATE TABLE security.activity_log (
-    id          BIGINT         IDENTITY(1,1) PRIMARY KEY,
-    user_id     BIGINT         NOT NULL REFERENCES security.users(id),
-    action      NVARCHAR(50)   NOT NULL,
-    entity_type NVARCHAR(50)   NULL,
-    entity_id   NVARCHAR(100)  NULL,
-    metadata    NVARCHAR(4000) NULL,
-    ip_address  NVARCHAR(45)   NULL,
-    created_at  DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(),
+    id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id     UNIQUEIDENTIFIER NOT NULL REFERENCES security.users(id),
+    action      NVARCHAR(50)     NOT NULL,
+    entity_type NVARCHAR(50)     NULL,
+    entity_id   NVARCHAR(100)    NULL,
+    metadata    NVARCHAR(4000)   NULL,
+    ip_address  NVARCHAR(45)     NULL,
+    created_at  DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     INDEX IX_actlog_user_time (user_id, created_at),
     CONSTRAINT CK_actlog_json CHECK (metadata IS NULL OR ISJSON(metadata) = 1)
@@ -193,45 +195,111 @@ CREATE TABLE security.activity_log (
 
 **Owner:** place-service (.NET 8)
 
+### Location catalog (ADR-004)
+
+The market is limited to Colombia and Ecuador (ADR-004). A place's location is a reference to `places.cities`; country and subdivision are reached through `city → subdivision → country`.
+
+| Level | Table | Colombia (CO) | Ecuador (EC) |
+|-------|-------|---------------|--------------|
+| Country | `places.countries` | Colombia — COP, LITERS | Ecuador — USD, LITERS |
+| Subdivision | `places.subdivisions` | Departamento — 33 rows, DANE 2-digit code | Provincia — 24 rows, INEC 2-digit code |
+| City | `places.cities` | Municipio — 1,122 rows, DANE 5-digit code | Cantón — 221 rows, INEC 4-digit code |
+
+The catalogs are reference data. Migrations seed them in every environment (`02-dml/00-inserts/001..004` in `ms-places-db`), and the application role `places_rw` has `SELECT` only on them (`INSERT`/`UPDATE`/`DELETE` denied).
+
+#### Table: places.countries
+
+```sql
+CREATE TABLE places.countries (
+    id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    code             NVARCHAR(2)      NOT NULL, -- ISO 3166-1 alpha-2: CO, EC
+    name             NVARCHAR(100)    NOT NULL,
+    default_currency NVARCHAR(3)      NOT NULL, -- ISO 4217: CO → COP, EC → USD
+    default_unit     NVARCHAR(15)     NOT NULL
+                     CONSTRAINT CK_countries_unit CHECK (default_unit IN ('LITERS', 'CUBIC_METERS', 'GALLONS')),
+
+    CONSTRAINT UQ_countries_code UNIQUE (code)
+);
+```
+
+**Seed data:**
+
+| code | name | default_currency | default_unit |
+|------|------|------------------|--------------|
+| CO | Colombia | COP | LITERS |
+| EC | Ecuador | USD | LITERS |
+
+#### Table: places.subdivisions
+
+First-level administrative division: *departamento* in CO, *provincia* in EC.
+
+```sql
+CREATE TABLE places.subdivisions (
+    id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    country_id UNIQUEIDENTIFIER NOT NULL REFERENCES places.countries(id),
+    code       NVARCHAR(2)      NOT NULL, -- DANE (CO) / INEC (EC) code, unique per country only
+    name       NVARCHAR(100)    NOT NULL,
+
+    CONSTRAINT UQ_subdivisions_country_code UNIQUE (country_id, code)
+);
+```
+
+#### Table: places.cities
+
+*Municipio* in CO (DANE DIVIPOLA, 5 digits, includes non-municipalized areas) and *cantón* in EC (INEC DPA, 4 digits, zone 90 excluded). The code starts with the subdivision code (e.g. `05001` Medellín → `05` Antioquia).
+
+```sql
+CREATE TABLE places.cities (
+    id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    subdivision_id UNIQUEIDENTIFIER NOT NULL REFERENCES places.subdivisions(id),
+    code           NVARCHAR(5)      NOT NULL,
+    name           NVARCHAR(100)    NOT NULL,
+
+    CONSTRAINT UQ_cities_subdivision_code UNIQUE (subdivision_id, code)
+);
+```
+
 ### Table: places.places
 
 ```sql
 CREATE TABLE places.places (
-    id               BIGINT           IDENTITY(1,1) PRIMARY KEY,
-    uuid             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    owner_id         BIGINT           NOT NULL, -- FK cross → security.users.id [D4]
+    id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    owner_id         UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id [D4]
+    city_id          UNIQUEIDENTIFIER NOT NULL REFERENCES places.cities(id),
     name             NVARCHAR(200)    NOT NULL,
     place_type       NVARCHAR(15)     NOT NULL
                      CONSTRAINT CK_places_type CHECK (place_type IN ('RESIDENTIAL', 'COMMERCIAL')),
     address          NVARCHAR(500)    NOT NULL,
-    city             NVARCHAR(100)    NOT NULL,
-    country_code     NVARCHAR(2)      NOT NULL
-                     CONSTRAINT CK_places_country CHECK (country_code IN ('CO', 'EC', 'US')),
-    currency         NVARCHAR(3)      NOT NULL DEFAULT 'COP',
+    currency         NVARCHAR(3)      NOT NULL -- initialized from countries.default_currency
+                     CONSTRAINT CK_places_currency CHECK (currency IN ('COP', 'USD')),
     measurement_unit NVARCHAR(15)     NOT NULL DEFAULT 'LITERS'
                      CONSTRAINT CK_places_unit CHECK (measurement_unit IN ('LITERS', 'CUBIC_METERS', 'GALLONS')),
     is_default       BIT              NOT NULL DEFAULT 0,
     created_at       DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
     updated_at       DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
-    deleted_at       DATETIME2        NULL,
-
-    CONSTRAINT UQ_places_uuid UNIQUE (uuid)
+    deleted_at       DATETIME2        NULL
 );
 
-CREATE INDEX IX_places_owner ON places.places (owner_id);
+CREATE INDEX        IX_places_owner         ON places.places (owner_id);
+-- At most one active default place per owner (HU-009/010)
+CREATE UNIQUE INDEX UX_places_owner_default ON places.places (owner_id) WHERE is_default = 1 AND deleted_at IS NULL;
 ```
+
+- **`city_id` replaces the free-text `city` and `country_code` columns** (ADR-004). Storing the country as well would be a transitive dependency (`city_id → subdivision_id → country_id`), so it is derived with a JOIN inside the `places` schema.
+- **`currency` and `measurement_unit` belong to the place.** They are copied from the country's defaults when the place is created (HU-053), and the user can change them afterwards. That is why they are not a 3NF violation: they don't depend on `city_id`.
+- **`FK_places_owner` has no `ON DELETE CASCADE`.** Account deletion (HU-008) is a soft delete, and a physical cascade would remove places without warning.
 
 ### Table: places.place_members *(Entrega 3)*
 
 ```sql
 CREATE TABLE places.place_members (
-    id         BIGINT      IDENTITY(1,1) PRIMARY KEY,
-    place_id   BIGINT      NOT NULL REFERENCES places.places(id),
-    user_id    BIGINT      NOT NULL, -- FK cross → security.users.id
-    role       NVARCHAR(10) NOT NULL
+    id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id   UNIQUEIDENTIFIER NOT NULL REFERENCES places.places(id),
+    user_id    UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id
+    role       NVARCHAR(10)     NOT NULL
                CONSTRAINT CK_member_role CHECK (role IN ('OWNER', 'GUEST')),
-    joined_at  DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
-    revoked_at DATETIME2   NULL,
+    joined_at  DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    revoked_at DATETIME2        NULL,
 
     CONSTRAINT UQ_member_place_user UNIQUE (place_id, user_id)
 );
@@ -243,16 +311,16 @@ CREATE TABLE places.place_members (
 
 ```sql
 CREATE TABLE places.invitations (
-    id           BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    place_id     BIGINT        NOT NULL REFERENCES places.places(id),
-    invited_by   BIGINT        NOT NULL, -- FK cross → security.users.id
-    email        NVARCHAR(320) NOT NULL,
-    status       NVARCHAR(10)  NOT NULL DEFAULT 'PENDING'
+    id           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id     UNIQUEIDENTIFIER NOT NULL REFERENCES places.places(id),
+    invited_by   UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id
+    email        NVARCHAR(320)    NOT NULL,
+    status       NVARCHAR(10)     NOT NULL DEFAULT 'PENDING'
                  CONSTRAINT CK_inv_status CHECK (status IN ('PENDING', 'ACCEPTED', 'EXPIRED', 'REJECTED')),
-    token_hash   NVARCHAR(256) NOT NULL,
-    expires_at   DATETIME2     NOT NULL,
-    created_at   DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
-    responded_at DATETIME2     NULL,
+    token_hash   NVARCHAR(256)    NOT NULL,
+    expires_at   DATETIME2        NOT NULL,
+    created_at   DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    responded_at DATETIME2        NULL,
 
     CONSTRAINT UQ_inv_token UNIQUE (token_hash)
 );
@@ -272,10 +340,9 @@ CREATE INDEX IX_inv_place_email ON places.invitations (place_id, email);
 
 ```sql
 CREATE TABLE devices.devices (
-    id                       BIGINT           IDENTITY(1,1) PRIMARY KEY,
-    uuid                     UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    id                       UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
     serial_number            NVARCHAR(100)    NOT NULL,
-    place_id                 BIGINT           NULL, -- FK cross → places.places.id (NULL = available)
+    place_id                 UNIQUEIDENTIFIER NULL, -- FK cross → places.places.id (NULL = available)
     auth_token_hash          NVARCHAR(256)    NOT NULL,
     auth_token_last_used_at  DATETIME2        NULL,
     auth_token_revoked_at    DATETIME2        NULL,
@@ -287,7 +354,6 @@ CREATE TABLE devices.devices (
     created_at               DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
     updated_at               DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    CONSTRAINT UQ_dev_uuid   UNIQUE (uuid),
     CONSTRAINT UQ_dev_serial UNIQUE (serial_number)
 );
 
@@ -298,13 +364,13 @@ CREATE INDEX IX_dev_place ON devices.devices (place_id) WHERE place_id IS NOT NU
 
 ```sql
 CREATE TABLE devices.device_link_history (
-    id          BIGINT    IDENTITY(1,1) PRIMARY KEY,
-    device_id   BIGINT    NOT NULL REFERENCES devices.devices(id),
-    place_id    BIGINT    NOT NULL, -- FK cross → places.places.id
-    linked_by   BIGINT    NOT NULL, -- FK cross → security.users.id
-    linked_at   DATETIME2 NOT NULL,
-    unlinked_at DATETIME2 NULL,
-    unlinked_by BIGINT    NULL,     -- FK cross → security.users.id
+    id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    device_id   UNIQUEIDENTIFIER NOT NULL REFERENCES devices.devices(id),
+    place_id    UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    linked_by   UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id
+    linked_at   DATETIME2        NOT NULL,
+    unlinked_at DATETIME2        NULL,
+    unlinked_by UNIQUEIDENTIFIER NULL,     -- FK cross → security.users.id
 
     INDEX IX_linkh_dev_time (device_id, linked_at)
 );
@@ -322,13 +388,13 @@ CREATE TABLE devices.device_link_history (
 
 ```sql
 CREATE TABLE monitoring.readings (
-    id                BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    device_id         BIGINT        NOT NULL, -- FK cross → devices.devices.id
-    place_id          BIGINT        NOT NULL, -- FK cross → places.places.id [D1]
-    flow_rate_lph     DECIMAL(18,3) NOT NULL CONSTRAINT CK_read_flow CHECK (flow_rate_lph >= 0),
-    cumulative_liters DECIMAL(18,3) NOT NULL CONSTRAINT CK_read_cumul CHECK (cumulative_liters >= 0),
-    recorded_at       DATETIME2     NOT NULL,
-    received_at       DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id                UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID() PRIMARY KEY,
+    device_id         UNIQUEIDENTIFIER NOT NULL, -- FK cross → devices.devices.id
+    place_id          UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id [D1]
+    flow_rate_lph     DECIMAL(18,3)    NOT NULL CONSTRAINT CK_read_flow CHECK (flow_rate_lph >= 0),
+    cumulative_liters DECIMAL(18,3)    NOT NULL CONSTRAINT CK_read_cumul CHECK (cumulative_liters >= 0),
+    recorded_at       DATETIME2        NOT NULL,
+    received_at       DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_reading_dev_time UNIQUE (device_id, recorded_at)
 );
@@ -342,12 +408,12 @@ CREATE INDEX IX_reading_place_time ON monitoring.readings (place_id, recorded_at
 
 ```sql
 CREATE TABLE monitoring.consumption_hourly (
-    id            BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    place_id      BIGINT        NOT NULL, -- FK cross → places.places.id
-    hour_start    DATETIME2     NOT NULL,
-    total_liters  DECIMAL(18,3) NOT NULL CONSTRAINT CK_hourly_vol CHECK (total_liters >= 0),
-    reading_count INT           NOT NULL CONSTRAINT CK_hourly_cnt CHECK (reading_count >= 0),
-    created_at    DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id            UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id      UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    hour_start    DATETIME2        NOT NULL,
+    total_liters  DECIMAL(18,3)    NOT NULL CONSTRAINT CK_hourly_vol CHECK (total_liters >= 0),
+    reading_count INT              NOT NULL CONSTRAINT CK_hourly_cnt CHECK (reading_count >= 0),
+    created_at    DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_hourly_place_hour UNIQUE (place_id, hour_start)
 );
@@ -357,14 +423,14 @@ CREATE TABLE monitoring.consumption_hourly (
 
 ```sql
 CREATE TABLE monitoring.consumption_daily (
-    id            BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    place_id      BIGINT        NOT NULL, -- FK cross → places.places.id
-    date          DATE          NOT NULL,
-    total_liters  DECIMAL(18,3) NOT NULL CONSTRAINT CK_daily_vol CHECK (total_liters >= 0),
-    avg_hourly    DECIMAL(18,3) NULL,
-    peak_hour     TINYINT       NULL CONSTRAINT CK_daily_peak CHECK (peak_hour BETWEEN 0 AND 23),
-    reading_count INT           NOT NULL CONSTRAINT CK_daily_cnt CHECK (reading_count >= 0),
-    created_at    DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id            UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id      UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    date          DATE             NOT NULL,
+    total_liters  DECIMAL(18,3)    NOT NULL CONSTRAINT CK_daily_vol CHECK (total_liters >= 0),
+    avg_hourly    DECIMAL(18,3)    NULL,
+    peak_hour     TINYINT          NULL CONSTRAINT CK_daily_peak CHECK (peak_hour BETWEEN 0 AND 23),
+    reading_count INT              NOT NULL CONSTRAINT CK_daily_cnt CHECK (reading_count >= 0),
+    created_at    DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_daily_place_date UNIQUE (place_id, date)
 );
@@ -374,15 +440,15 @@ CREATE TABLE monitoring.consumption_daily (
 
 ```sql
 CREATE TABLE monitoring.consumption_monthly (
-    id             BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    place_id       BIGINT        NOT NULL, -- FK cross → places.places.id
-    month_start    DATE          NOT NULL CONSTRAINT CK_monthly_day CHECK (DAY(month_start) = 1),
-    total_liters   DECIMAL(18,3) NOT NULL CONSTRAINT CK_monthly_vol CHECK (total_liters >= 0),
-    avg_daily      DECIMAL(18,3) NULL,
-    peak_day       DATE          NULL,
-    reading_count  INT           NOT NULL CONSTRAINT CK_monthly_cnt CHECK (reading_count >= 0),
-    days_with_data INT           NOT NULL,
-    created_at     DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id       UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    month_start    DATE             NOT NULL CONSTRAINT CK_monthly_day CHECK (DAY(month_start) = 1),
+    total_liters   DECIMAL(18,3)    NOT NULL CONSTRAINT CK_monthly_vol CHECK (total_liters >= 0),
+    avg_daily      DECIMAL(18,3)    NULL,
+    peak_day       DATE             NULL,
+    reading_count  INT              NOT NULL CONSTRAINT CK_monthly_cnt CHECK (reading_count >= 0),
+    days_with_data INT              NOT NULL,
+    created_at     DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_monthly_place_month UNIQUE (place_id, month_start)
 );
@@ -398,14 +464,14 @@ CREATE TABLE monitoring.consumption_monthly (
 
 ```sql
 CREATE TABLE goals.consumption_goals (
-    id            BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    place_id      BIGINT        NOT NULL, -- FK cross → places.places.id
-    month_start   DATE          NOT NULL CONSTRAINT CK_goal_day CHECK (DAY(month_start) = 1),
-    target_liters DECIMAL(18,3) NOT NULL CONSTRAINT CK_goal_target CHECK (target_liters > 0),
-    source        NVARCHAR(15)  NOT NULL
+    id            UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id      UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    month_start   DATE             NOT NULL CONSTRAINT CK_goal_day CHECK (DAY(month_start) = 1),
+    target_liters DECIMAL(18,3)    NOT NULL CONSTRAINT CK_goal_target CHECK (target_liters > 0),
+    source        NVARCHAR(15)     NOT NULL
                   CONSTRAINT CK_goal_source CHECK (source IN ('MANUAL', 'SUGGESTED', 'CARRIED_OVER')),
-    created_at    DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
-    updated_at    DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    created_at    DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at    DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_goal_place_month UNIQUE (place_id, month_start)
 );
@@ -415,13 +481,13 @@ CREATE TABLE goals.consumption_goals (
 
 ```sql
 CREATE TABLE goals.goal_suggestions (
-    id               BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    place_id         BIGINT        NOT NULL, -- FK cross → places.places.id
-    month_start      DATE          NOT NULL CONSTRAINT CK_suggest_day CHECK (DAY(month_start) = 1),
-    suggested_liters DECIMAL(18,3) NOT NULL CONSTRAINT CK_suggest_val CHECK (suggested_liters > 0),
-    based_on_months  INT           NOT NULL CONSTRAINT CK_suggest_months CHECK (based_on_months >= 1),
-    accepted         BIT           NULL,
-    created_at       DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id         UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    month_start      DATE             NOT NULL CONSTRAINT CK_suggest_day CHECK (DAY(month_start) = 1),
+    suggested_liters DECIMAL(18,3)    NOT NULL CONSTRAINT CK_suggest_val CHECK (suggested_liters > 0),
+    based_on_months  INT              NOT NULL CONSTRAINT CK_suggest_months CHECK (based_on_months >= 1),
+    accepted         BIT              NULL,
+    created_at       DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_suggestion_place_month UNIQUE (place_id, month_start)
 );
@@ -437,19 +503,19 @@ CREATE TABLE goals.goal_suggestions (
 
 ```sql
 CREATE TABLE billing.water_bills (
-    id                 BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    place_id           BIGINT        NOT NULL, -- FK cross → places.places.id
-    billed_consumption DECIMAL(18,3) NOT NULL CONSTRAINT CK_bill_vol CHECK (billed_consumption >= 0),
-    billed_unit        NVARCHAR(20)  NOT NULL,
-    total_amount       DECIMAL(18,2) NOT NULL CONSTRAINT CK_bill_amt CHECK (total_amount >= 0),
-    currency           NVARCHAR(3)   NOT NULL,
-    period_start       DATE          NOT NULL,
-    period_end         DATE          NOT NULL,
-    due_date           DATE          NULL,
-    paid               BIT           NOT NULL DEFAULT 0,
-    paid_at            DATETIME2     NULL,
-    created_at         DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
-    updated_at         DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id                 UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id           UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    billed_consumption DECIMAL(18,3)    NOT NULL CONSTRAINT CK_bill_vol CHECK (billed_consumption >= 0),
+    billed_unit        NVARCHAR(20)     NOT NULL,
+    total_amount       DECIMAL(18,2)    NOT NULL CONSTRAINT CK_bill_amt CHECK (total_amount >= 0),
+    currency           NVARCHAR(3)      NOT NULL,
+    period_start       DATE             NOT NULL,
+    period_end         DATE             NOT NULL,
+    due_date           DATE             NULL,
+    paid               BIT              NOT NULL DEFAULT 0,
+    paid_at            DATETIME2        NULL,
+    created_at         DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at         DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT CK_bill_period CHECK (period_start < period_end)
 );
@@ -462,19 +528,19 @@ CREATE INDEX IX_bill_place_due    ON billing.water_bills (place_id, due_date);
 
 ```sql
 CREATE TABLE billing.tariffs (
-    id                   BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    place_id             BIGINT        NOT NULL, -- FK cross → places.places.id
-    price_per_unit       DECIMAL(18,2) NOT NULL CONSTRAINT CK_tariff_price CHECK (price_per_unit > 0),
-    unit                 NVARCHAR(20)  NOT NULL,
-    fixed_monthly_charge DECIMAL(18,2) NOT NULL DEFAULT 0
+    id                   UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id             UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    price_per_unit       DECIMAL(18,2)    NOT NULL CONSTRAINT CK_tariff_price CHECK (price_per_unit > 0),
+    unit                 NVARCHAR(20)     NOT NULL,
+    fixed_monthly_charge DECIMAL(18,2)    NOT NULL DEFAULT 0
                          CONSTRAINT CK_tariff_fixed CHECK (fixed_monthly_charge >= 0),
-    currency             NVARCHAR(3)   NOT NULL,
-    source               NVARCHAR(10)  NOT NULL DEFAULT 'MANUAL'
+    currency             NVARCHAR(3)      NOT NULL,
+    source               NVARCHAR(10)     NOT NULL DEFAULT 'MANUAL'
                          CONSTRAINT CK_tariff_source CHECK (source IN ('MANUAL', 'CATALOG')),
-    catalog_tariff_id    BIGINT        NULL, -- FK → billing.tariff_catalog.id
-    effective_from       DATE          NOT NULL,
-    effective_to         DATE          NULL,
-    created_at           DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    catalog_tariff_id    UNIQUEIDENTIFIER NULL, -- FK → billing.tariff_catalog.id
+    effective_from       DATE             NOT NULL,
+    effective_to         DATE             NULL,
+    created_at           DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT CK_tariff_period CHECK (effective_to IS NULL OR effective_from < effective_to)
 );
@@ -486,20 +552,20 @@ CREATE INDEX IX_tariff_place_from ON billing.tariffs (place_id, effective_from);
 
 ```sql
 CREATE TABLE billing.tariff_catalog (
-    id              BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    country_code    NVARCHAR(2)   NOT NULL,
-    region          NVARCHAR(200) NOT NULL,
-    category        NVARCHAR(100) NULL,
-    tier_name       NVARCHAR(100) NULL,
-    min_consumption DECIMAL(18,3) NULL CONSTRAINT CK_cat_min CHECK (min_consumption >= 0),
-    max_consumption DECIMAL(18,3) NULL,
-    price_per_unit  DECIMAL(18,2) NOT NULL CONSTRAINT CK_cat_price CHECK (price_per_unit > 0),
-    fixed_charge    DECIMAL(18,2) NOT NULL DEFAULT 0 CONSTRAINT CK_cat_fixed CHECK (fixed_charge >= 0),
-    currency        NVARCHAR(3)   NOT NULL,
-    unit            NVARCHAR(20)  NOT NULL,
-    last_updated    DATE          NOT NULL,
-    source_url      NVARCHAR(500) NULL,
-    created_at      DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    country_code    NVARCHAR(2)      NOT NULL, -- CO | EC (ADR-004); align with places.countries / places.cities when designed (HU-066)
+    region          NVARCHAR(200)    NOT NULL,
+    category        NVARCHAR(100)    NULL,
+    tier_name       NVARCHAR(100)    NULL,
+    min_consumption DECIMAL(18,3)    NULL CONSTRAINT CK_cat_min CHECK (min_consumption >= 0),
+    max_consumption DECIMAL(18,3)    NULL,
+    price_per_unit  DECIMAL(18,2)    NOT NULL CONSTRAINT CK_cat_price CHECK (price_per_unit > 0),
+    fixed_charge    DECIMAL(18,2)    NOT NULL DEFAULT 0 CONSTRAINT CK_cat_fixed CHECK (fixed_charge >= 0),
+    currency        NVARCHAR(3)      NOT NULL,
+    unit            NVARCHAR(20)     NOT NULL,
+    last_updated    DATE             NOT NULL,
+    source_url      NVARCHAR(500)    NULL,
+    created_at      DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT CK_cat_range CHECK (max_consumption IS NULL OR max_consumption > min_consumption),
     INDEX IX_catalog_location (country_code, region, category)
@@ -516,13 +582,13 @@ CREATE TABLE billing.tariff_catalog (
 
 ```sql
 CREATE TABLE valve.valve_states (
-    id                BIGINT      IDENTITY(1,1) PRIMARY KEY,
-    device_id         BIGINT      NOT NULL, -- FK cross → devices.devices.id
-    place_id          BIGINT      NOT NULL, -- FK cross → places.places.id
-    state             NVARCHAR(10) NOT NULL DEFAULT 'UNKNOWN'
+    id                UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    device_id         UNIQUEIDENTIFIER NOT NULL, -- FK cross → devices.devices.id
+    place_id          UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    state             NVARCHAR(10)     NOT NULL DEFAULT 'UNKNOWN'
                       CONSTRAINT CK_vstate CHECK (state IN ('OPEN', 'CLOSED', 'UNKNOWN')),
-    last_confirmed_at DATETIME2   NULL,
-    updated_at        DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
+    last_confirmed_at DATETIME2        NULL,
+    updated_at        DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_vstate_device UNIQUE (device_id),
     CONSTRAINT UQ_vstate_place  UNIQUE (place_id)
@@ -533,25 +599,25 @@ CREATE TABLE valve.valve_states (
 
 ```sql
 CREATE TABLE valve.valve_commands (
-    id                BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    device_id         BIGINT        NOT NULL, -- FK cross → devices.devices.id
-    place_id          BIGINT        NOT NULL, -- FK cross → places.places.id [D2]
-    commanded_by      BIGINT        NULL,     -- FK cross → security.users.id (NULL = auto)
-    command           NVARCHAR(10)  NOT NULL
+    id                UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    device_id         UNIQUEIDENTIFIER NOT NULL, -- FK cross → devices.devices.id
+    place_id          UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id [D2]
+    commanded_by      UNIQUEIDENTIFIER NULL,     -- FK cross → security.users.id (NULL = auto)
+    command           NVARCHAR(10)     NOT NULL
                       CONSTRAINT CK_vcmd_cmd CHECK (command IN ('OPEN', 'CLOSE')),
-    origin            NVARCHAR(15)  NOT NULL
+    origin            NVARCHAR(15)     NOT NULL
                       CONSTRAINT CK_vcmd_origin CHECK (origin IN ('MANUAL', 'AUTO_LEAK', 'AUTO_GOAL')),
-    status            NVARCHAR(25)  NOT NULL DEFAULT 'PENDING_CONFIRMATION'
+    status            NVARCHAR(25)     NOT NULL DEFAULT 'PENDING_CONFIRMATION'
                       CONSTRAINT CK_vcmd_status CHECK (status IN (
                           'PENDING_CONFIRMATION', 'CONFIRMED', 'SENT', 'ACK_SUCCESS', 'ACK_TIMEOUT', 'FAILED'
                       )),
-    confirmation_code NVARCHAR(10)  NULL,
-    confirmed_at      DATETIME2     NULL,
-    sent_at           DATETIME2     NULL,
-    device_ack_at     DATETIME2     NULL,
-    timeout_at        DATETIME2     NULL,
-    failure_reason    NVARCHAR(500) NULL,
-    created_at        DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME()
+    confirmation_code NVARCHAR(10)     NULL,
+    confirmed_at      DATETIME2        NULL,
+    sent_at           DATETIME2        NULL,
+    device_ack_at     DATETIME2        NULL,
+    timeout_at        DATETIME2        NULL,
+    failure_reason    NVARCHAR(500)    NULL,
+    created_at        DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
 CREATE INDEX IX_vcmd_place_time ON valve.valve_commands (place_id, created_at);
@@ -563,17 +629,17 @@ CREATE INDEX IX_vcmd_place_time ON valve.valve_commands (place_id, created_at);
 
 ```sql
 CREATE TABLE valve.valve_rules (
-    id                       BIGINT      IDENTITY(1,1) PRIMARY KEY,
-    place_id                 BIGINT      NOT NULL, -- FK cross → places.places.id
-    rule_type                NVARCHAR(20) NOT NULL
+    id                       UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id                 UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    rule_type                NVARCHAR(20)     NOT NULL
                              CONSTRAINT CK_vrule_type CHECK (rule_type IN ('LEAK_DETECTION', 'GOAL_EXCEEDED')),
-    enabled                  BIT         NOT NULL DEFAULT 0,
-    requires_confirmation    BIT         NOT NULL DEFAULT 1,
-    confirmation_timeout_min INT         NOT NULL DEFAULT 10
+    enabled                  BIT              NOT NULL DEFAULT 0,
+    requires_confirmation    BIT              NOT NULL DEFAULT 1,
+    confirmation_timeout_min INT              NOT NULL DEFAULT 10
                              CONSTRAINT CK_vrule_timeout CHECK (confirmation_timeout_min > 0),
-    created_by               BIGINT      NOT NULL, -- FK cross → security.users.id
-    created_at               DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
-    updated_at               DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
+    created_by               UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id
+    created_at               DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at               DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_vrule_place_type UNIQUE (place_id, rule_type)
 );
@@ -589,19 +655,19 @@ CREATE TABLE valve.valve_rules (
 
 ```sql
 CREATE TABLE alerts.alert_type_config (
-    id              BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    alert_type      NVARCHAR(30)  NOT NULL
+    id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    alert_type      NVARCHAR(30)     NOT NULL
                     CONSTRAINT CK_atc_type CHECK (alert_type IN (
                         'SUSPECTED_LEAK', 'GOAL_80_PERCENT', 'GOAL_EXCEEDED',
                         'SENSOR_DISCONNECTED', 'VALVE_CLOSED',
                         'BILL_MISALIGNED', 'BILL_REGISTER_REMINDER', 'BILL_PAYMENT_REMINDER'
                     )),
-    severity        NVARCHAR(15)  NOT NULL
+    severity        NVARCHAR(15)     NOT NULL
                     CONSTRAINT CK_atc_sev CHECK (severity IN ('CRITICAL', 'IMPORTANT', 'INFORMATIVE')),
-    description     NVARCHAR(500) NOT NULL,
-    default_enabled BIT           NOT NULL DEFAULT 1,
-    max_per_period  INT           NULL,
-    period_unit     NVARCHAR(10)  NULL,
+    description     NVARCHAR(500)    NOT NULL,
+    default_enabled BIT              NOT NULL DEFAULT 1,
+    max_per_period  INT              NULL,
+    period_unit     NVARCHAR(10)     NULL,
 
     CONSTRAINT UQ_atc_type UNIQUE (alert_type)
 );
@@ -621,16 +687,16 @@ CREATE TABLE alerts.alert_type_config (
 
 ```sql
 CREATE TABLE alerts.alert_events (
-    id           BIGINT         IDENTITY(1,1) PRIMARY KEY,
-    place_id     BIGINT         NOT NULL, -- FK cross → places.places.id
-    alert_type   NVARCHAR(30)   NOT NULL,
-    severity     NVARCHAR(15)   NOT NULL, -- [D3] snapshot at creation time
-    title        NVARCHAR(200)  NOT NULL,
-    message      NVARCHAR(2000) NOT NULL,
-    metadata     NVARCHAR(4000) NULL,
-    triggered_at DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(),
-    read_at      DATETIME2      NULL,
-    deleted_at   DATETIME2      NULL,
+    id           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    place_id     UNIQUEIDENTIFIER NOT NULL, -- FK cross → places.places.id
+    alert_type   NVARCHAR(30)     NOT NULL,
+    severity     NVARCHAR(15)     NOT NULL, -- [D3] snapshot at creation time
+    title        NVARCHAR(200)    NOT NULL,
+    message      NVARCHAR(2000)   NOT NULL,
+    metadata     NVARCHAR(4000)   NULL,
+    triggered_at DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    read_at      DATETIME2        NULL,
+    deleted_at   DATETIME2        NULL,
 
     CONSTRAINT CK_alertev_json CHECK (metadata IS NULL OR ISJSON(metadata) = 1)
 );
@@ -643,15 +709,15 @@ CREATE INDEX IX_alert_dedup      ON alerts.alert_events (place_id, alert_type, t
 
 ```sql
 CREATE TABLE alerts.notification_preferences (
-    id             BIGINT      IDENTITY(1,1) PRIMARY KEY,
-    user_id        BIGINT      NOT NULL, -- FK cross → security.users.id
-    alert_severity NVARCHAR(15) NOT NULL
+    id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id        UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id
+    alert_severity NVARCHAR(15)     NOT NULL
                    CONSTRAINT CK_notpref_sev CHECK (alert_severity IN ('CRITICAL', 'IMPORTANT', 'INFORMATIVE')),
-    channel_app    BIT         NOT NULL DEFAULT 1,
-    channel_push   BIT         NOT NULL DEFAULT 1,
-    channel_email  BIT         NOT NULL DEFAULT 0,
-    channel_sms    BIT         NOT NULL DEFAULT 0,
-    updated_at     DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME(),
+    channel_app    BIT              NOT NULL DEFAULT 1,
+    channel_push   BIT              NOT NULL DEFAULT 1,
+    channel_email  BIT              NOT NULL DEFAULT 0,
+    channel_sms    BIT              NOT NULL DEFAULT 0,
+    updated_at     DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_notpref_user_sev UNIQUE (user_id, alert_severity),
     CONSTRAINT CK_notpref_critical CHECK (alert_severity <> 'CRITICAL' OR channel_app = 1)
@@ -668,19 +734,19 @@ CREATE TABLE alerts.notification_preferences (
 
 ```sql
 CREATE TABLE notifications.notification_log (
-    id             BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    alert_event_id BIGINT        NOT NULL, -- FK cross → alerts.alert_events.id
-    user_id        BIGINT        NOT NULL, -- FK cross → security.users.id
-    channel        NVARCHAR(10)  NOT NULL
+    id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID() PRIMARY KEY,
+    alert_event_id UNIQUEIDENTIFIER NOT NULL, -- FK cross → alerts.alert_events.id
+    user_id        UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id
+    channel        NVARCHAR(10)     NOT NULL
                    CONSTRAINT CK_nlog_channel CHECK (channel IN ('APP', 'PUSH', 'EMAIL', 'SMS', 'WHATSAPP')),
-    status         NVARCHAR(15)  NOT NULL DEFAULT 'PENDING'
+    status         NVARCHAR(15)     NOT NULL DEFAULT 'PENDING'
                    CONSTRAINT CK_nlog_status CHECK (status IN ('PENDING', 'SENT', 'DELIVERED', 'FAILED')),
-    provider_ref   NVARCHAR(200) NULL,
-    sent_at        DATETIME2     NULL,
-    delivered_at   DATETIME2     NULL,
-    failed_at      DATETIME2     NULL,
-    error_message  NVARCHAR(1000) NULL,
-    created_at     DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    provider_ref   NVARCHAR(200)    NULL,
+    sent_at        DATETIME2        NULL,
+    delivered_at   DATETIME2        NULL,
+    failed_at      DATETIME2        NULL,
+    error_message  NVARCHAR(1000)   NULL,
+    created_at     DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_nlog_event_user_channel UNIQUE (alert_event_id, user_id, channel)
 );
@@ -692,13 +758,13 @@ CREATE INDEX IX_nlog_user_time ON notifications.notification_log (user_id, creat
 
 ```sql
 CREATE TABLE notifications.push_subscriptions (
-    id           BIGINT        IDENTITY(1,1) PRIMARY KEY,
-    user_id      BIGINT        NOT NULL, -- FK cross → security.users.id
-    device_token NVARCHAR(500) NOT NULL,
-    platform     NVARCHAR(10)  NOT NULL,
-    active       BIT           NOT NULL DEFAULT 1,
-    created_at   DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
-    updated_at   DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    id           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id      UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id
+    device_token NVARCHAR(500)    NOT NULL,
+    platform     NVARCHAR(10)     NOT NULL,
+    active       BIT              NOT NULL DEFAULT 1,
+    created_at   DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    updated_at   DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_push_user_token UNIQUE (user_id, device_token)
 );
@@ -714,14 +780,14 @@ CREATE TABLE notifications.push_subscriptions (
 
 ```sql
 CREATE TABLE content.savings_tips (
-    id         BIGINT         IDENTITY(1,1) PRIMARY KEY,
-    category   NVARCHAR(15)   NOT NULL
+    id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    category   NVARCHAR(15)     NOT NULL
                CONSTRAINT CK_tip_cat CHECK (category IN ('RESIDENTIAL', 'COMMERCIAL', 'GENERAL')),
-    title      NVARCHAR(200)  NOT NULL,
-    body       NVARCHAR(2000) NOT NULL,
-    sort_order INT            NOT NULL DEFAULT 0,
-    active     BIT            NOT NULL DEFAULT 1,
-    created_at DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME()
+    title      NVARCHAR(200)    NOT NULL,
+    body       NVARCHAR(2000)   NOT NULL,
+    sort_order INT              NOT NULL DEFAULT 0,
+    active     BIT              NOT NULL DEFAULT 1,
+    created_at DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME()
 );
 ```
 
@@ -729,10 +795,10 @@ CREATE TABLE content.savings_tips (
 
 ```sql
 CREATE TABLE content.tip_favorites (
-    id         BIGINT    IDENTITY(1,1) PRIMARY KEY,
-    user_id    BIGINT    NOT NULL, -- FK cross → security.users.id
-    tip_id     BIGINT    NOT NULL REFERENCES content.savings_tips(id),
-    created_at DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
+    user_id    UNIQUEIDENTIFIER NOT NULL, -- FK cross → security.users.id
+    tip_id     UNIQUEIDENTIFIER NOT NULL REFERENCES content.savings_tips(id),
+    created_at DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
 
     CONSTRAINT UQ_fav_user_tip UNIQUE (user_id, tip_id)
 );
@@ -747,6 +813,7 @@ CREATE TABLE content.tip_favorites (
 | User identity | `security` | BC-01 IAM | auth-service | REST API + JWT claims |
 | User credentials | `security` | BC-01 IAM | auth-service | Internal only |
 | Place info | `places` | BC-02 Place Mgmt | place-service | REST API |
+| Location catalog (countries, subdivisions, cities) | `places` | BC-02 Place Mgmt | place-service | REST API (read-only); seed data |
 | Members & invitations | `places` | BC-02 Place Mgmt | place-service | REST API |
 | Device registry | `devices` | BC-03 Device Mgmt | device-service | REST API + events |
 | Device link history | `devices` | BC-03 Device Mgmt | device-service | REST API |
@@ -830,8 +897,8 @@ All cross-schema foreign keys are real constraints enforced by SQL Server.
 ┌──────────────────────┐
 │   security.users     │
 ├──────────────────────┤       ┌──────────────────────────────┐
-│ id (PK, BIGINT)      │──┐    │ security.user_credentials    │
-│ uuid (UQ)            │  │    ├──────────────────────────────┤
+│ id (PK, UUID)        │──┐    │ security.user_credentials    │
+│                      │  │    ├──────────────────────────────┤
 │ name, email (UQ)     │  ├───▶│ user_id (FK)                 │
 │ phone                │  │    │ credential_type (LOCAL|GOOGLE)│
 │ email_verified       │  │    │ password_hash, google_id     │
@@ -871,15 +938,25 @@ All cross-schema foreign keys are real constraints enforced by SQL Server.
 ### places schema (BC-02)
 
 ```
-┌────────────────────────────┐
-│      places.places         │
+┌──────────────────────┐    ┌──────────────────────┐    ┌──────────────────────┐
+│  places.countries    │    │ places.subdivisions  │    │    places.cities     │
+│  (seed — CO, EC)     │    │ (seed — 33 CO+24 EC) │    │ (seed — 1122+221)    │
+├──────────────────────┤    ├──────────────────────┤    ├──────────────────────┤
+│ id (PK, UUID)        │───▶│ country_id (FK)      │───▶│ subdivision_id (FK)  │
+│ code (UQ)            │    │ code (UQ w/country)  │    │ code (UQ w/subdiv)   │
+│ name                 │    │ name                 │    │ name                 │
+│ default_currency     │    └──────────────────────┘    └──────────┬───────────┘
+│ default_unit         │                                           │
+└──────────────────────┘                                           │
+┌────────────────────────────┐                                     │
+│      places.places         │◀────────────────────────────────────┘
 ├────────────────────────────┤
-│ id (PK), uuid (UQ)        │──┐
-│ owner_id (FK → users)     │  │    ┌───────────────────────────┐
-│ name, place_type           │  │    │   places.place_members    │
-│ address, city, country_code│  │    │      *(Entrega 3)*        │
+│ id (PK, UUID)              │──┐
+│ owner_id (FK → users) [D4] │  │    ┌───────────────────────────┐
+│ city_id (FK → cities)      │  │    │   places.place_members    │
+│ name, place_type, address  │  │    │      *(Entrega 3)*        │
 │ currency, measurement_unit │  ├───▶│ place_id (FK)             │
-│ is_default                 │  │    │ user_id (FK → users)      │
+│ is_default (UX per owner)  │  │    │ user_id (FK → users)      │
 │ deleted_at (soft delete)   │  │    │ role (OWNER|GUEST)        │
 └────────────────────────────┘  │    │ joined_at, revoked_at     │
                                 │    └───────────────────────────┘
@@ -900,7 +977,7 @@ All cross-schema foreign keys are real constraints enforced by SQL Server.
 ┌──────────────────────────┐
 │    devices.devices       │
 ├──────────────────────────┤       ┌────────────────────────────────┐
-│ id (PK), uuid (UQ)      │──────▶│ devices.device_link_history    │
+│ id (PK, UUID)           │──────▶│ devices.device_link_history    │
 │ serial_number (UQ)       │       ├────────────────────────────────┤
 │ place_id (FK → places)   │       │ device_id (FK)                 │
 │ auth_token_hash          │       │ place_id (FK → places)         │
@@ -1035,4 +1112,6 @@ Examples:
 - Domain events → `02-domain/domain-events.md`
 - BC-to-service mapping → `05-architecture/overview.md` § 4
 - Schema-per-service decision → `05-architecture/decisions/records/ADR-002-shared-database-schema-per-service.md`
+- Single UUID PK decision → `05-architecture/decisions/records/ADR-003-single-uuid-primary-key.md`
+- Market scope (CO/EC) and location catalog → `05-architecture/decisions/records/ADR-004-market-scope-co-ec.md`
 - API contracts → `07-api/contracts/openapi/`

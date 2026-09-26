@@ -21,6 +21,8 @@ ADRs document important architectural decisions. Each file = one decision.
 | # | Title | Status | Date |
 |---|-------|--------|------|
 | ADR-001 | [Documentation Language](records/ADR-001-idioma-documentacion.md) | Accepted | 2026-09-08 |
-| ADR-002 | [Shared Database with Schema-per-Service](records/ADR-002-shared-database-schema-per-service.md) | Accepted | 2026-09-08 |
+| ADR-002 | [Shared Database with Schema-per-Service](records/ADR-002-shared-database-schema-per-service.md) | Accepted (rule 6 superseded by ADR-003) | 2026-09-08 |
+| ADR-003 | [Single UUID Primary Key](records/ADR-003-single-uuid-primary-key.md) | Accepted | 2026-09-26 |
+| ADR-004 | [Market Scope: Colombia and Ecuador Only](records/ADR-004-market-scope-co-ec.md) | Accepted | 2026-09-26 |
 
 > Add rows here as you create ADRs in `records/`

@@ -89,9 +89,8 @@ INV-U008: Failed login attempts reset to 0 on successful login
 | name | string | Reference name (e.g., "Mi Casa", "Oficina Centro") | Yes | — |
 | placeType | enum | RESIDENTIAL, COMMERCIAL | Yes | — |
 | address | string | Full street address | Yes | — |
-| city | string | City | Yes | — |
-| countryCode | string | Country code | Yes | CO, EC, US |
-| currency | string | Currency code | Yes | Default: COP |
+| cityId | UUID | City from the location catalog (country and subdivision are derived from it) | Yes | Must exist in `places.cities`; CO or EC only (ADR-004) |
+| currency | string | Currency code | Yes | COP or USD; initialized from the country's default (CO → COP, EC → USD) |
 | measurementUnit | enum | LITERS, CUBIC_METERS, GALLONS | Yes | Default: LITERS |
 | isDefault | boolean | Whether this is the user's default place | Yes | Default: false |
 | createdAt | DateTime | Creation date | Yes | Immutable |
@@ -257,9 +256,9 @@ INV-D006: Device is considered DISCONNECTED after inactivityThresholdMin without
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| readingId | BIGINT | Internal identifier | Yes | Auto-generated |
-| deviceId | BIGINT | Device that sent this reading | Yes | FK cross → devices.devices |
-| placeId | BIGINT | Place associated at the time of reading | Yes | FK cross → places.places (denormalized, D1) |
+| readingId | UUID | Identifier | Yes | Auto-generated (`NEWSEQUENTIALID()`) |
+| deviceId | UUID | Device that sent this reading | Yes | FK cross → devices.devices |
+| placeId | UUID | Place associated at the time of reading | Yes | FK cross → places.places (denormalized, D1) |
 | flowRateLph | decimal | Instantaneous flow rate (liters/hour) | Yes | Must be ≥ 0 |
 | cumulativeLiters | decimal | Cumulative volume since device install | Yes | Must be ≥ 0 |
 | recordedAt | DateTime | When the measurement was taken (device clock) | Yes | — |
@@ -314,8 +313,8 @@ INV-CA005: Hourly aggregates feed daily; daily feeds monthly
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| goalId | BIGINT | Internal identifier | Yes | Auto-generated |
-| placeId | BIGINT | Place this goal applies to | Yes | FK cross → places.places |
+| goalId | UUID | Identifier | Yes | Auto-generated |
+| placeId | UUID | Place this goal applies to | Yes | FK cross → places.places |
 | monthStart | Date | First day of the target month | Yes | Must be DAY = 1 |
 | targetLiters | decimal | Target consumption in liters | Yes | Must be > 0 |
 | source | enum | MANUAL, SUGGESTED, CARRIED_OVER | Yes | Default: MANUAL |
@@ -413,8 +412,8 @@ INV-T005: Only the Owner can configure tariffs
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| deviceId | BIGINT | Device (unique) | Yes | FK cross → devices.devices |
-| placeId | BIGINT | Place (unique) | Yes | FK cross → places.places |
+| deviceId | UUID | Device (unique) | Yes | FK cross → devices.devices |
+| placeId | UUID | Place (unique) | Yes | FK cross → places.places |
 | state | enum | OPEN, CLOSED, UNKNOWN | Yes | Default: UNKNOWN |
 | lastConfirmedAt | DateTime | When the device last confirmed the state | No | — |
 | updatedAt | DateTime | Last change | Yes | Auto-updated |
@@ -439,9 +438,9 @@ INV-V003: The system never reopens the valve automatically — reopening is alwa
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| deviceId | BIGINT | Target device | Yes | FK cross → devices.devices |
-| placeId | BIGINT | Target place | Yes | FK cross → places.places (D2) |
-| commandedBy | BIGINT | User who initiated (null = auto) | No | FK cross → security.users |
+| deviceId | UUID | Target device | Yes | FK cross → devices.devices |
+| placeId | UUID | Target place | Yes | FK cross → places.places (D2) |
+| commandedBy | UUID | User who initiated (null = auto) | No | FK cross → security.users |
 | command | enum | OPEN, CLOSE | Yes | — |
 | origin | enum | MANUAL, AUTO_LEAK | Yes | — |
 | status | enum | (see lifecycle below) | Yes | Default: PENDING_CONFIRMATION |
@@ -491,12 +490,12 @@ INV-VC004: Reopening is always MANUAL origin
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| placeId | BIGINT | Place this rule applies to | Yes | FK cross → places.places |
+| placeId | UUID | Place this rule applies to | Yes | FK cross → places.places |
 | ruleType | enum | LEAK_DETECTION (only) | Yes | — |
 | enabled | boolean | Whether the rule is active | Yes | Default: false |
 | requiresConfirmation | boolean | Whether to require user confirmation | Yes | Default: true |
 | confirmationTimeoutMin | int | Minutes before auto-expiry of confirmation | Yes | Default: 10, must be > 0 |
-| createdBy | BIGINT | User who created this rule | Yes | FK cross → security.users |
+| createdBy | UUID | User who created this rule | Yes | FK cross → security.users |
 | createdAt | DateTime | When the rule was created | Yes | Immutable |
 | updatedAt | DateTime | Last modification | Yes | Auto-updated |
 
@@ -543,7 +542,7 @@ INV-VR003: When a rule triggers, the system sends a confirmation request to the 
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| placeId | BIGINT | Place this alert relates to | Yes | FK cross → places.places |
+| placeId | UUID | Place this alert relates to | Yes | FK cross → places.places |
 | alertType | string | One of the 8 configured alert types | Yes | — |
 | severity | enum | CRITICAL, IMPORTANT, INFORMATIVE | Yes | Snapshot at creation time (D3) |
 | title | string | Short description | Yes | Max 200 chars |
@@ -575,7 +574,7 @@ INV-A003: Deduplication enforced via max_per_period from alert_type_config
 
 | Attribute | Type | Description | Required | Rules |
 |-----------|------|-------------|---------|-------|
-| userId | BIGINT | User this preference belongs to | Yes | FK cross → security.users |
+| userId | UUID | User this preference belongs to | Yes | FK cross → security.users |
 | alertSeverity | enum | CRITICAL, IMPORTANT, INFORMATIVE | Yes | — |
 | channelApp | boolean | In-app notifications | Yes | Default: true |
 | channelPush | boolean | Push notifications | Yes | Default: true |
@@ -655,9 +654,9 @@ INV-TIP002: Deactivated tips are hidden from users but not deleted
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | street | string | Street address |
-| city | string | City |
-| department | string | Department or state |
-| country | string | Country code (CO, EC, US) |
+| city | string | City (catalog reference: CO municipio / EC cantón) |
+| department | string | Subdivision (CO departamento / EC provincia) |
+| country | string | Country code (CO, EC — ADR-004) |
 | postalCode | string | Postal/ZIP code (optional) |
 
 **Validation:** Address must be valid for the specified country.

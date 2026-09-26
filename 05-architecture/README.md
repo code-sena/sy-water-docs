@@ -21,7 +21,9 @@
 | ADR | Decision | Status |
 |-----|---------|--------|
 | [ADR-001](./decisions/records/ADR-001-idioma-documentacion.md) | All documentation and code in English | Accepted |
-| [ADR-002](./decisions/records/ADR-002-shared-database-schema-per-service.md) | Shared SQL Server instance with schema-per-service isolation | Accepted |
+| [ADR-002](./decisions/records/ADR-002-shared-database-schema-per-service.md) | Shared SQL Server instance with schema-per-service isolation | Accepted (rule 6 superseded by ADR-003) |
+| [ADR-003](./decisions/records/ADR-003-single-uuid-primary-key.md) | Single `UNIQUEIDENTIFIER` PK per table, also used as the public ID | Accepted |
+| [ADR-004](./decisions/records/ADR-004-market-scope-co-ec.md) | Market limited to Colombia and Ecuador; place location via country/subdivision/city catalog | Accepted |
 
 ---
 
