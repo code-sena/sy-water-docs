@@ -49,6 +49,19 @@ Guide for a new developer to contribute to the project.
 
 ---
 
+## Delivered manuals (version 1.0, Spanish)
+
+| Manual | Audience | File |
+|--------|----------|------|
+| User manual | Owners of places using the app (mobile and web) | `assets/deliverables/Manual_Usuario_CuidaTuAgua_v1.0.pdf` |
+| Administrator manual | Admin panel users (users, metrics, savings tips) | `assets/deliverables/Manual_Administrador_CuidaTuAgua_v1.0.pdf` |
+| Installation manual | Whoever deploys the backend, brokers, database and firmware | `assets/deliverables/Manual_Instalacion_CuidaTuAgua_v1.0.pdf` |
+| Technical manual | Developers maintaining the system | `assets/deliverables/Manual_Tecnico_CuidaTuAgua_v1.0.pdf` |
+
+The editable `.docx` sources sit next to each PDF. Index of every SENA deliverable: `assets/deliverables/README.md`.
+
+---
+
 ## Correlations
 
 - `10-devops/local-setup.md` → first step of technical onboarding

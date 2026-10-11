@@ -61,6 +61,10 @@ which go in the CI/CD pipeline, which are manual.
 | [rest] | 80% | Required | Recommended |
 ```
 
+### `test-report.md` ✅
+Latest results of every automated suite (backend, app and firmware), coverage per layer and known gaps.
+**Last run:** 2026-10-10 — 626 tests and checks, all passing.
+
 ### `code-review.md`
 Team code review guide.
 **Fill in:** what to verify in a PR (beyond "it works"), list of required checks,

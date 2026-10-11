@@ -27,3 +27,8 @@ Other services rely on this endpoint for ownership; answering 404 hides whether 
 
 ## [DEC-008] Deleting needs ms-devices
 If ms-devices does not answer, deletion is refused with 503 (`service.unavailable`), never allowed by default.
+
+## [DEC-009] Tariffs and tips in the `places` schema
+Tariffs depend on the city and stratum of a place, and tips are a small catalog, so both live in ms-places
+instead of creating the `billing` and `content` schemas planned in `06-data/models.md`. Tariffs are a
+history (`valid_from`); tips are deactivated, never deleted.

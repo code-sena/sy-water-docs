@@ -17,8 +17,8 @@
 | Local port | **3001** (`server.port` in `application.yml`) |
 | Stack | Java 21 · Spring Boot 4.1.1 (Web MVC, Security, OAuth2 Resource Server, Data JPA, Data Redis, Mail, Actuator, Validation) |
 | Storage | SQL Server, schema `security` (login `security_app`) · Redis (revoked access tokens) · local folder `uploads/avatars` |
-| Communicates with | SMTP (Mailpit in development) · Redis |
-| Consumed by | App, admin panel, ms-valve (verifies close-valve codes); every service validates its JWT |
+| Communicates with | SMTP (Mailpit in development) · Redis · ms-devices and ms-places (`/internal/*`, `X-Internal-Key`) |
+| Consumed by | App, admin panel, ms-valve (verifies close-valve codes), ms-notifications (`/internal/users/{id}/contact`); every service validates its JWT |
 
 ---
 
@@ -32,16 +32,18 @@
 | HU-005 | Password recovery by e-mail or phone with a 6-digit code (15 min); closes every session |
 | HU-006 | Logout: revokes the refresh token and puts the access token `jti` in the Redis denylist |
 | HU-007 | Profile: names, phone, avatar (JPG/PNG ≤ 2 MB) and password change (e-mail notice) |
-| HU-008 | Account deletion (soft delete, data anonymized, sessions revoked) |
+| HU-008 | Account deletion (soft delete, data anonymized, sessions revoked); asks ms-devices to release the user's meters (`DELETE /internal/users/{id}/devices`) |
 | HU-020 | Action codes: `POST /api/users/me/action-codes` sends a 6-digit code (5 min) to confirm closing the valve; `…/verify` is called by ms-valve |
-| HU-061 | Roles `USER` and `ADMIN` in the `roles` claim (ADMIN is granted only by SQL script) |
+| HU-059 | Admin: list registered users, newest first, with search and status filter (`ACTIVE`, `BLOCKED`, `UNVERIFIED`) |
+| HU-060 | Admin: block / unblock a user |
+| HU-062 | Admin: platform metrics (users from ms-iam, places from ms-places, devices from ms-devices) |
+| — | Roles `USER` and `ADMIN` in the `roles` claim (ADMIN is granted only by SQL script `grant-admin.sql`) |
 
 ## Out of scope (what it does NOT do)
 
 - Places, devices, consumption or valve data — they belong to their own services.
 - Resource authorization: each service checks that the place belongs to the user.
 - Google sign-in (HU-004) — postponed; the `user_credentials` table already accepts `GOOGLE`.
-- Unlinking devices when an account is deleted — today `NoDeviceCleanup` is a no-op (pending, see `decisions.md`).
 
 ---
 
@@ -90,6 +92,8 @@ Requires `ms-iam-db` applied (release `v1.3-iam-action-codes`). Full procedure:
 | `iam.codes.*` | TTLs (24 h / 15 min / 5 min), max attempts (5), resend cooldown (60 s) |
 | `iam.lockout.*` | 5 attempts, 15 minutes |
 | `iam.cors-allowed-origins` | Web origins (Expo web) |
+| `INTERNAL_API_KEY` (env) → `iam.internal.api-key` | Shared `X-Internal-Key` (≥ 24 chars); empty = `/internal/**` refused |
+| `DEVICES_URL`, `PLACES_URL` (env) | ms-devices (`http://localhost:3003`) and ms-places (`http://localhost:3002`) |
 
 ---
 

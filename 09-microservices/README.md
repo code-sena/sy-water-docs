@@ -12,7 +12,7 @@
 | 03 | ms-devices | `services/03-ms-devices/` | Implemented |
 | 04 | ms-consumption | `services/04-ms-consumption/` | Implemented |
 | 05 | ms-valve | `services/05-ms-valve/` | Implemented |
-| 06 | ms-notifications | — | Planned (E7) |
+| 06 | ms-notifications | `services/06-ms-notifications/` | Implemented |
 
 The executive view, communication matrix and data ownership are in [`service-catalog.md`](./service-catalog.md).
 The `api-gateway` placeholder was never built and moved to `99-archive/deprecated/01-api-gateway/`.
