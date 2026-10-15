@@ -7,15 +7,31 @@
 
 ## Backlog overview
 
-| Entrega | Epics | User stories | Story points | Status |
+| Entrega | Epics | User stories | Story points | Status (v2.1) |
 |---------|-------|-------------|-------------|--------|
-| Entrega 1 (MVP) | E1--E4 | HU-001 to HU-018 (18) | 73 SP | Planned |
-| Entrega 2 | E5--E8 + HU-038 | HU-019 to HU-038 (20) | 88 SP | Planned |
-| Entrega 3 | E9--E12 | HU-039 to HU-056 (18) | 70 SP | Planned |
-| Entrega 4 | E13--E15 | HU-057 to HU-069 (13) | 48 SP | Planned |
+| Entrega 1 (MVP) | E1--E4 | HU-001 to HU-018 (18) | 73 SP | Done (HU-004 → Version 2) |
+| Entrega 2 | E5--E8 + HU-038 | HU-019 to HU-038 (20) | 88 SP | Done: E5 and HU-025 to HU-027, HU-032 to HU-034 · Version 2: E6, E8, HU-028 to HU-031, HU-038 |
+| Entrega 3 | E9--E12 | HU-039 to HU-056 (18) | 70 SP | Done: E12 · Version 2: E9, E10, E11 |
+| Entrega 4 | E13--E15 | HU-057 to HU-069 (13) | 48 SP | Done: E14, HU-066, HU-069 · Version 2: E13, HU-067, HU-068 |
 | **Total** | **15** | **69** | **279 SP** | |
 
 > *Note: HU-067 and HU-068 are Won't (for now). Their 13 SP are counted but not planned. Active effort is 266 SP.*
+
+## Scope of the current release (v2.1 — 2026-10-15)
+
+The current release focuses on the core of the product: **measuring water consumption per place**. **40 stories (161 SP) are implemented.** The other **29 stories (118 SP) are kept in the backlog as Version 2 improvements**, each with the reason written under its title:
+
+| Version 2 improvement | Stories |
+|-----------------------|---------|
+| Leak alert and automatic shutoff | HU-029, HU-035, HU-036, HU-037 |
+| Consumption goals | HU-023, HU-024, HU-030, HU-031 |
+| Shared access: guest and collaborator | HU-039 to HU-047 |
+| Water bills | HU-048 to HU-052 |
+| Reports and export | HU-038, HU-057, HU-058 |
+| Extra channels and sign-in | HU-004 (Google), HU-028 (SMS / WhatsApp) |
+| Tariff catalogs of other countries | HU-067, HU-068 |
+
+> **Prioritization decision (Sprint Review, 2026-10-15):** four Must stories (HU-004, HU-029, HU-041, HU-045) move to Version 2. HU-041 and HU-045 depend on Should features (guest, collaborator) that move to Version 2 as a whole; HU-004 has an implemented alternative (email and password); HU-029 is the first improvement of the next version. Every Must story of the current scope is implemented.
 
 ---
 
@@ -37,7 +53,7 @@
 | E12 | Tarifas y unidades de medida | 3 | Configure tariffs, units, and cost estimation |
 | E13 | Reportes descargables | 4 | Period reports, PDF export |
 | E14 | Admin Panel (incluye consejos de ahorro) | 4 | User/device management, platform metrics, savings recommendations |
-| E15 | Tarifas precargadas | 4 | Pre-loaded tariff catalogs for Colombia, Ecuador, and USA |
+| E15 | Tarifas precargadas | 4 | Pre-loaded tariff catalog for Colombia (Ecuador and USA in Version 2) |
 
 ---
 
@@ -54,7 +70,7 @@
 ### HU-001 — Registro con correo y contrasena
 
 > **As** an unregistered user
-> **I want** to create an account with my first name, last name, email, phone number, and password
+> **I want** to create an account with my first name, last name, email, phone number (optional), and password
 > **so that** I can access the platform and start monitoring my water consumption
 
 ```gherkin
@@ -83,6 +99,7 @@ Scenario: password stored encrypted
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service |
 | Dependencies | None |
 
@@ -95,16 +112,16 @@ Scenario: password stored encrypted
 > **so that** I can prove the email is mine and activate my access
 
 ```gherkin
-Scenario: verify account via email link
-  Given the user received a verification email after registration
-  When they click the verification link within 24 hours
+Scenario: verify account with the e-mailed code
+  Given the user received a 6-digit verification code after registration
+  When they enter the code within 24 hours (5 attempts)
   Then the account is marked as verified
   And the user is redirected to login with a confirmation message
 
-Scenario: expired verification link
-  Given the verification link was issued more than 24 hours ago
-  When the user clicks it
-  Then the system rejects and allows the user to request a new link
+Scenario: expired verification code
+  Given the verification code was issued more than 24 hours ago
+  When the user enters it
+  Then the system rejects it and allows the user to request a new code (at most one every 60 seconds)
 
 Scenario: unverified account login attempt
   Given the account has not been verified
@@ -116,6 +133,7 @@ Scenario: unverified account login attempt
 |-------|-------|
 | Story Points | 3 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service |
 | Dependencies | HU-001 |
 
@@ -153,12 +171,15 @@ Scenario: session management
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service |
 | Dependencies | HU-001 |
 
 ---
 
 ### HU-004 — Registro e inicio de sesion con Google
+
+> **Version 2 (improvement).** Email and password sign-in (HU-001 to HU-003) already gives access; Google sign-in is a convenience.
 
 > **As** a user
 > **I want** to log in using my Google account
@@ -189,6 +210,7 @@ Scenario: cross-platform
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | auth-service |
 | Dependencies | HU-001 |
 
@@ -204,15 +226,15 @@ Scenario: cross-platform
 Scenario: password reset request
   Given the user provides a registered email or phone number
   When they request a password reset
-  Then the system sends a single-use reset link that expires in 15 minutes
+  Then the system e-mails a single-use 6-digit reset code that expires in 15 minutes
 
 Scenario: password reset with valid token
-  Given the user clicks a valid, non-expired reset link
+  Given the user enters a valid, non-expired reset code
   When they submit a new password that meets the policy (HU-001)
   Then the system updates the password and invalidates all existing sessions
 
 Scenario: token expiration
-  Given the reset link was issued more than 15 minutes ago
+  Given the reset code was issued more than 15 minutes ago
   When the user attempts to use it
   Then the system rejects the request and requires a new password reset
 ```
@@ -221,6 +243,7 @@ Scenario: token expiration
 |-------|-------|
 | Story Points | 3 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service |
 | Dependencies | HU-001 |
 
@@ -244,6 +267,7 @@ Scenario: logout
 |-------|-------|
 | Story Points | 1 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service |
 | Dependencies | HU-003 |
 
@@ -275,6 +299,7 @@ Scenario: email not editable
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service |
 | Dependencies | HU-003 |
 
@@ -293,13 +318,14 @@ Scenario: account deletion
   Then the system soft-deletes the account
   And unlinks all associated devices
   And revokes all active sessions
-  And removes collaborator access in other places
+  # Version 2: when collaborators exist, their access to other places is removed too
 ```
 
 | Field | Value |
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service, device-service |
 | Dependencies | HU-003 |
 
@@ -333,6 +359,7 @@ Scenario: first place default
 |-------|-------|
 | Story Points | 3 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | place-service |
 | Dependencies | HU-003 |
 
@@ -361,6 +388,7 @@ Scenario: selection persistence
 |-------|-------|
 | Story Points | 3 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | place-service |
 | Dependencies | HU-009 |
 
@@ -394,6 +422,7 @@ Scenario: cannot delete with active device
 |-------|-------|
 | Story Points | 2 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | place-service, device-service |
 | Dependencies | HU-009 |
 
@@ -404,15 +433,16 @@ Scenario: cannot delete with active device
 ### HU-012 — Vincular dispositivo a un lugar
 
 > **As** an Owner
-> **I want** to link my ESP32 device to a place using its serial number or QR code
+> **I want** to link my ESP32 device to a place using its serial number and pairing code (QR reading in Version 2)
 > **so that** the platform starts receiving water consumption readings from that location
 
 ```gherkin
 Scenario: successful linking
-  Given the user enters a valid, unlinked serial number (or scans QR code)
+  Given the user enters a valid, unlinked serial number and the pairing code printed on its label
+  And the device is powered on and online
   When they confirm the linking
   Then the device authenticates and registers to the place
-  And the device activates and begins sending readings via MQTT/HTTP
+  And the device begins sending readings via MQTT, authenticated with its factory token
   And the process completes within 60 seconds under normal network conditions
 
 Scenario: device already linked
@@ -432,6 +462,7 @@ Scenario: reading validation
 |-------|-------|
 | Story Points | 8 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | device-service |
 | Dependencies | HU-009 |
 
@@ -464,6 +495,7 @@ Scenario: never reported
 |-------|-------|
 | Story Points | 3 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | device-service |
 | Dependencies | HU-012 |
 
@@ -487,6 +519,7 @@ Scenario: unlink device
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | device-service |
 | Dependencies | HU-012 |
 
@@ -520,6 +553,7 @@ Scenario: no data available
 |-------|-------|
 | Story Points | 8 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service, device-service |
 | Dependencies | HU-012 |
 
@@ -543,6 +577,7 @@ Scenario: period selector
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service |
 | Dependencies | HU-015 |
 
@@ -567,6 +602,7 @@ Scenario: chart display
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service |
 | Dependencies | HU-015 |
 
@@ -598,6 +634,7 @@ Scenario: update frequency
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service, device-service |
 | Dependencies | HU-012 |
 
@@ -629,6 +666,7 @@ Scenario: valve status
 |-------|-------|
 | Story Points | 2 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | valve-service |
 | Dependencies | HU-012 |
 
@@ -672,6 +710,7 @@ Scenario: action logging
 |-------|-------|
 | Story Points | 8 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | valve-service, device-service, notification-service |
 | Dependencies | HU-012 |
 
@@ -703,6 +742,7 @@ Scenario: action logging
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | valve-service, device-service |
 | Dependencies | HU-020 |
 
@@ -726,6 +766,7 @@ Scenario: action history
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | valve-service |
 | Dependencies | HU-020 |
 
@@ -734,6 +775,8 @@ Scenario: action history
 ## E6 — Metas de consumo (6 SP)
 
 ### HU-023 — Definir meta mensual
+
+> **Version 2 (improvement).** Goals are a layer on top of measurement; this release completes measurement per place first.
 
 > **As** a user
 > **I want** to set a monthly water consumption goal
@@ -755,12 +798,15 @@ Scenario: edit goal
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-015 |
 
 ---
 
 ### HU-024 — Ver avance frente a la meta
+
+> **Version 2 (improvement).** Depends on HU-023.
 
 > **As** a user
 > **I want** to see how much of my monthly goal I have consumed
@@ -783,6 +829,7 @@ Scenario: no goal defined
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-023 |
 
@@ -812,13 +859,14 @@ Scenario: notification center
   When they open the notification center
   Then the system shows an icon with a count of unread alerts
   And alerts are listed from most recent to oldest with date, place, and type
-  And the user can mark them as read or delete them
+  And the user can mark one or all of them as read (deleting alerts: Version 2)
 ```
 
 | Field | Value |
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | notification-service |
 | Dependencies | HU-003 |
 
@@ -839,17 +887,18 @@ Scenario: push notification setup
 Scenario: push notification received
   Given a relevant alert is triggered
   When a push notification is sent
-  Then tapping the notification opens the corresponding alert directly
+  Then tapping the notification opens the notification center
 
 Scenario: cross-platform
   Given the push notification system
-  Then it works on both Android and iOS
+  Then it works on both Android and iOS (development or published build; Expo Go does not receive remote push on Android)
 ```
 
 | Field | Value |
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | notification-service |
 | Dependencies | HU-025 |
 
@@ -873,12 +922,15 @@ Scenario: email notification
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | notification-service |
 | Dependencies | HU-025 |
 
 ---
 
 ### HU-028 — Notificacion por WhatsApp / SMS
+
+> **Version 2 (improvement).** Needs an SMS/WhatsApp provider and phone verification. Critical alerts already reach the app, push and e-mail.
 
 > **As** a user
 > **I want** to receive a message on my phone during an emergency
@@ -897,12 +949,15 @@ Scenario: WhatsApp/SMS notification
 |-------|-------|
 | Story Points | 8 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | notification-service |
 | Dependencies | HU-025 |
 
 ---
 
 ### HU-029 — Alerta de fuga sospechosa
+
+> **Version 2 (improvement).** First improvement of version 2: it uses the readings already stored per place, but needs the continuous-flow detector and a new alert type.
 
 > **As** a user
 > **I want** to be alerted when water has been running continuously for too long
@@ -929,12 +984,15 @@ Scenario: rate limiting
 |-------|-------|
 | Story Points | 8 |
 | Priority | Must Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service, notification-service |
 | Dependencies | HU-015 |
 
 ---
 
 ### HU-030 — Alerta de meta superada
+
+> **Version 2 (improvement).** Depends on goals (HU-023).
 
 > **As** a user
 > **I want** to be notified when I exceed my monthly goal
@@ -953,12 +1011,15 @@ Scenario: goal exceeded
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service, notification-service |
 | Dependencies | HU-023 |
 
 ---
 
 ### HU-031 — Alerta preventiva de meta
+
+> **Version 2 (improvement).** Depends on goals (HU-023); in version 2 it can become a criterion of HU-030.
 
 > **As** a user
 > **I want** to be warned before I exceed my goal
@@ -977,6 +1038,7 @@ Scenario: threshold alert
 |-------|-------|
 | Story Points | 3 |
 | Priority | Could Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service, notification-service |
 | Dependencies | HU-023 |
 
@@ -1001,6 +1063,7 @@ Scenario: sensor disconnected
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | device-service, notification-service |
 | Dependencies | HU-013 |
 
@@ -1025,6 +1088,7 @@ Scenario: valve closed alert
 |-------|-------|
 | Story Points | 2 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | valve-service, notification-service |
 | Dependencies | HU-020 |
 
@@ -1055,6 +1119,7 @@ Scenario: immediate effect
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | notification-service |
 | Dependencies | HU-025 |
 
@@ -1063,6 +1128,8 @@ Scenario: immediate effect
 ## E8 — Cierre automatico de la valvula (16 SP)
 
 ### HU-035 — Configurar reglas de cierre automatico
+
+> **Version 2 (improvement).** Depends on the leak alert (HU-029).
 
 > **As** an Owner
 > **I want** to define when the valve should close automatically
@@ -1088,12 +1155,15 @@ Scenario: owner-only
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | valve-service |
 | Dependencies | HU-029 |
 
 ---
 
 ### HU-036 — Cierre automatico por fuga con confirmacion
+
+> **Version 2 (improvement).** Depends on HU-029 and HU-035.
 
 > **As** an Owner
 > **I want** the system to ask me to confirm valve closure when a leak is detected
@@ -1127,12 +1197,15 @@ Scenario: full audit
 |-------|-------|
 | Story Points | 8 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | valve-service, notification-service |
 | Dependencies | HU-035 |
 
 ---
 
 ### HU-037 — Reapertura tras cierre automatico
+
+> **Version 2 (improvement).** Manual reopening already exists (HU-021); the warning before reopening is added with HU-036.
 
 > **As** an Owner
 > **I want** to reopen the valve after an automatic shutoff
@@ -1158,12 +1231,15 @@ Scenario: no auto-reopen
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | valve-service |
 | Dependencies | HU-036 |
 
 ---
 
 ### HU-038 — Exportar datos a Excel / CSV
+
+> **Version 2 (improvement).** Belongs to downloadable reports (E13); delivered with HU-058 as an extra export format.
 
 > **As** a user
 > **I want** to download my consumption data as a spreadsheet
@@ -1181,6 +1257,7 @@ Scenario: export CSV
 |-------|-------|
 | Story Points | 3 |
 | Priority | Could Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-015 |
 
@@ -1197,6 +1274,8 @@ Scenario: export CSV
 ## E9 — Invitado anonimo (13 SP)
 
 ### HU-039 — Generar enlace de acceso para invitados
+
+> **Version 2 (improvement).** Shared access (E9, E10) is a full module; this release focuses on the owner of each place.
 
 > **As** an Owner
 > **I want** to generate a shareable link for my place
@@ -1218,12 +1297,15 @@ Scenario: deactivate link
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | place-service |
 | Dependencies | HU-009 |
 
 ---
 
 ### HU-040 — Ver consumo como invitado anonimo
+
+> **Version 2 (improvement).** Depends on HU-039.
 
 > **As** a person with a place's guest link
 > **I want** to view consumption, charts, and history
@@ -1241,12 +1323,15 @@ Scenario: guest view
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service, place-service |
 | Dependencies | HU-039 |
 
 ---
 
 ### HU-041 — Restriccion de solo lectura del invitado
+
+> **Version 2 (improvement).** A system rule rather than a user story; in version 2 it is an acceptance criterion of HU-040.
 
 > **As** the system
 > **I need** to restrict what the anonymous guest can do
@@ -1264,6 +1349,7 @@ Scenario: read-only enforcement
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | place-service |
 | Dependencies | HU-039 |
 
@@ -1272,6 +1358,8 @@ Scenario: read-only enforcement
 ## E10 — Colaborador (24 SP)
 
 ### HU-042 — Invitar colaborador por correo
+
+> **Version 2 (improvement).** Shared access (E9, E10) is a full module; this release focuses on the owner of each place.
 
 > **As** an Owner
 > **I want** to invite someone as a collaborator for my place
@@ -1298,12 +1386,15 @@ Scenario: invitation status
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | place-service, notification-service |
 | Dependencies | HU-009 |
 
 ---
 
 ### HU-043 — Aceptar invitacion como colaborador
+
+> **Version 2 (improvement).** Depends on HU-042.
 
 > **As** a person invited as a collaborator
 > **I want** to accept the invitation and access the place
@@ -1330,12 +1421,15 @@ Scenario: reject invitation
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | place-service, auth-service |
 | Dependencies | HU-042 |
 
 ---
 
 ### HU-044 — Definir permisos del colaborador
+
+> **Version 2 (improvement).** Depends on HU-042.
 
 > **As** an Owner
 > **I want** to choose what actions each collaborator can perform
@@ -1357,12 +1451,15 @@ Scenario: edit permissions after invitation
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | place-service |
 | Dependencies | HU-042 |
 
 ---
 
 ### HU-045 — Colaborador ejecuta acciones segun permisos
+
+> **Version 2 (improvement).** A system rule rather than a user story; in version 2 it is an acceptance criterion of HU-044.
 
 > **As** the system
 > **I need** to validate the collaborator's permissions on each action
@@ -1387,12 +1484,15 @@ Scenario: permission revoked with active session
 |-------|-------|
 | Story Points | 5 |
 | Priority | Must Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | place-service |
 | Dependencies | HU-044 |
 
 ---
 
 ### HU-046 — Revocar acceso de colaborador
+
+> **Version 2 (improvement).** Depends on HU-042.
 
 > **As** an Owner
 > **I want** to revoke a collaborator's access
@@ -1410,12 +1510,15 @@ Scenario: revoke access
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | place-service |
 | Dependencies | HU-042 |
 
 ---
 
 ### HU-047 — Colaborador recibe alertas del lugar
+
+> **Version 2 (improvement).** Defined as part of the collaborator permissions (HU-044) in version 2.
 
 > **As** a Collaborator
 > **I want** to receive alerts for the place I have access to
@@ -1434,6 +1537,7 @@ Scenario: collaborator alerts
 |-------|-------|
 | Story Points | 3 |
 | Priority | Could Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | notification-service |
 | Dependencies | HU-044 |
 
@@ -1442,6 +1546,8 @@ Scenario: collaborator alerts
 ## E11 — Recibos del acueducto (19 SP)
 
 ### HU-048 — Registrar un recibo manualmente
+
+> **Version 2 (improvement).** Bills are the contrast of the measurement; this release covers the sensor measurement and its estimated cost (HU-056).
 
 > **As** a user
 > **I want** to enter my water bill data
@@ -1468,12 +1574,15 @@ Scenario: overlapping period
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-009 |
 
 ---
 
 ### HU-049 — Ver historial de recibos
+
+> **Version 2 (improvement).** Depends on HU-048.
 
 > **As** a user
 > **I want** to see all the bills I have registered
@@ -1492,12 +1601,15 @@ Scenario: bill list
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-048 |
 
 ---
 
 ### HU-050 — Comparar recibo contra sensor
+
+> **Version 2 (improvement).** Depends on HU-048.
 
 > **As** a user
 > **I want** to see the difference between what my device measured and what I was billed
@@ -1520,12 +1632,15 @@ Scenario: insufficient data
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-048, HU-015 |
 
 ---
 
 ### HU-051 — Alerta de recibo desalineado
+
+> **Version 2 (improvement).** Depends on HU-050.
 
 > **As** a user
 > **I want** to be alerted when there is a significant difference between my bill and sensor
@@ -1544,12 +1659,15 @@ Scenario: discrepancy alert
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service, notification-service |
 | Dependencies | HU-050 |
 
 ---
 
 ### HU-052 — Recordatorio de pago del recibo
+
+> **Version 2 (improvement).** Depends on HU-048.
 
 > **As** a user
 > **I want** to be reminded to pay before the due date
@@ -1570,6 +1688,7 @@ Scenario: mark as paid
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | notification-service |
 | Dependencies | HU-048 |
 
@@ -1598,6 +1717,7 @@ Scenario: per-place setting
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service |
 | Dependencies | HU-009 |
 
@@ -1630,6 +1750,7 @@ Scenario: tariff history
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service |
 | Dependencies | HU-009 |
 
@@ -1654,6 +1775,7 @@ Scenario: select unit
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service |
 | Dependencies | HU-009 |
 
@@ -1682,6 +1804,7 @@ Scenario: no tariff configured
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service |
 | Dependencies | HU-054 |
 
@@ -1696,6 +1819,8 @@ Scenario: no tariff configured
 ## E13 — Reportes descargables (10 SP)
 
 ### HU-057 — Generar reporte por periodo
+
+> **Version 2 (improvement).** Could priority; the consumption panel already shows total, chart and cost of the period.
 
 > **As** a user
 > **I want** to generate a consumption report for a date range
@@ -1713,12 +1838,15 @@ Scenario: generate report
 |-------|-------|
 | Story Points | 5 |
 | Priority | Could Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-015 |
 
 ---
 
 ### HU-058 — Exportar reporte a PDF
+
+> **Version 2 (improvement).** Depends on HU-057.
 
 > **As** a user
 > **I want** to download the report as a PDF
@@ -1738,6 +1866,7 @@ Scenario: PDF export
 |-------|-------|
 | Story Points | 5 |
 | Priority | Could Have |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-057 |
 
@@ -1766,6 +1895,7 @@ Scenario: user list
 |-------|-------|
 | Story Points | 3 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service |
 | Dependencies | HU-003 |
 
@@ -1798,6 +1928,7 @@ Scenario: audit
 |-------|-------|
 | Story Points | 3 |
 | Priority | Must Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service |
 | Dependencies | HU-059 |
 
@@ -1813,14 +1944,20 @@ Scenario: audit
 Scenario: device list
   Given the admin opens the device management section
   When the page loads
-  Then the system shows all devices with serial, status (connected/disconnected), linked place, and last reading
-  And allows filtering by status
+  Then the system shows all devices with serial, status (connected/disconnected/never reported/decommissioned), linked place, and last report
+  And allows searching by serial and filtering by status and link
+
+Scenario: factory registration and maintenance
+  Given the admin is in the device management section
+  Then the admin can register new factory devices, regenerate their credentials and decommission a device
+  And every action is logged
 ```
 
 | Field | Value |
 |-------|-------|
 | Story Points | 3 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | device-service |
 | Dependencies | HU-012 |
 
@@ -1844,6 +1981,7 @@ Scenario: metrics dashboard
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | auth-service, device-service, place-service |
 | Dependencies | HU-059, HU-061 |
 
@@ -1875,6 +2013,7 @@ Scenario: invalid recommendation
 |-------|-------|
 | Story Points | 5 |
 | Priority | Should Have |
+| Scope | Current release (implemented) |
 | Service(s) | notification-service |
 | Dependencies | None |
 
@@ -1903,6 +2042,7 @@ Scenario: deactivate recommendation
 |-------|-------|
 | Story Points | 3 |
 | Priority | Could Have |
+| Scope | Current release (implemented) |
 | Service(s) | notification-service |
 | Dependencies | HU-063 |
 
@@ -1931,6 +2071,7 @@ Scenario: favorites
 |-------|-------|
 | Story Points | 3 |
 | Priority | Could Have |
+| Scope | Current release (implemented) |
 | Service(s) | notification-service |
 | Dependencies | HU-063 |
 
@@ -1968,12 +2109,15 @@ Scenario: override
 |-------|-------|
 | Story Points | 8 |
 | Priority | Could Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service |
 | Dependencies | HU-054 |
 
 ---
 
 ### HU-067 — Catalogo de tarifas de Ecuador
+
+> **Version 2 (improvement).** Won't for now: the pre-loaded catalog is Colombia only; Ecuador uses the manual tariff (HU-054).
 
 > **As** a user in Ecuador
 > **I want** to select my city and service category
@@ -1992,12 +2136,15 @@ Scenario: select city and category
 |-------|-------|
 | Story Points | 5 |
 | Priority | Won't (for now) |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-054 |
 
 ---
 
 ### HU-068 — Catalogo de tarifas de Estados Unidos
+
+> **Version 2 (improvement).** The United States is not in the place scope of this version (Colombia and Ecuador only).
 
 > **Out of market scope:** ADR-004 limits the product to Colombia and Ecuador. This story stays *Won't* until that ADR is revisited.
 
@@ -2021,6 +2168,7 @@ Scenario: partial coverage
 |-------|-------|
 | Story Points | 8 |
 | Priority | Won't (for now) |
+| Scope | Version 2 (improvement) |
 | Service(s) | consumption-service |
 | Dependencies | HU-054 |
 
@@ -2048,6 +2196,7 @@ Scenario: tariff update
 |-------|-------|
 | Story Points | 5 |
 | Priority | Could Have |
+| Scope | Current release (implemented) |
 | Service(s) | consumption-service |
 | Dependencies | HU-066 |
 

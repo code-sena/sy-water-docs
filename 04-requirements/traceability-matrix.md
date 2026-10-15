@@ -3,7 +3,7 @@
 > Maps each functional requirement to its user stories, owning service, and delivery.
 > Answers: what validates each requirement and which service implements it.
 >
-> **Updated:** Aligned with Product Backlog v2.0 (69 HUs).
+> **Updated:** 2026-10-15 — aligned with Product Backlog v2.1 (69 HUs: 40 implemented in the current release, 29 kept as Version 2 improvements).
 
 ---
 
@@ -53,41 +53,41 @@ If code exists without an HU → unplanned work (gold plating)
 
 | FR | HU(s) | Service(s) | Test file (planned) | Status |
 |----|-------|-----------|---------------------|--------|
-| FR-001 | HU-001, HU-002, HU-003, HU-004, HU-005, HU-006 | auth-service | `auth-register.spec`, `auth-verify.spec`, `auth-login.spec`, `auth-oauth.spec`, `auth-recovery.spec`, `auth-logout.spec` | Planned |
-| FR-003 | HU-007, HU-008 | auth-service | `profile-edit.spec`, `account-delete.spec` | Planned |
-| FR-004 | HU-009, HU-010, HU-011 | place-service | `place-crud.spec`, `place-switch.spec` | Planned |
-| FR-005 | HU-012, HU-014 | device-service | `device-link.spec`, `device-unlink.spec` | Planned |
-| FR-006 | HU-013 | device-service | `device-status.spec` | Planned |
-| FR-007 | HU-015, HU-016, HU-017, HU-018 | consumption-service, device-service | `consumption-realtime.spec`, `consumption-period.spec`, `consumption-chart.spec`, `flow-rate.spec` | Planned |
+| FR-001 | HU-001, HU-002, HU-003, HU-004, HU-005, HU-006 | ms-iam | `auth-register.spec`, `auth-verify.spec`, `auth-login.spec`, `auth-oauth.spec`, `auth-recovery.spec`, `auth-logout.spec` | Done (Version 2: HU-004) |
+| FR-003 | HU-007, HU-008 | ms-iam | `profile-edit.spec`, `account-delete.spec` | Done |
+| FR-004 | HU-009, HU-010, HU-011 | ms-places | `place-crud.spec`, `place-switch.spec` | Done |
+| FR-005 | HU-012, HU-014 | ms-device | `device-link.spec`, `device-unlink.spec` | Done |
+| FR-006 | HU-013 | ms-device | `device-status.spec` | Done |
+| FR-007 | HU-015, HU-016, HU-017, HU-018 | ms-consumption, ms-device | `consumption-realtime.spec`, `consumption-period.spec`, `consumption-chart.spec`, `flow-rate.spec` | Done |
 
 ### Entrega 2 — Smart Monitoring
 
 | FR | HU(s) | Service(s) | Test file (planned) | Status |
 |----|-------|-----------|---------------------|--------|
-| FR-008 | HU-038 | consumption-service | `consumption-export.spec` | Planned |
-| FR-009 | HU-023, HU-024 | consumption-service | `goal-crud.spec`, `goal-progress.spec` | Planned |
-| FR-010 | HU-029 | consumption-service, notification-service | `leak-detection.spec` | Planned |
-| FR-011 | HU-025, HU-026, HU-027, HU-028, HU-029, HU-030, HU-031, HU-032, HU-033, HU-034 | notification-service | `notification-center.spec`, `notification-push.spec`, `notification-email.spec`, `notification-whatsapp.spec`, `alert-leak.spec`, `alert-goal-exceeded.spec`, `alert-goal-preventive.spec`, `alert-sensor-offline.spec`, `alert-valve-closed.spec`, `notification-prefs.spec` | Planned |
-| FR-012 | HU-020, HU-021 | valve-service, device-service, notification-service | `valve-close.spec`, `valve-open.spec` | Planned |
-| FR-013 | HU-019, HU-022 | valve-service | `valve-status.spec`, `valve-history.spec` | Planned |
-| FR-017 | HU-035, HU-036, HU-037 | valve-service, notification-service | `shutoff-rule.spec`, `auto-shutoff.spec`, `auto-shutoff-reopen.spec` | Planned |
+| FR-008 | HU-038 | ms-consumption | `consumption-export.spec` | Version 2 |
+| FR-009 | HU-023, HU-024 | ms-consumption | `goal-crud.spec`, `goal-progress.spec` | Version 2 |
+| FR-010 | HU-029 | ms-consumption, ms-notification | `leak-detection.spec` | Version 2 |
+| FR-011 | HU-025, HU-026, HU-027, HU-028, HU-029, HU-030, HU-031, HU-032, HU-033, HU-034 | ms-notification | `notification-center.spec`, `notification-push.spec`, `notification-email.spec`, `notification-whatsapp.spec`, `alert-leak.spec`, `alert-goal-exceeded.spec`, `alert-goal-preventive.spec`, `alert-sensor-offline.spec`, `alert-valve-closed.spec`, `notification-prefs.spec` | Done (Version 2: HU-028, HU-029, HU-030, HU-031) |
+| FR-012 | HU-020, HU-021 | ms-valve, ms-device, ms-notification | `valve-close.spec`, `valve-open.spec` | Done |
+| FR-013 | HU-019, HU-022 | ms-valve | `valve-status.spec`, `valve-history.spec` | Done |
+| FR-017 | HU-035, HU-036, HU-037 | ms-valve, ms-notification | `shutoff-rule.spec`, `auto-shutoff.spec`, `auto-shutoff-reopen.spec` | Version 2 |
 
 ### Entrega 3 — Social & Billing
 
 | FR | HU(s) | Service(s) | Test file (planned) | Status |
 |----|-------|-----------|---------------------|--------|
-| FR-014a | HU-039, HU-040, HU-041 | place-service | `guest-link.spec`, `guest-view.spec`, `guest-restriction.spec` | Planned |
-| FR-014b | HU-042, HU-043, HU-044, HU-045, HU-046, HU-047 | place-service, notification-service | `collaborator-invite.spec`, `collaborator-accept.spec`, `collaborator-permissions.spec`, `collaborator-enforce.spec`, `collaborator-revoke.spec`, `collaborator-alerts.spec` | Planned |
-| FR-015 | HU-048, HU-049, HU-050, HU-051, HU-052 | consumption-service, notification-service | `bill-register.spec`, `bill-history.spec`, `bill-compare.spec`, `bill-alert.spec`, `bill-reminder.spec` | Planned |
-| FR-016 | HU-053, HU-054, HU-055, HU-056 | consumption-service | `tariff-country.spec`, `tariff-manual.spec`, `tariff-units.spec`, `consumption-cost.spec` | Planned |
+| FR-014a | HU-039, HU-040, HU-041 | ms-places | `guest-link.spec`, `guest-view.spec`, `guest-restriction.spec` | Version 2 |
+| FR-014b | HU-042, HU-043, HU-044, HU-045, HU-046, HU-047 | ms-places, ms-notification | `collaborator-invite.spec`, `collaborator-accept.spec`, `collaborator-permissions.spec`, `collaborator-enforce.spec`, `collaborator-revoke.spec`, `collaborator-alerts.spec` | Version 2 |
+| FR-015 | HU-048, HU-049, HU-050, HU-051, HU-052 | ms-consumption, ms-notification | `bill-register.spec`, `bill-history.spec`, `bill-compare.spec`, `bill-alert.spec`, `bill-reminder.spec` | Version 2 |
+| FR-016 | HU-053, HU-054, HU-055, HU-056 | ms-places, ms-consumption | `tariff-country.spec`, `tariff-manual.spec`, `tariff-units.spec`, `consumption-cost.spec` | Done |
 
 ### Entrega 4 — Administration & Analytics
 
 | FR | HU(s) | Service(s) | Test file (planned) | Status |
 |----|-------|-----------|---------------------|--------|
-| FR-016 (ext.) | HU-066, HU-067, HU-068, HU-069 | consumption-service | `tariff-colombia.spec`, `tariff-ecuador.spec`, `tariff-usa.spec`, `tariff-auto.spec` | Planned |
-| FR-018 | HU-059, HU-060, HU-061, HU-062, HU-063, HU-064, HU-065 | auth-service, device-service, place-service, notification-service | `admin-users.spec`, `admin-block.spec`, `admin-devices.spec`, `admin-metrics.spec`, `admin-recommendations.spec`, `admin-edit-rec.spec`, `user-tips.spec` | Planned |
-| FR-019 | HU-057, HU-058 | consumption-service | `report-period.spec`, `report-pdf.spec` | Planned |
+| FR-016 (ext.) | HU-066, HU-067, HU-068, HU-069 | ms-places, ms-consumption | `tariff-colombia.spec`, `tariff-ecuador.spec`, `tariff-usa.spec`, `tariff-auto.spec` | Done (Version 2: HU-067, HU-068) |
+| FR-018 | HU-059, HU-060, HU-061, HU-062, HU-063, HU-064, HU-065 | ms-iam, ms-device, ms-places | `admin-users.spec`, `admin-block.spec`, `admin-devices.spec`, `admin-metrics.spec`, `admin-recommendations.spec`, `admin-edit-rec.spec`, `user-tips.spec` | Done |
+| FR-019 | HU-057, HU-058 | ms-consumption | `report-period.spec`, `report-pdf.spec` | Version 2 |
 
 ---
 
@@ -110,92 +110,92 @@ If code exists without an HU → unplanned work (gold plating)
 
 ### Entrega 1 — MVP (E1 + E2 + E3 + E4)
 
-| HU | Title | FR(s) | Entrega |
-|----|-------|-------|---------|
-| HU-001 | Registro con correo y contrasena | FR-001 | 1 |
-| HU-002 | Verificacion de cuenta por correo | FR-001 | 1 |
-| HU-003 | Inicio de sesion | FR-001 | 1 |
-| HU-004 | Registro e inicio de sesion con Google | FR-001 | 1 |
-| HU-005 | Recuperacion de contrasena | FR-001 | 1 |
-| HU-006 | Cierre de sesion | FR-001 | 1 |
-| HU-007 | Gestion de perfil | FR-003 | 1 |
-| HU-008 | Eliminar cuenta | FR-003 | 1 |
-| HU-009 | Crear un lugar | FR-004 | 1 |
-| HU-010 | Listar y cambiar entre lugares | FR-004 | 1 |
-| HU-011 | Editar y eliminar un lugar | FR-004 | 1 |
-| HU-012 | Vincular dispositivo a un lugar | FR-005 | 1 |
-| HU-013 | Ver estado del dispositivo | FR-006 | 1 |
-| HU-014 | Desvincular dispositivo | FR-005 | 1 |
-| HU-015 | Ver consumo en tiempo real | FR-007 | 1 |
-| HU-016 | Selector de periodo (dia / semana / mes) | FR-007 | 1 |
-| HU-017 | Grafica de consumo | FR-007 | 1 |
-| HU-018 | Ver caudal en tiempo real | FR-007 | 1 |
+| HU | Title | FR(s) | Entrega | Scope (v2.1) |
+|----|-------|-------|---------|--------------|
+| HU-001 | Registro con correo y contrasena | FR-001 | 1 | Current release |
+| HU-002 | Verificacion de cuenta por correo | FR-001 | 1 | Current release |
+| HU-003 | Inicio de sesion | FR-001 | 1 | Current release |
+| HU-004 | Registro e inicio de sesion con Google | FR-001 | 1 | Version 2 |
+| HU-005 | Recuperacion de contrasena | FR-001 | 1 | Current release |
+| HU-006 | Cierre de sesion | FR-001 | 1 | Current release |
+| HU-007 | Gestion de perfil | FR-003 | 1 | Current release |
+| HU-008 | Eliminar cuenta | FR-003 | 1 | Current release |
+| HU-009 | Crear un lugar | FR-004 | 1 | Current release |
+| HU-010 | Listar y cambiar entre lugares | FR-004 | 1 | Current release |
+| HU-011 | Editar y eliminar un lugar | FR-004 | 1 | Current release |
+| HU-012 | Vincular dispositivo a un lugar | FR-005 | 1 | Current release |
+| HU-013 | Ver estado del dispositivo | FR-006 | 1 | Current release |
+| HU-014 | Desvincular dispositivo | FR-005 | 1 | Current release |
+| HU-015 | Ver consumo en tiempo real | FR-007 | 1 | Current release |
+| HU-016 | Selector de periodo (dia / semana / mes) | FR-007 | 1 | Current release |
+| HU-017 | Grafica de consumo | FR-007 | 1 | Current release |
+| HU-018 | Ver caudal en tiempo real | FR-007 | 1 | Current release |
 
 ### Entrega 2 — Smart Monitoring (E5 + E6 + E7 + E8 + HU-038)
 
-| HU | Title | FR(s) | Entrega |
-|----|-------|-------|---------|
-| HU-019 | Ver estado de la valvula | FR-013 | 2 |
-| HU-020 | Cerrar la valvula manualmente | FR-012 | 2 |
-| HU-021 | Abrir la valvula | FR-012 | 2 |
-| HU-022 | Historial de acciones sobre la valvula | FR-013 | 2 |
-| HU-023 | Definir meta mensual | FR-009 | 2 |
-| HU-024 | Ver avance frente a la meta | FR-009 | 2 |
-| HU-025 | Centro de notificaciones | FR-011 | 2 |
-| HU-026 | Notificacion push al celular | FR-011 | 2 |
-| HU-027 | Notificacion por correo | FR-011 | 2 |
-| HU-028 | Notificacion por WhatsApp / SMS | FR-011 | 2 |
-| HU-029 | Alerta de fuga sospechosa | FR-010, FR-011 | 2 |
-| HU-030 | Alerta de meta superada | FR-011 | 2 |
-| HU-031 | Alerta preventiva de meta | FR-011 | 2 |
-| HU-032 | Alerta de sensor desconectado | FR-011 | 2 |
-| HU-033 | Alerta de valvula cerrada | FR-011 | 2 |
-| HU-034 | Preferencias de notificacion | FR-011 | 2 |
-| HU-035 | Configurar reglas de cierre automatico | FR-017 | 2 |
-| HU-036 | Cierre automatico por fuga con confirmacion | FR-017 | 2 |
-| HU-037 | Reapertura tras cierre automatico | FR-017 | 2 |
-| HU-038 | Exportar datos a Excel / CSV | FR-008 | 2 |
+| HU | Title | FR(s) | Entrega | Scope (v2.1) |
+|----|-------|-------|---------|--------------|
+| HU-019 | Ver estado de la valvula | FR-013 | 2 | Current release |
+| HU-020 | Cerrar la valvula manualmente | FR-012 | 2 | Current release |
+| HU-021 | Abrir la valvula | FR-012 | 2 | Current release |
+| HU-022 | Historial de acciones sobre la valvula | FR-013 | 2 | Current release |
+| HU-023 | Definir meta mensual | FR-009 | 2 | Version 2 |
+| HU-024 | Ver avance frente a la meta | FR-009 | 2 | Version 2 |
+| HU-025 | Centro de notificaciones | FR-011 | 2 | Current release |
+| HU-026 | Notificacion push al celular | FR-011 | 2 | Current release |
+| HU-027 | Notificacion por correo | FR-011 | 2 | Current release |
+| HU-028 | Notificacion por WhatsApp / SMS | FR-011 | 2 | Version 2 |
+| HU-029 | Alerta de fuga sospechosa | FR-010, FR-011 | 2 | Version 2 |
+| HU-030 | Alerta de meta superada | FR-011 | 2 | Version 2 |
+| HU-031 | Alerta preventiva de meta | FR-011 | 2 | Version 2 |
+| HU-032 | Alerta de sensor desconectado | FR-011 | 2 | Current release |
+| HU-033 | Alerta de valvula cerrada | FR-011 | 2 | Current release |
+| HU-034 | Preferencias de notificacion | FR-011 | 2 | Current release |
+| HU-035 | Configurar reglas de cierre automatico | FR-017 | 2 | Version 2 |
+| HU-036 | Cierre automatico por fuga con confirmacion | FR-017 | 2 | Version 2 |
+| HU-037 | Reapertura tras cierre automatico | FR-017 | 2 | Version 2 |
+| HU-038 | Exportar datos a Excel / CSV | FR-008 | 2 | Version 2 |
 
 ### Entrega 3 — Social & Billing (E9 + E10 + E11 + E12)
 
-| HU | Title | FR(s) | Entrega |
-|----|-------|-------|---------|
-| HU-039 | Generar enlace de acceso para invitados | FR-014a | 3 |
-| HU-040 | Ver consumo como invitado anonimo | FR-014a | 3 |
-| HU-041 | Restriccion de solo lectura del invitado | FR-014a | 3 |
-| HU-042 | Invitar colaborador por correo | FR-014b | 3 |
-| HU-043 | Aceptar invitacion como colaborador | FR-014b | 3 |
-| HU-044 | Definir permisos del colaborador | FR-014b | 3 |
-| HU-045 | Colaborador ejecuta acciones segun permisos | FR-014b | 3 |
-| HU-046 | Revocar acceso de colaborador | FR-014b | 3 |
-| HU-047 | Colaborador recibe alertas del lugar | FR-014b | 3 |
-| HU-048 | Registrar un recibo manualmente | FR-015 | 3 |
-| HU-049 | Ver historial de recibos | FR-015 | 3 |
-| HU-050 | Comparar recibo contra sensor | FR-015 | 3 |
-| HU-051 | Alerta de recibo desalineado | FR-015 | 3 |
-| HU-052 | Recordatorio de pago del recibo | FR-015 | 3 |
-| HU-053 | Seleccionar pais y moneda | FR-016 | 3 |
-| HU-054 | Ingresar la tarifa manualmente | FR-016 | 3 |
-| HU-055 | Seleccionar unidad de medida | FR-016 | 3 |
-| HU-056 | Ver el consumo en dinero | FR-016 | 3 |
+| HU | Title | FR(s) | Entrega | Scope (v2.1) |
+|----|-------|-------|---------|--------------|
+| HU-039 | Generar enlace de acceso para invitados | FR-014a | 3 | Version 2 |
+| HU-040 | Ver consumo como invitado anonimo | FR-014a | 3 | Version 2 |
+| HU-041 | Restriccion de solo lectura del invitado | FR-014a | 3 | Version 2 |
+| HU-042 | Invitar colaborador por correo | FR-014b | 3 | Version 2 |
+| HU-043 | Aceptar invitacion como colaborador | FR-014b | 3 | Version 2 |
+| HU-044 | Definir permisos del colaborador | FR-014b | 3 | Version 2 |
+| HU-045 | Colaborador ejecuta acciones segun permisos | FR-014b | 3 | Version 2 |
+| HU-046 | Revocar acceso de colaborador | FR-014b | 3 | Version 2 |
+| HU-047 | Colaborador recibe alertas del lugar | FR-014b | 3 | Version 2 |
+| HU-048 | Registrar un recibo manualmente | FR-015 | 3 | Version 2 |
+| HU-049 | Ver historial de recibos | FR-015 | 3 | Version 2 |
+| HU-050 | Comparar recibo contra sensor | FR-015 | 3 | Version 2 |
+| HU-051 | Alerta de recibo desalineado | FR-015 | 3 | Version 2 |
+| HU-052 | Recordatorio de pago del recibo | FR-015 | 3 | Version 2 |
+| HU-053 | Seleccionar pais y moneda | FR-016 | 3 | Current release |
+| HU-054 | Ingresar la tarifa manualmente | FR-016 | 3 | Current release |
+| HU-055 | Seleccionar unidad de medida | FR-016 | 3 | Current release |
+| HU-056 | Ver el consumo en dinero | FR-016 | 3 | Current release |
 
 ### Entrega 4 — Administration & Analytics (E13 + E14 + E15)
 
-| HU | Title | FR(s) | Entrega |
-|----|-------|-------|---------|
-| HU-057 | Generar reporte por periodo | FR-019 | 4 |
-| HU-058 | Exportar reporte a PDF | FR-019 | 4 |
-| HU-059 | Admin ve lista de usuarios registrados | FR-018 | 4 |
-| HU-060 | Admin bloquea/desbloquea usuario | FR-018 | 4 |
-| HU-061 | Admin ve lista de dispositivos | FR-018 | 4 |
-| HU-062 | Admin ve metricas de plataforma | FR-018 | 4 |
-| HU-063 | Admin crea recomendacion de ahorro | FR-018 | 4 |
-| HU-064 | Admin edita o desactiva recomendacion | FR-018 | 4 |
-| HU-065 | Ver consejos de ahorro de agua | FR-018 | 4 |
-| HU-066 | Catalogo de tarifas de Colombia | FR-016 | 4 |
-| HU-067 | Catalogo de tarifas de Ecuador | FR-016 | 4 |
-| HU-068 | Catalogo de tarifas de Estados Unidos | FR-016 | 4 |
-| HU-069 | Calculo automatico con tarifa precargada | FR-016 | 4 |
+| HU | Title | FR(s) | Entrega | Scope (v2.1) |
+|----|-------|-------|---------|--------------|
+| HU-057 | Generar reporte por periodo | FR-019 | 4 | Version 2 |
+| HU-058 | Exportar reporte a PDF | FR-019 | 4 | Version 2 |
+| HU-059 | Admin ve lista de usuarios registrados | FR-018 | 4 | Current release |
+| HU-060 | Admin bloquea/desbloquea usuario | FR-018 | 4 | Current release |
+| HU-061 | Admin ve lista de dispositivos | FR-018 | 4 | Current release |
+| HU-062 | Admin ve metricas de plataforma | FR-018 | 4 | Current release |
+| HU-063 | Admin crea recomendacion de ahorro | FR-018 | 4 | Current release |
+| HU-064 | Admin edita o desactiva recomendacion | FR-018 | 4 | Current release |
+| HU-065 | Ver consejos de ahorro de agua | FR-018 | 4 | Current release |
+| HU-066 | Catalogo de tarifas de Colombia | FR-016 | 4 | Current release |
+| HU-067 | Catalogo de tarifas de Ecuador | FR-016 | 4 | Version 2 |
+| HU-068 | Catalogo de tarifas de Estados Unidos | FR-016 | 4 | Version 2 |
+| HU-069 | Calculo automatico con tarifa precargada | FR-016 | 4 | Current release |
 
 ---
 
@@ -215,7 +215,7 @@ If code exists without an HU → unplanned work (gold plating)
 
 | Gap type | Description | Action | Owner |
 |----------|-------------|--------|-------|
-| No test implementation yet | All test files are planned, none implemented | Create test files as each Entrega begins | Team |
+| Test files named by story not created | The automated tests exist per service (626 passing, see `11-quality/test-report.md`), not with the planned file names | Keep the per-service suites; map them to stories when Version 2 starts | Team |
 | NFR validation manual | Most NFR validation relies on manual testing | Automate gradually; minimum: structured logs | Team |
 | No E2E tests planned | End-to-end flows not yet defined | Define critical path E2E tests before Entrega 1 launch | Team |
 
@@ -229,6 +229,7 @@ If code exists without an HU → unplanned work (gold plating)
 | In progress | Under development |
 | Done | Implemented, tested, validated |
 | Blocked | Requires external dependency |
+| Version 2 | Kept in the backlog as an improvement for the next version (reason in `user-stories.md`) |
 
 ---
 
