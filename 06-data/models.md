@@ -7,6 +7,27 @@
 
 ---
 
+## As-built status (2026-10-10)
+
+This document is the **target model** (v5). The database actually created by the Liquibase repositories
+differs as follows; the per-service `data-model.md` files in `09-microservices/services/` describe the
+real tables, and `08-uml/diagrams/exports/ER-0*.png` draws them.
+
+| Schema (this document) | As built | Differences |
+|------------------------|----------|-------------|
+| `security` | `security` (ms-iam) | Adds `roles`, `user_roles` (USER/ADMIN) and `action_codes` (valve close confirmation) |
+| `places` | `places` (ms-places) | Also holds `place_tariffs`, `tariff_catalog`, `tips`, `tip_favorites`; `place_members` and `invitations` not created yet |
+| `devices` | `devices` (ms-devices) | As designed |
+| `monitoring` | `monitoring` (ms-consumption) | Only `readings` and `consumption_hourly`; day/week/month are computed on demand |
+| `valve` | `valve` (ms-valve) | `valve_states`, `valve_commands`; `valve_rules` not created |
+| `notifications` | `notification` (ms-notifications, singular) | `notifications`, `notification_reads`, `notification_preferences`, `place_devices`, `email_outbox`, `push_tokens` |
+| `alerts` | — | Not created; device alerts are produced by ms-notifications |
+| `goals`, `billing`, `content` | — | Not created; tariffs and tips live in `places` |
+
+Total as built: 6 schemas, 31 tables.
+
+---
+
 ## Data modeling principles
 
 ### 1. Schema-per-BC (shared database)

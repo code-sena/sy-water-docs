@@ -33,7 +33,11 @@
 
 - ms-iam was started in Java (Spring Security, OAuth2 Resource Server). Domain services were later built in .NET 10 (ADR-007). Both validate the same RS256 tokens.
 
+## [DEC-008] Account deletion releases the devices first
+
+- `HttpDeviceCleanup` calls `DELETE /internal/users/{id}/devices` on ms-devices with `X-Internal-Key`. If ms-devices is configured but does not answer, the deletion fails with 503 and nothing changes, so no device stays linked to a deleted account. Without `iam.integration.devices-url` it only logs (development).
+
 ## Pending
 
-- **HU-008:** `NoDeviceCleanup` does nothing. Replace it with an HTTP adapter that calls ms-devices with `X-Internal-Key` and refuse the deletion if ms-devices does not answer.
+- **HU-008:** the user's places are not soft-deleted when the account is deleted (risk R-011).
 - **HU-004:** Google sign-in.
