@@ -53,8 +53,9 @@
 ```
                         ┌──────────────────────────────────┐
     Mobile / Web ──────▶│  API Gateway (Spring Cloud GW)   │
-                        │  :8080                           │
-                        │  JWT validation · routing · CORS │
+                        │  :8080 · Spring Cloud Gateway 5  │
+                        │  prefix routing · JWT · CORS     │
+                        │  Redis rate limit · corr. id     │
                         └──┬────┬────┬────┬────┬───────────┘
                            │    │    │    │    │
           ┌────────────────┘    │    │    │    └──────────────────┐
@@ -157,7 +158,7 @@ If the team grows or a BC's traffic demands it, the first candidates for extract
 
 | # | Service | Responsibility | Port | Technology | Schema | BCs | Communication |
 |---|---------|---------------|------|-----------|--------|-----|---------------|
-| 01 | `api-gateway` | Routing, JWT validation, CORS, rate limiting | 8080 | Spring Cloud Gateway | — | — | HTTP Proxy |
+| 01 | `api-gateway` | Routing by prefix, JWT validation, CORS, Redis rate limiting, correlation id | 8080 | Spring Cloud Gateway 5 · Spring Boot 4.1 | — | — | HTTP Proxy |
 | 02 | `auth-service` | Registration, login, JWT tokens, Google OAuth, RBAC | 3001 | Spring Boot | `security` | BC-01 | REST + Events |
 | 03 | `place-service` | Place CRUD, switching, invitations, shared access | 3002 | .NET 8 | `places` | BC-02 | REST + Events |
 | 04 | `device-service` | Device linking, MQTT telemetry ingestion, device status | 3003 | .NET 8 | `devices` | BC-03 | MQTT + REST + Events |
