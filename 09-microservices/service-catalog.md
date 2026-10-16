@@ -30,8 +30,11 @@
                                    (one schema per service) + Redis 7 (token denylist)
 ```
 
-There is **no API gateway** in the current version: clients call each service directly and every
-service validates the JWT itself with the public key of ms-iam (see ADR-008).
+Clients enter through the **API gateway** (`api-gateway`, port 8080): one URL with a prefix per service
+(`/iam`, `/places`, `/devices`, `/consumption`, `/valve`, `/notifications`). The gateway validates the ms-iam JWT
+(RS256 public key, issuer, expiry, Redis revocation list), answers CORS, applies Redis rate limits, adds
+`X-Correlation-Id` and hides `/internal/**`. Every service **still** validates the JWT itself with the public key
+of ms-iam (defense in depth, see ADR-008). Detail: `services/00-api-gateway/README.md`.
 
 ---
 
@@ -45,9 +48,9 @@ service validates the JWT itself with the public key of ms-iam (see ADR-008).
 | 04 | `ms-consumption` | `ms-consumption` · DB `ms-consumption-db` | Readings and consumption per hour, day, week and month | 3004 | .NET 10 · RabbitMQ.Client | `monitoring` | 🟢 Implemented |
 | 05 | `ms-valve` | `ms-valve` · DB `ms-valve-db` | Confirmed valve state, open/close orders, history | 3005 | .NET 10 · RabbitMQ.Client | `valve` | 🟢 Implemented |
 | 06 | `ms-notifications` | `ms-notification` · DB `ms-notification-db` | In-app, push and e-mail alerts (E7) | 3006 | .NET 10 · RabbitMQ.Client · MailKit | `notification` | 🟢 Implemented |
-| — | `api-gateway` | — | Single entry point | — | — | — | ⏸ Not built — archived in `99-archive/deprecated/01-api-gateway` |
+| 00 | `api-gateway` | `cuida-tu-agua/api-gateway` | Single entry point: prefix routing, JWT validation, CORS, Redis rate limiting, correlation id | 8080 | Java 21 · Spring Boot 4.1 · Spring Cloud Gateway 5 | — | ✅ Built |
 
-**Statuses:** 🟢 Implemented | 🟡 In development | 🔴 Planned | ⏸ Deprecated / not built
+**Statuses:** 🟢 Implemented | ✅ Built | 🟡 In development | 🔴 Planned | ⏸ Deprecated / not built
 
 ### Clients and infrastructure (not microservices)
 
