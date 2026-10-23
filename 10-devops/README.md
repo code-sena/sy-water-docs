@@ -3,6 +3,16 @@
 > **What is this?** How code goes from the developer's computer to production,
 > and how it is maintained in each environment. CI/CD, environments, and local configuration.
 
+## Current state (Cuida Tu Agua)
+
+| Document | Content |
+|----------|---------|
+| [`ci-cd.md`](./ci-cd.md) | GitHub Actions on every PR, rulesets on `dev`/`main`, Jenkins release with approval, GHCR, migrations, hotfix, rollback |
+| [`environments.md`](./environments.md) | Local and production (Hostinger VPS): URLs, ports, secrets, deploy strategy |
+| [`local-setup.md`](./local-setup.md) | Generic template, not filled in yet — use `infra/README.md` to start the system locally |
+
+---
+
 ## Why this section exists
 
 Without documented DevOps:

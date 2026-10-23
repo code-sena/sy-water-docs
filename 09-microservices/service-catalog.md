@@ -44,10 +44,10 @@ of ms-iam (defense in depth, see ADR-008). Detail: `services/00-api-gateway/READ
 |---|---------|------------|---------------------|------|-------|--------|--------|
 | 01 | `ms-iam` | `sy-water-backend/ms-iam` · DB `ms-iam-db` | Identity, sessions, JWT, profile, one-time codes | 3001 | Java 21 · Spring Boot 4.1.1 | `security` | 🟢 Implemented |
 | 02 | `ms-places` | `ms-places` · DB `ms-places-db` | Places of each user and location catalog (Colombia and Ecuador) | 3002 | .NET 10 · ASP.NET Core | `places` | 🟢 Implemented |
-| 03 | `ms-devices` | `ms-device` · DB `ms-devices-db` | Meter linking, status, MQTT ingestion, valve orders | 3003 | .NET 10 · MQTTnet · RabbitMQ.Client | `devices` | 🟢 Implemented |
+| 03 | `ms-devices` | `ms-devices` · DB `ms-device-db` | Meter linking, status, MQTT ingestion, valve orders | 3003 | .NET 10 · MQTTnet · RabbitMQ.Client | `devices` | 🟢 Implemented |
 | 04 | `ms-consumption` | `ms-consumption` · DB `ms-consumption-db` | Readings and consumption per hour, day, week and month | 3004 | .NET 10 · RabbitMQ.Client | `monitoring` | 🟢 Implemented |
 | 05 | `ms-valve` | `ms-valve` · DB `ms-valve-db` | Confirmed valve state, open/close orders, history | 3005 | .NET 10 · RabbitMQ.Client | `valve` | 🟢 Implemented |
-| 06 | `ms-notifications` | `ms-notification` · DB `ms-notification-db` | In-app, push and e-mail alerts (E7) | 3006 | .NET 10 · RabbitMQ.Client · MailKit | `notification` | 🟢 Implemented |
+| 06 | `ms-notifications` | `ms-notifications` · DB `ms-notification-db` | In-app, push and e-mail alerts (E7) | 3006 | .NET 10 · RabbitMQ.Client · MailKit | `notification` | 🟢 Implemented |
 | 00 | `api-gateway` | `cuida-tu-agua/api-gateway` | Single entry point: prefix routing, JWT validation, CORS, Redis rate limiting, correlation id | 8080 | Java 21 · Spring Boot 4.1 · Spring Cloud Gateway 5 | — | ✅ Built |
 
 **Statuses:** 🟢 Implemented | ✅ Built | 🟡 In development | 🔴 Planned | ⏸ Deprecated / not built
@@ -60,10 +60,11 @@ of ms-iam (defense in depth, see ADR-008). Detail: `services/00-api-gateway/READ
 | `sy-water-admin` | `sy-water-frontend/sy-water-admin` | 5173 | Admin web panel: React 19 + Vite 8 (HU-061) |
 | Firmware | `sy-water-hardware/firmware` | — | MicroPython 2.0 for the ESP32 + PC simulator |
 | SQL Server 2022 | created by `ms-iam-db` | 1433 | Database `sy-water-db` |
-| Mosquitto 2.0.22 | `ms-device/compose.yml` | 1883 | MQTT broker with users and per-topic ACL |
-| RabbitMQ 4.1 | `ms-device/compose.yml` | 5672 / 15672 | Integration events between services |
+| Mosquitto 2.0.22 | `infra/compose.yml` (standalone: `ms-devices/compose.yml`) | 1883 | MQTT broker with users and per-topic ACL |
+| RabbitMQ 4.1 | `infra/compose.yml` (standalone: `ms-devices/compose.yml`) | 5672 / 15672 | Integration events between services |
 | Redis 7 | `ms-iam/compose.yml` | 6379 | Revoked access tokens (HU-006) |
 | Mailpit | `ms-iam/compose.yml` | 1025 / 8025 | Development SMTP |
+| Full system | `infra` | 80 / 443 (prod) · 8080 / 8082 (local) | Docker Compose for local and production, Caddy, Mosquitto config, Jenkins release pipeline (`10-devops/ci-cd.md`) |
 
 ---
 

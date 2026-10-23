@@ -105,6 +105,15 @@ Mitigation options (from safest to riskiest):
   6. Activate maintenance mode (last resort)
 ```
 
+**save your water — concrete actions (details in `10-devops/ci-cd.md`):**
+
+| Action | How |
+|--------|-----|
+| Roll back a service | On the VPS: `cd /opt/cuidatuagua/infra && bash scripts/deploy-service.sh <service> <TAG_VAR> <previous-tag>` |
+| Check containers | `docker compose ps` and `docker compose logs --tail 100 <service>` on the VPS |
+| Restore the database | Backup in `infra/backups/` (one is taken before every release) — team lead only |
+| Merge an urgent fix blocked by the rules | Set the ruleset `dev-main-protegidas` to **Disabled**, merge, set it back to **Active**, and record it in the post-mortem |
+
 **Before each change during an incident:**
 - Announce in the War Room what you are going to do
 - Wait for the IC's confirmation

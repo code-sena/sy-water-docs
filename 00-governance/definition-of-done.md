@@ -29,8 +29,8 @@
 ### Deployment
 - [ ] Code is mergeable to the target branch without conflicts
 - [ ] CI/CD pipeline is green for the branch
-- [ ] The change is deployed to the staging environment
-- [ ] A basic smoke test is completed successfully in staging
+- [ ] The change is merged into `dev` with the `test` and `source-branch` checks green (there is no staging server)
+- [ ] When released: the Jenkins `release` build ends in `SUCCESS` and the feature is checked in production (`10-devops/ci-cd.md`)
 - [ ] Any environment variable, secret, or configuration change is documented and validated
 
 ### Documentation

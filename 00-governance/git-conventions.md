@@ -15,7 +15,9 @@ main        ← Production. Stable branch. Only release-ready code is merged her
 ```
 
 **Rules:**
-- Nobody commits directly to `main` or `dev`
+- Nobody commits directly to `main` or `dev` (enforced by the GitHub ruleset `dev-main-protegidas`)
+- `main` only receives PRs from `dev` (release) or `hotfix/*` (enforced by the `source-branch` check)
+- `ci/[description]` is accepted for pipeline-only changes; existing `feature/hu-XXX-...` branches are accepted as `feat/`
 - Every task must have one branch and one pull request
 - One branch = one task; do not combine unrelated features or fixes
 - Branches are deleted after merge to keep the repository clean
@@ -81,7 +83,8 @@ chore(deps): upgrade Spring Boot to 3.2.x
 - **Reviewers:** minimum 1 approval before merge
 - **Review time:** reviewer must respond within 24 business hours
 - **Template:** use the repository PR template or the standard project PR checklist
-- **Green CI:** merge is allowed only when all validation checks pass
+- **Green CI:** merge is allowed only when all validation checks pass. GitHub enforces it: `test` (code repos) and `source-branch` (all repos) — see `10-devops/ci-cd.md`
+- **Approvals in GitHub:** the ruleset requires 0 approvals because the author cannot approve their own PR; the teammate review above is still part of the process
 - **No large PRs:** every PR must map to one user story or one clear fix
 
 ---
@@ -92,12 +95,15 @@ chore(deps): upgrade Spring Boot to 3.2.x
 - Use **Merge Commit** for release merges into `main`
 - **Do not** use Rebase & Merge in shared branches
 - Release branches and hotfixes must be reviewed before merging into `main`
+- A hotfix merged into `main` must also be merged back into `dev`
 
 ---
 
 ## Tags and versioning
 
-Follow Semantic Versioning: `MAJOR.MINOR.PATCH`
+**Production version = image tag = 7-character SHA of the `main` commit** built by Jenkins (e.g. `ms-valve:be4e714`). Each repo is released on its own; the running version of each service is the `*_TAG` value in the server `.env` (see `10-devops/ci-cd.md`).
+
+Git tags with Semantic Versioning (`MAJOR.MINOR.PATCH`) are optional, to mark a milestone:
 
 ```bash
 # Release to production
@@ -126,3 +132,4 @@ git push origin v1.2.0
 - Agile team rules → `00-governance/agile-conventions.md`
 - Definition of Ready → `00-governance/definition-of-ready.md`
 - Definition of Done → `00-governance/definition-of-done.md`
+- CI/CD and release process → `10-devops/ci-cd.md`

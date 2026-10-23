@@ -1,8 +1,8 @@
 # Deployment Environments
 
 > Defines the system's environments, their purposes, access, and key configurations.
-> **Rule:** If you need to access production directly, something is wrong in the process.
-> Most problems should be detected in staging.
+> **Rule:** production only changes through the release pipeline (`10-devops/ci-cd.md`).
+> Direct changes on the server are reserved for emergencies.
 
 ---
 
@@ -10,152 +10,93 @@
 
 | Environment | Purpose | Update | Access | Data |
 |-------------|---------|--------|--------|------|
-| **local** | Development on the dev's machine | Manual | Individual dev | Synthetic / seed |
-| **dev** | Continuous integration | Automatic (each PR merge to `develop`) | Entire team | Synthetic |
-| **staging** | Pre-production, QA, demos | Automatic (each merge to `main`) | Team + PO | Anonymized from prod |
-| **production** | Real users | Manual (approval required) | Tech Lead + DevOps only | Real |
+| **local** | Development and validation of `dev` on each developer's machine | Manual (`docker compose up`) | Each developer | Synthetic / seed |
+| **production** | Real users and the project demo | Jenkins `release` job, with team lead approval | Team lead (SSH user `deploy`) | Real |
+
+There is **no shared dev or staging server**: `dev` is validated by the PR tests (GitHub Actions) and locally.
 
 ---
 
-## Environment variables per environment
+## Local
 
-> Specific variables go in the environment's secrets system (Vault, AWS Secrets, K8s Secrets).
-> Local values go in `.env.example` (without real data).
+Started from the `infra` repo (`compose.yml` + `compose.override.yml`, loaded automatically). See `infra/README.md`.
 
-### Naming convention
+| Service | URL / port |
+|---------|-----------|
+| Web app | http://localhost:8082 |
+| API Gateway | http://localhost:8080 |
+| Swagger UI | http://localhost:8083/docs |
+| Services (direct) | 3001 ms-iam · 3002 ms-places · 3003 ms-devices · 3004 ms-consumption · 3005 ms-valve · 3006 ms-notifications |
+| Mailpit (test inbox) | http://localhost:8025 |
+| RabbitMQ panel | http://localhost:15672 |
+| SQL Server | localhost:1433 |
+| Mosquitto (MQTT) | 1883 on every interface (the ESP32 on the same Wi-Fi connects to the PC IP) |
 
-```
-APP_[SERVICE]_[VARIABLE]
-
-Examples:
-  APP_AUTH_JWT_SECRET
-  APP_ORDERS_DATABASE_URL
-  APP_NOTIFICATIONS_SMTP_HOST
-```
-
-### Variables per environment (example values — real ones in the vault)
-
-| Variable | Local | Dev | Staging | Production |
-|----------|-------|-----|---------|------------|
-| `DATABASE_URL` | `postgresql://dev:dev@localhost/dev_db` | Vault | Vault | Vault |
-| `REDIS_URL` | `redis://localhost:6379` | Vault | Vault | Vault |
-| `JWT_SECRET` | `dev-secret-only-local` | Vault | Vault | Vault |
-| `LOG_LEVEL` | `debug` | `info` | `info` | `warn` |
-| `NODE_ENV` | `development` | `development` | `staging` | `production` |
-| `CORS_ORIGIN` | `http://localhost:3000` | `https://dev.[domain]` | `https://staging.[domain]` | `https://[domain]` |
+Repos are cloned next to `infra` with `bash infra/scripts/clone-all.sh` (branch `dev` by default).
 
 ---
 
-## CI/CD Pipeline
+## Production
 
-```
-Developer
-  │
-  │ git push feature/HU-XXX
-  │
-  ▼
-┌─────────────────────────────────────────────────────────┐
-│  PR PIPELINE (runs on every push to a branch)           │
-│  ─────────────────────────────────────────────          │
-│  1. Lint + Format check      (< 2 min)                  │
-│  2. Unit Tests               (< 5 min)                  │
-│  3. Build                    (< 3 min)                  │
-│  ─────────────────────────────────────────────          │
-│  If it fails: blocks the PR merge                       │
-└─────────────────────────────────────────────────────────┘
-  │
-  │ PR approved and merged to `develop`
-  │
-  ▼
-┌─────────────────────────────────────────────────────────┐
-│  DEVELOP PIPELINE (deploy to dev)                       │
-│  ─────────────────────────────────────────────          │
-│  1. Lint + Build + Unit Tests   (< 10 min)              │
-│  2. Integration Tests           (< 15 min)              │
-│  3. Build Docker image          (< 5 min)               │
-│  4. Deploy to dev               (< 5 min)               │
-│  5. Smoke tests in dev          (< 3 min)               │
-└─────────────────────────────────────────────────────────┘
-  │
-  │ Release: merge develop → main
-  │
-  ▼
-┌─────────────────────────────────────────────────────────┐
-│  MAIN PIPELINE (deploy to staging)                      │
-│  ─────────────────────────────────────────────          │
-│  1. All tests                   (< 20 min)              │
-│  2. Contract Tests              (< 5 min)               │
-│  3. Build + push image with tag (< 5 min)               │
-│  4. Deploy to staging           (< 5 min)               │
-│  5. Smoke tests in staging      (< 5 min)               │
-│  6. Performance tests (k6)      (< 15 min)              │
-│  7. Notify PO (ready for QA)                            │
-└─────────────────────────────────────────────────────────┘
-  │
-  │ Manual approval by Tech Lead
-  │
-  ▼
-┌─────────────────────────────────────────────────────────┐
-│  DEPLOY TO PRODUCTION                                   │
-│  ─────────────────────────────────────────────          │
-│  1. Canary deploy (10% of traffic)                      │
-│  2. Monitor metrics for 15 min                          │
-│  3. If OK: 100% of traffic                              │
-│  4. If KO: automatic rollback                           │
-└─────────────────────────────────────────────────────────┘
-```
+| Item | Value |
+|------|-------|
+| Server | Hostinger VPS, Docker Compose, folder `/opt/cuidatuagua/infra` |
+| Compose files | `COMPOSE_FILE=compose.yml:compose.prod.yml` in the server `.env` |
+| Web app | https://sy-water.tech |
+| API | https://api.sy-water.tech (`/iam`, `/places`, `/devices`, `/consumption`, `/valve`, `/notifications`) |
+| API docs | https://api.sy-water.tech/docs |
+| Public ports | 80 / 443 (Caddy, automatic HTTPS) and 1883 (Mosquitto, for the meters) |
+| Internal only (SSH tunnel) | SQL Server 1433 · RabbitMQ panel 15672 · Portainer 9443 |
+| Images | `ghcr.io/cuida-tu-agua/<service>:<commit-sha>` — the server never builds |
+| Backups | `infra/backups/` (last 7), automatic before each release |
+
+---
+
+## Configuration and secrets
+
+- Every value lives in the `.env` of each environment. **`.env` is never committed**; `infra/.env.example` lists the variable names.
+- Secrets (database passwords, `INTERNAL_API_KEY`, SMTP, Google OAuth, RabbitMQ, Mosquitto) exist only in the server `.env` and in the Jenkins credentials store.
+- JWT keys: `KEYS_DIR` on the server (`public.pem` mounted in every service, `private.pem` only in ms-iam).
+- Production version of each service: `MS_IAM_TAG`, `MS_PLACES_TAG`, `MS_DEVICE_TAG`, `MS_CONSUMPTION_TAG`, `MS_VALVE_TAG`, `MS_NOTIFICATION_TAG`, `API_GATEWAY_TAG`, `WEB_TAG` in the server `.env`. Jenkins updates them; Compose refuses to start if one is missing.
 
 ---
 
 ## Production deploy strategy
 
-### Available options
-
-| Strategy | Description | Risk | Rollback |
-|----------|-------------|------|---------|
-| **Canary** | 10% → 50% → 100% with validation at each step | Low | Automatic |
-| **Blue-Green** | Instant switch between two versions | Medium | Immediate |
-| **Rolling** | Replaces instances one by one | Low | Slow |
-| **Recreate** | Takes everything down and starts the new version | High | Manual |
-
-**Adopted strategy:** [Canary / Blue-Green / Rolling]
+**Adopted strategy: Recreate per service** with healthcheck and automatic rollback.
+Each release replaces one container (`docker compose up -d --no-deps <service>`); the other services keep running. If the new container is not `healthy` within 5 minutes, the previous tag is restored.
 
 ### Production deploy checklist
 
-- [ ] The release PR was reviewed and approved
-- [ ] Staging tests passed (including performance)
-- [ ] The PO approved the HUs included in this release
-- [ ] The Tech Lead approved the deploy
-- [ ] Someone is available to monitor the first 30 min post-deploy
-- [ ] If there are database changes: migration ran before the code deploy
-- [ ] The rollback runbook is available: `[link to runbook]`
+- [ ] The PR `dev` → `main` was merged with `test` and `source-branch` green
+- [ ] If there are database changes: the migration was applied **before** the release and is backward compatible
+- [ ] New environment variables were added to the server `.env` before the release
+- [ ] The team lead approved the deploy in Jenkins
+- [ ] The build finished in `SUCCESS` (service `healthy`)
+- [ ] The changed feature was checked in https://sy-water.tech
 
 ### Rollback
 
 ```bash
-# Rollback Kubernetes to the previous version
-kubectl rollout undo deployment/[service-name] -n [namespace]
-
-# Verify the rollback
-kubectl rollout status deployment/[service-name] -n [namespace]
-
-# If there is an incompatible DB migration (EMERGENCY — consult Tech Lead first)
-npm run db:migrate:revert
+# On the VPS: deploy the previous tag of the service (see the Jenkins build history)
+cd /opt/cuidatuagua/infra
+bash scripts/deploy-service.sh <service> <TAG_VAR> <previous-tag>
+# e.g. bash scripts/deploy-service.sh ms-valve MS_VALVE_TAG be4e714
 ```
+
+Restoring the database backup is an emergency action: consult the team lead first.
 
 ---
 
 ## Deploy log
 
-| Date | Service | Version | Environment | Deployed by | Issues |
-|------|---------|---------|-------------|-------------|--------|
-| [date] | [service] | v[X.Y.Z] | production | [name] | None |
+The Jenkins `release` job history is the deploy log: each build is named `#N <service>:<tag>` and records who approved it and the result.
 
 ---
 
 ## Correlations
 
+- Release pipeline → `10-devops/ci-cd.md`
 - Local setup → `10-devops/local-setup.md`
 - Post-deploy observability → `13-operations/observability.md`
-- Runbook per service → `09-microservices/services/XX/runbook.md`
 - Branch policy → `00-governance/git-conventions.md`
