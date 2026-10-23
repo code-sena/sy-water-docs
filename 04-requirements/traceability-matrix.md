@@ -4,6 +4,7 @@
 > Answers: what validates each requirement and which service implements it.
 >
 > **Updated:** 2026-10-15 — aligned with Product Backlog v2.1 (69 HUs: 40 implemented in the current release, 29 kept as Version 2 improvements).
+> **2026-10-23:** the leak alert and the automatic shutoff (HU-029, HU-035 to HU-037; FR-010, FR-017) are *Won't (for now)*: the current valve and flow sensor do not give the reading level they need.
 
 ---
 
@@ -66,11 +67,11 @@ If code exists without an HU → unplanned work (gold plating)
 |----|-------|-----------|---------------------|--------|
 | FR-008 | HU-038 | ms-consumption | `consumption-export.spec` | Version 2 |
 | FR-009 | HU-023, HU-024 | ms-consumption | `goal-crud.spec`, `goal-progress.spec` | Version 2 |
-| FR-010 | HU-029 | ms-consumption, ms-notification | `leak-detection.spec` | Version 2 |
+| FR-010 | HU-029 | ms-consumption, ms-notification | `leak-detection.spec` | Won't (for now) |
 | FR-011 | HU-025, HU-026, HU-027, HU-028, HU-029, HU-030, HU-031, HU-032, HU-033, HU-034 | ms-notification | `notification-center.spec`, `notification-push.spec`, `notification-email.spec`, `notification-whatsapp.spec`, `alert-leak.spec`, `alert-goal-exceeded.spec`, `alert-goal-preventive.spec`, `alert-sensor-offline.spec`, `alert-valve-closed.spec`, `notification-prefs.spec` | Done (Version 2: HU-028, HU-029, HU-030, HU-031) |
 | FR-012 | HU-020, HU-021 | ms-valve, ms-device, ms-notification | `valve-close.spec`, `valve-open.spec` | Done |
 | FR-013 | HU-019, HU-022 | ms-valve | `valve-status.spec`, `valve-history.spec` | Done |
-| FR-017 | HU-035, HU-036, HU-037 | ms-valve, ms-notification | `shutoff-rule.spec`, `auto-shutoff.spec`, `auto-shutoff-reopen.spec` | Version 2 |
+| FR-017 | HU-035, HU-036, HU-037 | ms-valve, ms-notification | `shutoff-rule.spec`, `auto-shutoff.spec`, `auto-shutoff-reopen.spec` | Won't (for now) |
 
 ### Entrega 3 — Social & Billing
 
@@ -145,15 +146,15 @@ If code exists without an HU → unplanned work (gold plating)
 | HU-026 | Notificacion push al celular | FR-011 | 2 | Current release |
 | HU-027 | Notificacion por correo | FR-011 | 2 | Current release |
 | HU-028 | Notificacion por WhatsApp / SMS | FR-011 | 2 | Version 2 |
-| HU-029 | Alerta de fuga sospechosa | FR-010, FR-011 | 2 | Version 2 |
+| HU-029 | Alerta de fuga sospechosa | FR-010, FR-011 | 2 | Won't (for now) |
 | HU-030 | Alerta de meta superada | FR-011 | 2 | Version 2 |
 | HU-031 | Alerta preventiva de meta | FR-011 | 2 | Version 2 |
 | HU-032 | Alerta de sensor desconectado | FR-011 | 2 | Current release |
 | HU-033 | Alerta de valvula cerrada | FR-011 | 2 | Current release |
 | HU-034 | Preferencias de notificacion | FR-011 | 2 | Current release |
-| HU-035 | Configurar reglas de cierre automatico | FR-017 | 2 | Version 2 |
-| HU-036 | Cierre automatico por fuga con confirmacion | FR-017 | 2 | Version 2 |
-| HU-037 | Reapertura tras cierre automatico | FR-017 | 2 | Version 2 |
+| HU-035 | Configurar reglas de cierre automatico | FR-017 | 2 | Won't (for now) |
+| HU-036 | Cierre automatico por fuga con confirmacion | FR-017 | 2 | Won't (for now) |
+| HU-037 | Reapertura tras cierre automatico | FR-017 | 2 | Won't (for now) |
 | HU-038 | Exportar datos a Excel / CSV | FR-008 | 2 | Version 2 |
 
 ### Entrega 3 — Social & Billing (E9 + E10 + E11 + E12)
@@ -230,6 +231,7 @@ If code exists without an HU → unplanned work (gold plating)
 | Done | Implemented, tested, validated |
 | Blocked | Requires external dependency |
 | Version 2 | Kept in the backlog as an improvement for the next version (reason in `user-stories.md`) |
+| Won't (for now) | Kept in the backlog but not planned; reconsidered only when its blocker changes (reason in `user-stories.md`) |
 
 ---
 

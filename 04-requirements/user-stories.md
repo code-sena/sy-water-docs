@@ -10,12 +10,12 @@
 | Entrega | Epics | User stories | Story points | Status (v2.1) |
 |---------|-------|-------------|-------------|--------|
 | Entrega 1 (MVP) | E1--E4 | HU-001 to HU-018 (18) | 73 SP | Done (HU-004 → Version 2) |
-| Entrega 2 | E5--E8 + HU-038 | HU-019 to HU-038 (20) | 88 SP | Done: E5 and HU-025 to HU-027, HU-032 to HU-034 · Version 2: E6, E8, HU-028 to HU-031, HU-038 |
+| Entrega 2 | E5--E8 + HU-038 | HU-019 to HU-038 (20) | 88 SP | Done: E5 and HU-025 to HU-027, HU-032 to HU-034 · Version 2: E6, HU-028, HU-030, HU-031, HU-038 · Won't (for now): HU-029, E8 |
 | Entrega 3 | E9--E12 | HU-039 to HU-056 (18) | 70 SP | Done: E12 · Version 2: E9, E10, E11 |
 | Entrega 4 | E13--E15 | HU-057 to HU-069 (13) | 48 SP | Done: E14, HU-066, HU-069 · Version 2: E13, HU-067, HU-068 |
 | **Total** | **15** | **69** | **279 SP** | |
 
-> *Note: HU-067 and HU-068 are Won't (for now). Their 13 SP are counted but not planned. Active effort is 266 SP.*
+> *Note: HU-029, E8 (HU-035 to HU-037), HU-067 and HU-068 are Won't (for now). Their 37 SP are counted but not planned. Active effort is 242 SP.*
 
 ## Scope of the current release (v2.1 — 2026-10-15)
 
@@ -23,7 +23,6 @@ The current release focuses on the core of the product: **measuring water consum
 
 | Version 2 improvement | Stories |
 |-----------------------|---------|
-| Leak alert and automatic shutoff | HU-029, HU-035, HU-036, HU-037 |
 | Consumption goals | HU-023, HU-024, HU-030, HU-031 |
 | Shared access: guest and collaborator | HU-039 to HU-047 |
 | Water bills | HU-048 to HU-052 |
@@ -32,6 +31,8 @@ The current release focuses on the core of the product: **measuring water consum
 | Tariff catalogs of other countries | HU-067, HU-068 |
 
 > **Prioritization decision (Sprint Review, 2026-10-15):** four Must stories (HU-004, HU-029, HU-041, HU-045) move to Version 2. HU-041 and HU-045 depend on Should features (guest, collaborator) that move to Version 2 as a whole; HU-004 has an implemented alternative (email and password); HU-029 is the first improvement of the next version. Every Must story of the current scope is implemented.
+
+> **Out of scope for now (decision of 2026-10-23):** the leak alert and the automatic shutoff (HU-029, HU-035, HU-036, HU-037 — 24 SP) are *Won't (for now)*. The current valve and flow sensor do not give the reading level this consumption needs, so a leak cannot be detected reliably. The stories keep their numbers and are reconsidered if the hardware changes. This replaces the note above that names HU-029 as the first improvement of the next version.
 
 ---
 
@@ -46,7 +47,7 @@ The current release focuses on the core of the product: **measuring water consum
 | E5 | Control manual de la valvula | 2 | Manual remote open/close of the electrovalve |
 | E6 | Metas de consumo | 2 | Set monthly goals and view progress |
 | E7 | Alertas y notificaciones | 2 | Notification center, push/email/WhatsApp, leak/goal/sensor/valve alerts, preferences |
-| E8 | Cierre automatico de la valvula | 2 | Rule-based automatic valve closure (LeakSuspected trigger only) |
+| E8 | Cierre automatico de la valvula | 2 | Rule-based automatic valve closure (LeakSuspected trigger only) — Won't (for now) |
 | E9 | Invitado anonimo | 3 | Shareable link with read-only consumption access |
 | E10 | Colaborador | 3 | Invited registered users with Owner-defined permissions per place |
 | E11 | Recibos del acueducto | 3 | Register bills, compare against sensor data, payment reminders |
@@ -957,7 +958,7 @@ Scenario: WhatsApp/SMS notification
 
 ### HU-029 — Alerta de fuga sospechosa
 
-> **Version 2 (improvement).** First improvement of version 2: it uses the readings already stored per place, but needs the continuous-flow detector and a new alert type.
+> **Version 2 (improvement).** Won't for now (decision of 2026-10-23): the current valve and flow sensor do not give the reading level this consumption needs, so a continuous low flow (a leak) cannot be detected reliably.
 
 > **As** a user
 > **I want** to be alerted when water has been running continuously for too long
@@ -983,7 +984,7 @@ Scenario: rate limiting
 | Field | Value |
 |-------|-------|
 | Story Points | 8 |
-| Priority | Must Have |
+| Priority | Won't (for now) |
 | Scope | Version 2 (improvement) |
 | Service(s) | consumption-service, notification-service |
 | Dependencies | HU-015 |
@@ -1125,11 +1126,11 @@ Scenario: immediate effect
 
 ---
 
-## E8 — Cierre automatico de la valvula (16 SP)
+## E8 — Cierre automatico de la valvula (16 SP, Won't for now)
 
 ### HU-035 — Configurar reglas de cierre automatico
 
-> **Version 2 (improvement).** Depends on the leak alert (HU-029).
+> **Version 2 (improvement).** Won't for now: depends on the leak alert (HU-029), which is out of scope with the current valve and flow sensor.
 
 > **As** an Owner
 > **I want** to define when the valve should close automatically
@@ -1154,7 +1155,7 @@ Scenario: owner-only
 | Field | Value |
 |-------|-------|
 | Story Points | 5 |
-| Priority | Should Have |
+| Priority | Won't (for now) |
 | Scope | Version 2 (improvement) |
 | Service(s) | valve-service |
 | Dependencies | HU-029 |
@@ -1163,7 +1164,7 @@ Scenario: owner-only
 
 ### HU-036 — Cierre automatico por fuga con confirmacion
 
-> **Version 2 (improvement).** Depends on HU-029 and HU-035.
+> **Version 2 (improvement).** Won't for now: depends on HU-029 and HU-035, which are out of scope with the current valve and flow sensor.
 
 > **As** an Owner
 > **I want** the system to ask me to confirm valve closure when a leak is detected
@@ -1196,7 +1197,7 @@ Scenario: full audit
 | Field | Value |
 |-------|-------|
 | Story Points | 8 |
-| Priority | Should Have |
+| Priority | Won't (for now) |
 | Scope | Version 2 (improvement) |
 | Service(s) | valve-service, notification-service |
 | Dependencies | HU-035 |
@@ -1205,7 +1206,7 @@ Scenario: full audit
 
 ### HU-037 — Reapertura tras cierre automatico
 
-> **Version 2 (improvement).** Manual reopening already exists (HU-021); the warning before reopening is added with HU-036.
+> **Version 2 (improvement).** Won't for now: without HU-036 there is no automatic shutoff to reopen from. Manual reopening already exists (HU-021).
 
 > **As** an Owner
 > **I want** to reopen the valve after an automatic shutoff
@@ -1230,7 +1231,7 @@ Scenario: no auto-reopen
 | Field | Value |
 |-------|-------|
 | Story Points | 3 |
-| Priority | Should Have |
+| Priority | Won't (for now) |
 | Scope | Version 2 (improvement) |
 | Service(s) | valve-service |
 | Dependencies | HU-036 |
