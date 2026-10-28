@@ -41,8 +41,9 @@ ADRs document important architectural decisions. Each file = one decision.
 | ADR-019 | [As-Built Database Schema Set](records/ADR-019-as-built-schema-set.md) | Accepted (supersedes the schema list of ADR-002) | 2026-10-28 |
 | ADR-020 | [One-Time Six-Digit Codes Instead of Links](records/ADR-020-one-time-codes.md) | Accepted (recorded at close) | 2026-09-25 |
 | ADR-021 | [Project Closure and Scope Freeze](records/ADR-021-project-closure.md) | Accepted | 2026-10-28 |
+| ADR-022 | [Valve Orders for an Offline Device: Rejected, Not Queued (Saga Pattern Discarded)](records/ADR-022-offline-valve-command-saga-not-implemented.md) | Accepted — risk not resolved (recorded at close) | 2026-10-05 |
 
-> ADR-005 … ADR-020 were **recorded retroactively at project close (2026-10-28)**: the decisions were taken and
+> ADR-005 … ADR-020 and ADR-022 were **recorded retroactively at project close (2026-10-28)**: the decisions were taken and
 > implemented during the project; the date column is approximate (when it was first implemented in the code); the
 > exact date of each decision was not recorded at the time. ADR-007 and ADR-008 close the dangling references noted in risk R-010.
 > The project is closed (ADR-021); no new ADR is expected.

@@ -36,6 +36,7 @@
 | E-22 | README updates inside the code repositories | Documentation | `repository-documentation-review.md` |
 | E-23 | Static OpenAPI files per service in `07-api/contracts/` | Documentation | `07-api/README.md` |
 | E-24 | Transactional outbox for RabbitMQ events; retention of raw readings | Architecture | ADR-006, ADR-018 |
+| E-25 | Pending valve orders for offline devices (Saga) | Architecture / risk | ADR-022 |
 
 ---
 
@@ -191,6 +192,15 @@
 - **What:** transactional outbox for every RabbitMQ publisher; retention/archiving of `monitoring.readings`.
 - **Why not:** at the project's volume (one meter) neither the loss window of a direct publish nor the table growth is
   material. Recorded in ADR-006 and ADR-018.
+
+### E-25 — Pending valve orders for offline devices (Saga)
+
+- **What:** keep a close/open order while the meter is offline and deliver it on reconnection, with expiry and
+  compensation (Saga orchestrated by ms-valve).
+- **State:** orders to an offline meter are rejected; an order not confirmed in 30 s ends as `ACK_TIMEOUT`; the broker
+  does not queue messages (clean sessions). **Risk open.**
+- **Why not:** identified at the end of the project (raised in the sustentación); it needs new order states, a
+  reconnection event, outbox, firmware and UI changes. Not done for time (ADR-022).
 
 ---
 

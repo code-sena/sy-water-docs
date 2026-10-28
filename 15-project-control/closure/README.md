@@ -12,8 +12,8 @@
 | [branch-status.md](./branch-status.md) | What exists in every branch of every repository; what is integrated, abandoned, or missing a back-merge |
 | [repository-documentation-review.md](./repository-documentation-review.md) | Does each repository's documentation match its code? What could not be verified? |
 | [docs-changes-06-07-09.md](./docs-changes-06-07-09.md) | What changed in sections 06 (data), 07 (API) and 09 (microservices) at close |
-| [out-of-scope-register.md](./out-of-scope-register.md) | What will not be done, and why (E-01 … E-24) |
-| [`05-architecture/decisions/`](../../05-architecture/decisions/README.md) | Architecture decisions ADR-001 … ADR-021 (ADR-005 … ADR-021 recorded at close) |
+| [out-of-scope-register.md](./out-of-scope-register.md) | What will not be done, and why (E-01 … E-25) |
+| [`05-architecture/decisions/`](../../05-architecture/decisions/README.md) | Architecture decisions ADR-001 … ADR-022 (ADR-005 … ADR-022 recorded at close) |
 
 ---
 
