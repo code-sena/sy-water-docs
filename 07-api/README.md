@@ -3,6 +3,46 @@
 > **What is this?** The formal specification of how microservices communicate with each other
 > and with the outside world. The contract is the promise a service makes to its consumers.
 
+## As-built status at project close (2026-10-28)
+
+> Added at project close. The rest of this README is the original template guidance (2026-08-25) and is kept as
+> reference; this section describes what actually exists.
+
+### Source of truth for the contracts
+
+The contracts were **not** written contract-first as YAML files in this folder. Each service generates its OpenAPI
+document at runtime from its code, and the documentation UI aggregates them:
+
+| Service | OpenAPI document (inside the service) | Stack |
+|---------|---------------------------------------|-------|
+| ms-iam | `/v3/api-docs` | springdoc (Spring Boot) |
+| ms-places, ms-devices, ms-consumption, ms-valve, ms-notifications | `/openapi/v1.json` | ASP.NET Core OpenAPI |
+| All, aggregated | `https://api.sy-water.tech/docs` (Swagger UI container) | — |
+
+The runtime documents are the authoritative contract of the frozen code (ADR-021). The index of every endpoint at
+close is **[endpoint-catalog.md](./endpoint-catalog.md)**.
+
+### State of the files in this folder
+
+| File | State | Note |
+|------|-------|------|
+| `contracts/openapi/auth-service.yaml` | **Historical** (template, 2026-08-25) | Old design (`/api/v1/auth/register`, port 8081, "auth-service"). Does not describe ms-iam |
+| `contracts/openapi/api-gateway.yaml` | **Historical** (template, 2026-08-25) | Mentions `X-User-Role` VIEWER and headers the gateway does not add. Does not describe `api-gateway` |
+| `contracts/openapi/_shared.yaml`, `_template-service.yaml` | Template | Never instantiated |
+| `contracts/openapi/ms-iam.yaml`, `ms-places.yaml` | **Do not exist** | Referenced by some service documents; replaced by the runtime documents (E-23) |
+| `guidelines.md`, `authentication.md` | **Do not exist** | Described below as to-do; the conventions applied are in the service READMEs and ADR-008 |
+
+### Conventions actually applied
+
+- No version segment in the URL: `/api/...` per service, public prefix by service at the gateway (`/iam`, `/places`,
+  `/devices`, `/consumption`, `/valve`, `/notifications`).
+- Authentication: JWT RS256 bearer (ADR-008); internal routes `/internal/**` with `X-Internal-Key`, not public (ADR-006).
+- Errors: RFC 7807 problem details (`ProblemDetails` in .NET, `ProblemDetail` in ms-iam) with a domain error code.
+- Foreign resources return 404, not 403 (ms-places DEC-007, ms-consumption DEC-005).
+- Long operations return 202 + polling (valve orders, ms-valve DEC-002).
+
+---
+
 ## Why contracts are critical in microservices
 
 In a monolith, changing a function is easy: the compiler tells you what you break.
@@ -138,6 +178,7 @@ Reusable schemas and components across all contracts (pagination, errors, etc.)
 | `06-data/models.md` → what data exists | Schemas in the contracts |
 | `02-domain/domain-events.md` | Event publishing endpoints |
 | Contracts here | `09-microservices/[service]/` that implements them |
+| `endpoint-catalog.md` | Index of the as-built endpoints (2026-10-28) |
 | Contracts here | `11-quality/testing-strategy.md` → contract tests |
 
 ---
