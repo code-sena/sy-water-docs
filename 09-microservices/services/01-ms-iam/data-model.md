@@ -24,6 +24,8 @@
 | `v1.1-iam-model-v5` | Current tables: users, credentials, roles, user_roles, tokens, verifications, resets, attempts, activity log; seed roles `USER` and `ADMIN` |
 | `v1.2-iam-e1` | `failed_attempts` on `email_verifications` and `password_resets`; index for active refresh tokens |
 | `v1.3-iam-action-codes` | `action_codes` (HU-020) |
+| `v1.4` | Seed of the official ADMIN accounts *(added 2026-10-28)* |
+| `v1.5` | `action_codes`: action `PHONE_VERIFY`, `target_phone`, `channel` (`SMS`/`WHATSAPP`); `users.phone_channel`; `CK_users_phone_verified` (verified phone needs number and channel) — HU-028 *(added 2026-10-28)* |
 
 ---
 
@@ -57,7 +59,7 @@
 |-------|---------|-----|
 | `email_verifications` | HU-002 | 24 h |
 | `password_resets` (`channel` EMAIL\|PHONE) | HU-005 | 15 min |
-| `action_codes` (`action` VALVE_CLOSE) | HU-020 | 5 min |
+| `action_codes` (`action` VALVE_CLOSE \| PHONE_VERIFY; `target_phone`, `channel` for PHONE_VERIFY) | HU-020, HU-028 | 5 min |
 
 Common columns: `user_id`, `token_hash` (SHA-256 of the 6 digits), `expires_at`, `used_at`/`verified_at`,
 `failed_attempts` (max 5), `created_at`.

@@ -12,13 +12,13 @@
 |-------|-------|
 | Number in catalog | 01 |
 | Bounded context | BC-01 IAM (Supporting) |
-| Repository | `sy-water-backend/ms-iam` |
+| Repository | `cuida-tu-agua/iam-backend` (local folder `sy-water-backend/ms-iam`) |
 | Database repository | `sy-water-db/ms-iam-db` (Liquibase; also creates the `sy-water-db` database) |
 | Local port | **3001** (`server.port` in `application.yml`) |
 | Stack | Java 21 · Spring Boot 4.1.1 (Web MVC, Security, OAuth2 Resource Server, Data JPA, Data Redis, Mail, Actuator, Validation) |
 | Storage | SQL Server, schema `security` (login `security_app`) · Redis (revoked access tokens) · local folder `uploads/avatars` |
 | Communicates with | SMTP (Mailpit in development) · Redis · ms-devices and ms-places (`/internal/*`, `X-Internal-Key`) |
-| Consumed by | App, admin panel, ms-valve (verifies close-valve codes), ms-notifications (`/internal/users/{id}/contact`); every service validates its JWT |
+| Consumed by | App (including its admin area), ms-places, ms-valve (verifies close-valve codes), ms-notifications (`/internal/users/{id}/contact`); every service validates its JWT |
 
 ---
 
@@ -43,7 +43,27 @@
 
 - Places, devices, consumption or valve data — they belong to their own services.
 - Resource authorization: each service checks that the place belongs to the user.
-- Google sign-in (HU-004) — postponed; the `user_credentials` table already accepts `GOOGLE`.
+- ~~Google sign-in (HU-004) — postponed~~ → **implemented** (see the as-built section).
+
+---
+
+## As-built at project close (2026-10-28)
+
+> Added at project close (ADR-021). Describes the `main` branch of the repository; where the sections above or
+> below say otherwise, this section wins.
+
+| HU | Capability added after the sections above were written |
+|----|----------------------------------------------------------|
+| HU-004 | Google sign-in: `/api/auth/google/status|start|callback|exchange`; `GET /api/users/me/sign-in-methods`; Google re-authentication before sensitive changes (`/api/users/me/account/google-reauth`) |
+| HU-028 | Phone verification by SMS or WhatsApp: `POST /api/users/me/phone-verification` and `/confirm`; code sent through ms-notifications (`/internal/short-messages/verification-code`); `users.phone_channel` (`ms-iam-db` v1.5) |
+| HU-042, HU-043 | Internal endpoints for sharing: `/internal/users/by-email`, `/internal/invitation-emails`; the invitation e-mail has a "Ver invitación" button to `${IAM_MAIL_APP_URL}/invitations` (hotfix `585375e`, **only in `main`**, not back-merged to `dev`) |
+
+- Last change in `main`: `585375e` (2026-10-24). Database: `ms-iam-db` v1.5.
+- New configuration: `iam.mail.app-url` (`IAM_MAIL_APP_URL`, default `http://localhost:8082`); Google OAuth client
+  settings; ms-notifications URL. Values are in the VPS `.env`, never in Git.
+- Decisions: ADR-007 (Java), ADR-008 (JWT RS256), ADR-020 (one-time codes).
+- Not done: delete the user's places on account deletion (R-011, E-18).
+- The repository `iam-backend` has **no README** (E-22).
 
 ---
 
@@ -100,4 +120,4 @@ Requires `ms-iam-db` applied (release `v1.3-iam-action-codes`). Full procedure:
 ## Related documents
 
 - [data-model.md](./data-model.md) · [events.md](./events.md) · [decisions.md](./decisions.md) · [runbook.md](./runbook.md)
-- API contract: `07-api/contracts/openapi/ms-iam.yaml`
+- API: runtime OpenAPI `/v3/api-docs`; index in `07-api/endpoint-catalog.md` (`ms-iam.yaml` was never created)

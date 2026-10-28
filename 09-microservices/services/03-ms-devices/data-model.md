@@ -35,7 +35,7 @@ Aggregate root `Device`. Secrets are stored only as SHA-256 hashes.
 | `status` | NVARCHAR(15) | `CONNECTED` \| `DISCONNECTED` \| `NEVER_REPORTED` |
 | `last_report_at` | DATETIME2 NULL | Last authenticated heartbeat/telemetry |
 | `firmware_version` | NVARCHAR(20) NULL | From the heartbeat |
-| `inactivity_threshold_min` | INT | Minutes without reports before `DISCONNECTED` (10) |
+| `inactivity_threshold_min` | INT | Minutes without reports before `DISCONNECTED` — default **1** since `ms-device-db` v1.2 (was 10; ADR-015) |
 | `created_at`, `updated_at` | DATETIME2 | |
 
 Indexes: `UQ_devices_serial`, `UX_devices_place (place_id) WHERE place_id IS NOT NULL`, `IX_devices_status_report (status, last_report_at)`.
@@ -54,3 +54,24 @@ Append-only history of links (never deleted).
 | `created_at` | DATETIME2 | |
 
 Indexes: `IX_linkh_device_time`, `IX_linkh_place`, `UX_linkh_device_active (device_id) WHERE unlinked_at IS NULL` (one open link per device).
+
+### `devices.device_admin_log` *(added 2026-10-28 — release v1.1)*
+
+Audit of administrator actions on devices (R-004).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UNIQUEIDENTIFIER PK | |
+| `device_id` | FK → `devices.devices` | |
+| `action` | NVARCHAR(30) | `REGISTERED` \| `CREDENTIALS_REGENERATED` \| `DECOMMISSIONED` |
+| `admin_user_id` | UNIQUEIDENTIFIER | Administrator who acted |
+| `admin_name` | NVARCHAR(150) NULL | Name stored with the row |
+| `occurred_at` | DATETIME2 | |
+
+## Releases *(added 2026-10-28)*
+
+| Release | Content |
+|---------|---------|
+| v1.0 baseline | `devices`, `device_link_history` |
+| v1.1 | `device_admin_log`; grants for factory registration |
+| v1.2 | Default `inactivity_threshold_min` = 1; existing devices patched to 1 |

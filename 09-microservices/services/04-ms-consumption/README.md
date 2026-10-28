@@ -34,8 +34,26 @@
 ## Out of scope
 
 - Talking to the devices or validating their token → ms-devices (readings arrive already authenticated).
-- Goals (E6), leak detection (HU-029), bills and reports (E11, E13) — planned, not implemented.
+- ~~Goals (E6)~~ → **implemented** (HU-023, HU-024; see the as-built section).
+- Leak detection (HU-029), bills (E11) and reports/export (E13, HU-038) — **will not be done** (E-03, E-02, E-05).
 - Daily and monthly tables: `06-data/models.md` plans them, but the service aggregates from `consumption_hourly` on demand (DEC-002).
+
+---
+
+## As-built at project close (2026-10-28)
+
+> Added at project close (ADR-021). Describes the `main` branch of the repository; where the sections above or
+> below say otherwise, this section wins.
+
+| HU | Capability added after the sections above were written |
+|----|----------------------------------------------------------|
+| HU-023 | Monthly goal per place: `PUT /api/places/{id}/goals/current` (`goals.consumption_goals`, `ms-consumption-db` v1.1). Only manual goals are created: the column `source` accepts MANUAL/SUGGESTED/CARRIED_OVER, but suggested and carried-over goals were not implemented |
+| HU-024 | Progress against the goal: `GET /api/places/{id}/goals/current` |
+| HU-040 | Guest consumption: `GET /api/guest/{token}/consumption`, token resolved with ms-places `/internal/guest-links/{token}` |
+| — | Collaborators need `VIEW_CONSUMPTION` (access checked with ms-places) |
+
+- Last change in `main`: `ef3b048` (2026-10-24).
+- Not done: goal alerts (HU-030, HU-031 — E-01); tooltip with the exact value of a bar (HU-017, UI only — E-07).
 
 ---
 
@@ -67,6 +85,9 @@ Without `RabbitMq:Host` the service starts but receives no readings.
 | Method | Route | Auth |
 |--------|-------|------|
 | GET | `/api/places/{placeId}/consumption?period=day\|week\|month&tz=America/Bogota` | user |
+| GET | `/api/places/{placeId}/goals/current` | user (place access) |
+| PUT | `/api/places/{placeId}/goals/current` | user (owner) |
+| GET | `/api/guest/{token}/consumption` | anonymous (guest link, rate-limited at the gateway) |
 | GET | `/health` (database) | anonymous |
 
 Errors: `consumption.invalid_period` (400), `consumption.invalid_time_zone` (400), `place.not_found` (404).

@@ -11,7 +11,7 @@ Single entry point of Cuida Tu Agua. Spring Boot 4.1 + Spring Cloud Gateway (Web
 - CORS for the web (the `Origin` header is removed before forwarding).
 - Rate limit (Redis): auth endpoints 10/min per IP; API 20/s per user.
 - `X-Correlation-Id` on every request and one access-log line per request.
-- `/*/internal/**`, `/*/actuator/**`, `/*/openapi/**`, `/*/health` → 404.
+- `/*/internal/**`, `/*/actuator/**`, `/*/health` → 404 (route `blocked`). *(Corrected 2026-10-28: `/*/openapi/**` is no longer blocked; the OpenAPI documents are read through the gateway by the documentation UI at `/docs`.)*
 
 ## Run
 ```powershell
@@ -57,8 +57,25 @@ Rule: **service prefix + the usual path**. The gateway removes the first segment
 **ADMIN only:** `/iam/api/admin/**`, `/places/api/admin/**`, `/devices/api/admin/**`.
 **Everything else:** a valid token.
 
-**Never exposed (404):** `/*/internal/**`, `/*/actuator/**`, `/*/openapi/**`, `/*/health`.
+**Never exposed (404):** `/*/internal/**`, `/*/actuator/**`, `/*/health`.
 
 Why prefixes and not the same paths: several services share the start `/api/places/{id}/…` (places, device,
 consumption, valve) and `/api/admin/…` (iam, places, device). With a prefix every route is unambiguous and the
 front only changes its six `EXPO_PUBLIC_*` variables (no code change).
+
+---
+
+## As-built at project close (2026-10-28)
+
+> Added at project close (ADR-021). Describes the `main` branch of the repository; where the sections above or
+> below say otherwise, this section wins.
+
+| Item | State |
+|------|-------|
+| Last change in `main` | `865512c` (2026-10-24) — guest routes |
+| Guest routes (HU-039 – HU-041) | `guest-places` `GET /places/api/guest/{token}` and `guest-consumption` `GET /consumption/api/guest/{token}/consumption`: **no token**, `guestRateLimiter` per IP, declared before the per-service routes |
+| Rate limiters | `authRateLimiter` (per IP, `iam-auth`), `guestRateLimiter` (per IP), `apiRateLimiter` (the rest) |
+| Google sign-in | `/iam/api/auth/google/*` is public through `iam-auth` (HU-004) |
+| Decision record | ADR-008 (single gateway, defense in depth) |
+| Open risk | R-005: the revoked-token check is at the gateway; ms-devices does not repeat it (E-19) |
+| Not done | High availability (single instance, ADR-013) |

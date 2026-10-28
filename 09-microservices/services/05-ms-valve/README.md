@@ -40,7 +40,21 @@ Only one order can be in progress per place (filtered unique index). The state o
 
 - Talking to the device → ms-devices.
 - Notifying the owner that the valve closed (HU-033) → ms-notifications (from `device.valve.reported`).
-- Automatic close on suspected leak (HU-035/036/037, origin `AUTO_LEAK`) — the origin exists in the model, the flow is not implemented.
+- Automatic close on suspected leak (HU-035/036/037, origin `AUTO_LEAK`) — the origin exists in the model, the flow is not implemented and **will not be done** (E-04).
+
+---
+
+## As-built at project close (2026-10-28)
+
+> Added at project close (ADR-021). Describes the `main` branch of the repository; where the sections above or
+> below say otherwise, this section wins.
+
+| Item | State |
+|------|-------|
+| Collaborators (ADR-014) | Close and open require the `CONTROL_VALVE` permission, checked with ms-places `/api/places/{id}/access` |
+| Safety rules (ADR-017) | Close needs the e-mailed `VALVE_CLOSE` code; open does not; one pending order per place; 30 s timeout (sweeper every 5 s); orders refused when the device is offline (`device.offline` from ms-devices) |
+| History filter (HU-022) | The API accepts `from`/`to` (default 30 days); the app does not send them (E-08) |
+| Last change in `main` | `051124d` (2026-10-24). Database: `ms-valve-db` baseline, no releases |
 
 ---
 

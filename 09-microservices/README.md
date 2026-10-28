@@ -3,19 +3,33 @@
 > **What is this?** The individual documentation for each microservice in the system.
 > This is the most active section of the repository — it is updated with every significant change.
 
-## Current services
+## Current services (final state at project close, 2026-10-28)
 
-| # | Service | Folder | Status |
-|---|---------|--------|--------|
-| 01 | ms-iam | `services/01-ms-iam/` | Implemented |
-| 02 | ms-places | `services/02-ms-places/` | Implemented |
-| 03 | ms-devices | `services/03-ms-devices/` | Implemented |
-| 04 | ms-consumption | `services/04-ms-consumption/` | Implemented |
-| 05 | ms-valve | `services/05-ms-valve/` | Implemented |
-| 06 | ms-notifications | `services/06-ms-notifications/` | Implemented |
+| # | Service | Folder | Repository (`cuida-tu-agua`) | Stack | Status |
+|---|---------|--------|------------------------------|-------|--------|
+| 00 | api-gateway | `services/00-api-gateway/` | `api-gateway` | Java 21, Spring Cloud Gateway | Implemented, in production |
+| 01 | ms-iam | `services/01-ms-iam/` | `iam-backend` + `ms-iam-db` | Java 21, Spring Boot 4 | Implemented, in production |
+| 02 | ms-places | `services/02-ms-places/` | `ms-places` + `ms-places-db` | .NET 10 | Implemented, in production |
+| 03 | ms-devices | `services/03-ms-devices/` | `ms-devices` + `ms-device-db` | .NET 10 | Implemented, in production |
+| 04 | ms-consumption | `services/04-ms-consumption/` | `ms-consumption` + `ms-consumption-db` | .NET 10 | Implemented, in production |
+| 05 | ms-valve | `services/05-ms-valve/` | `ms-valve` + `ms-valve-db` | .NET 10 | Implemented, in production |
+| 06 | ms-notifications | `services/06-ms-notifications/` | `ms-notifications` + `ms-notification-db` | .NET 10 | Implemented, in production |
+
+Clients and devices (not services): the app `cuida-tu-agua-frontNEW` (Expo, web + Android, ADR-011) and the firmware
+`cuida-tu-agua-device-ESP` (MicroPython, ESP32, ADR-009).
 
 The executive view, communication matrix and data ownership are in [`service-catalog.md`](./service-catalog.md).
-The `api-gateway` placeholder was never built and moved to `99-archive/deprecated/01-api-gateway/`.
+
+> **Correction (2026-10-28):** this README used to say that the `api-gateway` "was never built and moved to
+> `99-archive/deprecated/01-api-gateway/`". That applied to the **template placeholder** only. The gateway was built
+> in October 2026 and is documented in `services/00-api-gateway/` (ADR-008). The archived folder is the old placeholder.
+
+**Project closed (ADR-021).** The state of every branch is in
+[`15-project-control/closure/branch-status.md`](../15-project-control/closure/branch-status.md); what was not built and
+why is in [`out-of-scope-register.md`](../15-project-control/closure/out-of-scope-register.md). The cross-cutting
+documents described below (`service-boundary-rules.md`, `communication-patterns.md`, `event-catalog.md`,
+`data-ownership-matrix.md`, `dependency-map.md`, `storage-and-documents.md`, `service-readiness-checklist.md`) were
+**never created as separate files**; their content is covered by `service-catalog.md` and ADR-005 … ADR-008.
 
 ---
 
@@ -117,7 +131,7 @@ Checklist that every service must meet before going to production.
 |---------------------------|-------------------|
 | `02-domain/domain-map.md` → bounded contexts | One per context |
 | `05-architecture/overview.md` → defined services | README of each service |
-| `07-api/contracts/openapi/` → service contract | `services/[service]/` implements it |
+| `07-api/endpoint-catalog.md` + runtime OpenAPI → service contract | `services/[service]/` implements it |
 | `06-data/models.md` → data model | `services/[service]/data-model.md` |
 | `services/[service]/runbook.md` | `13-operations/` consolidates them |
 

@@ -1,6 +1,6 @@
 # Data Model — ms-consumption
 
-> Schema `monitoring` in `sy-water-db`. Source of truth: `ms-consumption-db` (Liquibase).
+> Schemas `monitoring` and `goals` in `sy-water-db`. Source of truth: `ms-consumption-db` (Liquibase, up to v1.1).
 > ER diagram: `08-uml/diagrams/exports/ER-04_monitoring.png`.
 
 ## Database engine
@@ -44,3 +44,17 @@ Liters per place and UTC hour; base of the day, week and month charts.
 | `created_at`, `updated_at` | DATETIME2 | |
 
 Index: `UQ_hourly_place_hour (place_id, hour_start)`.
+
+### `goals.consumption_goals` *(added 2026-10-28 — release v1.1, HU-023/HU-024)*
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UNIQUEIDENTIFIER PK | |
+| `place_id` | FK → `places.places` | |
+| `month_start` | DATE | Always day 1 (`CK_goal_day`) |
+| `target_liters` | DECIMAL(18,3) | > 0 |
+| `source` | NVARCHAR(15) | `MANUAL` (default) \| `SUGGESTED` \| `CARRIED_OVER` — only `MANUAL` is used by the code |
+| `created_at`, `updated_at` | DATETIME2 | |
+
+Constraint: `UQ_goal_place_month (place_id, month_start)` — one goal per place and month. Role `goals_rw` for the
+runtime login.

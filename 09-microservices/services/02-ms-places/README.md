@@ -42,9 +42,28 @@ A place that does not belong to the caller answers **404** (never 403), so its e
 
 ## Out of scope
 
-- Members and invitations (E9/E10) — planned (`place_members`, `invitations`).
-- Bills and comparison against the sensor (E11) — planned. Tariffs live in the `places` schema (not in the `billing` schema planned in `06-data/models.md`).
+- ~~Members and invitations (E9/E10) — planned~~ → **implemented** with guest links (see the as-built section).
+- Bills and comparison against the sensor (E11) — **not implemented, will not be done** (E-02). Tariffs live in the `places` schema (not in the `billing` schema planned in `06-data/models.md`).
 - Consumption, devices and valve data.
+
+---
+
+## As-built at project close (2026-10-28)
+
+> Added at project close (ADR-021). Describes the `main` branch of the repository; where the sections above or
+> below say otherwise, this section wins.
+
+| HU | Capability added after the sections above were written |
+|----|----------------------------------------------------------|
+| HU-039 – HU-041 | Guest link: one active token per place (`places.guest_links`); owner reads, regenerates or deactivates it (`/api/places/{id}/guest-link`); anonymous read-only view `GET /api/guest/{token}` |
+| HU-042, HU-043 | Invitations by e-mail (`places.invitations`, PENDING/ACCEPTED/EXPIRED/REJECTED); `GET /api/invitations`, `POST /api/invitations/{id}/accept|reject`; e-mail through ms-iam, in-app notice through ms-notifications |
+| HU-044 – HU-046 | Collaborators (`places.place_members`) with permissions `VIEW_CONSUMPTION`, `VIEW_DEVICE_STATUS`, `VIEW_ALERTS`, `CONTROL_VALVE`, `VIEW_BILLS`; change permissions, revoke, leave (`DELETE /api/places/{id}/membership`); `GET /api/shared-places` |
+| HU-047 | `GET /internal/places/{id}/recipients?permission=…` for ms-notifications |
+| — | `GET /api/places/{id}/access`: access authority for ms-devices, ms-consumption and ms-valve (ADR-014) |
+
+- Last change in `main`: `57889f4` (2026-10-26). Database: `ms-places-db` v1.4.
+- `VIEW_BILLS` exists as a permission but has no feature behind it (bills not built, E-02).
+- Not done: tariff catalogs for Ecuador and the United States (HU-067, HU-068 — E-06).
 
 ---
 

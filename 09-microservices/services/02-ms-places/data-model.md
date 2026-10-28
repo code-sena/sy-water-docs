@@ -17,6 +17,9 @@
 |-----|---------|
 | `v1.0-baseline` | Catalog tables, `places`, seeds for Colombia and Ecuador |
 | `v1.1-places-e2` | `activity_log` (HU-011) |
+| `v1.2` | `tariff_catalog`, `place_tariffs`, seed of the Colombian catalog *(added 2026-10-28)* |
+| `v1.3` | `tips`, `tip_favorites`, starter tips *(added 2026-10-28)* |
+| `v1.4` | Sharing: `place_members`, `invitations`, `guest_links` (2026-10-24) *(added 2026-10-28)* |
 
 ## Tables
 
@@ -58,5 +61,20 @@ Water tariffs per city and stratum: `city_id` FK · `stratum` · `currency` · `
 
 ER diagram: `08-uml/diagrams/exports/ER-02_places.png`.
 
-## Planned
-- `place_members`, `invitations` (Entrega 3, E9/E10).
+## Sharing tables (v1.4, built — replaces the former "Planned" note)
+
+### `places.place_members`
+`id` PK · `place_id` FK · `user_id` FK → `security.users` · `role` (`COLLABORATOR` only) · `permissions` NVARCHAR(200)
+(comma list of `VIEW_CONSUMPTION`, `VIEW_DEVICE_STATUS`, `VIEW_ALERTS`, `CONTROL_VALVE`, `VIEW_BILLS`) · `created_at` ·
+`updated_at` · `revoked_at` NULL. `UQ_pmem_place_user (place_id, user_id)`.
+
+### `places.invitations`
+`id` PK · `place_id` FK · `invited_by` FK → `security.users` · `email` (320) · `permissions` · `status`
+(`PENDING`/`ACCEPTED`/`EXPIRED`/`REJECTED`) · `expires_at` (> `created_at`) · `created_at` · `updated_at` · `responded_at` NULL.
+
+### `places.guest_links`
+`id` PK · `place_id` FK · `token` NVARCHAR(64), length ≥ 32, `UQ_glink_token` · `created_by` FK → `security.users` ·
+`created_at` · `deactivated_at` NULL.
+
+## Not built
+- Bills (E11) — no table, will not be done (`15-project-control/closure/out-of-scope-register.md` E-02).
