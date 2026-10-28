@@ -5,6 +5,20 @@
 
 ---
 
+## Project closure (2026-10-28)
+
+The project is closed and its code frozen (ADR-021). The closure record is in [`closure/`](./closure/README.md):
+
+| Document | Content |
+|----------|---------|
+| [closure/README.md](./closure/README.md) | Index, final state, risk status at close |
+| [closure/branch-status.md](./closure/branch-status.md) | Every branch of every repository; what is integrated, abandoned or missing a back-merge |
+| [closure/repository-documentation-review.md](./closure/repository-documentation-review.md) | Documentation vs real state, per repository |
+| [closure/docs-changes-06-07-09.md](./closure/docs-changes-06-07-09.md) | What changed in sections 06, 07 and 09 at close |
+| [closure/out-of-scope-register.md](./closure/out-of-scope-register.md) | What will not be done, and why |
+
+---
+
 ## What is here and how to fill it in
 
 ### `risks.md` ⭐
