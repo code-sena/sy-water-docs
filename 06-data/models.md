@@ -1,30 +1,41 @@
 # Data Models per Service
 
 > Save Your Water — SQL Server (`sy_water_db`).
-> Authoritative source: `sy-water-db/cuida-tu-agua-model-v5.dbml` and the per-service migration repos (`sy-water-db/ms-iam-db`, `sy-water-db/ms-places-db`).
+> Design source: `sy-water-db/cuida-tu-agua-model-v5.dbml`. **Authoritative source of what exists:** the six Liquibase repositories
+> (`ms-iam-db`, `ms-places-db`, `ms-device-db`, `ms-consumption-db`, `ms-valve-db`, `ms-notification-db`) — summarized below.
 > All bounded contexts share one database, separated by schema for logical organization.
 > Cross-schema FK are real — SQL Server enforces referential integrity.
 
 ---
 
-## As-built status (2026-10-10)
+## As-built status at project close (2026-10-28)
 
-This document is the **target model** (v5). The database actually created by the Liquibase repositories
-differs as follows; the per-service `data-model.md` files in `09-microservices/services/` describe the
-real tables, and `08-uml/diagrams/exports/ER-0*.png` draws them.
+> Updated at project close. Supersedes the as-built note of 2026-10-10 (6 schemas, 31 tables), which no longer
+> matched the database. The rest of this document is the **target model v5** and is kept as the design reference;
+> where it differs from the table below, **the table below is what exists** (ADR-019). Release by release history:
+> [migrations-history.md](./migrations-history.md).
 
-| Schema (this document) | As built | Differences |
-|------------------------|----------|-------------|
-| `security` | `security` (ms-iam) | Adds `roles`, `user_roles` (USER/ADMIN) and `action_codes` (valve close confirmation) |
-| `places` | `places` (ms-places) | Also holds `place_tariffs`, `tariff_catalog`, `tips`, `tip_favorites`; `place_members` and `invitations` not created yet |
-| `devices` | `devices` (ms-devices) | As designed |
-| `monitoring` | `monitoring` (ms-consumption) | Only `readings` and `consumption_hourly`; day/week/month are computed on demand |
-| `valve` | `valve` (ms-valve) | `valve_states`, `valve_commands`; `valve_rules` not created |
-| `notifications` | `notification` (ms-notifications, singular) | `notifications`, `notification_reads`, `notification_preferences`, `place_devices`, `email_outbox`, `push_tokens` |
-| `alerts` | — | Not created; device alerts are produced by ms-notifications |
-| `goals`, `billing`, `content` | — | Not created; tariffs and tips live in `places` |
+**Total as built: 7 schemas, 38 tables** in `sy-water-db`.
 
-Total as built: 6 schemas, 31 tables.
+| Schema | Owner (Liquibase repo) | Tables as built | Difference from the target model below |
+|--------|------------------------|-----------------|----------------------------------------|
+| `security` (10) | ms-iam (`ms-iam-db`, v1.5) | `users`, `user_credentials`, `email_verifications`, `password_resets`, `refresh_tokens`, `login_attempts`, `activity_log`, `roles`, `user_roles`, `action_codes` | Adds `roles`, `user_roles` (USER/ADMIN) and `action_codes` (purposes `VALVE_CLOSE`, `PHONE_VERIFY`; channel `SMS`/`WHATSAPP`); `users.phone_channel` |
+| `places` (12) | ms-places (`ms-places-db`, v1.4) | `countries`, `subdivisions`, `cities`, `places`, `activity_log`, `tariff_catalog`, `place_tariffs`, `tips`, `tip_favorites`, `place_members`, `invitations`, `guest_links` | Holds tariffs and tips (no `billing`/`content`); `place_members`, `invitations` created in v1.4 (2026-10-24) together with `guest_links` (ADR-014) |
+| `devices` (3) | ms-devices (`ms-device-db`, v1.2) | `devices`, `device_link_history`, `device_admin_log` | Adds `device_admin_log` (factory registration, credential regeneration, decommission); default inactivity threshold 1 minute (ADR-015) |
+| `monitoring` (2) | ms-consumption (`ms-consumption-db`) | `readings`, `consumption_hourly` | No `consumption_daily`/`consumption_monthly`: computed on demand (ADR-018) |
+| `goals` (1) | ms-consumption (`ms-consumption-db`, v1.1) | `consumption_goals` | No `goal_suggestions`; `source` accepts `MANUAL`/`SUGGESTED`/`CARRIED_OVER`, only `MANUAL` is used by the code |
+| `valve` (2) | ms-valve (`ms-valve-db`, baseline) | `valve_states`, `valve_commands` | No `valve_rules` (automatic shutoff not built, E-04) |
+| `notification` (8) | ms-notifications (`ms-notification-db`, v1.7) | `notifications`, `notification_reads`, `notification_preferences`, `place_devices`, `email_outbox`, `push_tokens`, `sms_outbox`, `message_templates` | Singular schema name; replaces the planned `alerts` + `notifications` schemas |
+
+**Schemas of the target model that were never created:** `alerts`, `billing`, `content` (see ADR-019 and
+`15-project-control/closure/out-of-scope-register.md` E-02, E-04).
+
+**Accepted deviations from ADR-003 (single UUID PK):** `places.activity_log` and `places.place_tariffs` use
+`BIGINT IDENTITY`; `places.tip_favorites`, `notification.notification_reads` and
+`notification.notification_preferences` have composite PKs; `notification.place_devices` uses `place_id` as PK;
+`notification.message_templates` uses `template_key` as PK.
+
+**Per-table detail of the real database:** `09-microservices/services/0N-*/data-model.md`.
 
 ---
 
@@ -828,6 +839,11 @@ CREATE TABLE content.tip_favorites (
 ---
 
 ## Data ownership matrix
+
+> Target model. As built at close, the owners are: identity and codes → ms-iam (`security`); places, members,
+> invitations, guest links, tariffs and tips → ms-places (`places`); devices → ms-devices; readings, aggregates and goals
+> → ms-consumption (`monitoring`, `goals`); valve → ms-valve; notifications, preferences, outboxes, push tokens and
+> message templates → ms-notifications (`notification`). Bills (`billing`) and alert configuration (`alerts`) do not exist.
 
 | Entity / Data | Owner schema | Owner BC | Service | How other services access |
 |---------------|-------------|---------|---------|--------------------------|
